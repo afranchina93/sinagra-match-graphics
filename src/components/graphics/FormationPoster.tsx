@@ -221,7 +221,7 @@ function MatchHeader({ config, homeTeam, awayTeam, dateStr, timeStr }: {
             <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
             {config.opponentLogo ? (
               <img
-                src={`${LOGOS_BASE}/${config.opponentLogo}`}
+                src={config.opponentLogo?.startsWith('http') ? config.opponentLogo : `${LOGOS_BASE}/${config.opponentLogo}`}
                 alt={config.opponent}
                 crossOrigin="anonymous"
                 style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }}

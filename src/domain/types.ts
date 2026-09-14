@@ -6,20 +6,58 @@ export interface Player {
   firstName: string;
   lastName: string;
   role: PlayerRole;
+  active: boolean;
 }
 
 export interface FormationSlot {
   id: string;
-  x: number; // 0-1 relative horizontal position (0=left, 1=right)
-  y: number; // 0-1 relative vertical position (0=top/attack, 1=bottom/goal)
+  x: number;
+  y: number;
   role: PlayerRole;
-  label?: string; // e.g. "GK", "LB", "CF"
+  label?: string;
 }
 
 export interface FormationLayout {
   name: string;
   slots: FormationSlot[];
 }
+
+// ── Tipi relazionali (Supabase) ──────────────────────────────
+
+export interface Team {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+}
+
+export interface Competition {
+  id: string;
+  name: string;
+  season: string;
+}
+
+export interface Match {
+  id: string;
+  opponentId: string | null;
+  isHome: boolean;
+  matchDate: string | null;
+  competitionId: string | null;
+  matchday: string;
+  formation: string;
+  stadium: string;
+  coach: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MatchView {
+  match: Match;
+  opponent: Team | null;
+  starters: Record<string, string>; // slotId -> playerId
+  bench: string[];
+}
+
+// ── Tipi usati da FormationPoster (invariati) ────────────────
 
 export interface MatchConfig {
   opponent: string;
@@ -29,20 +67,16 @@ export interface MatchConfig {
   matchday: string;
   formation: string;
   stadium: string;
-  opponentLogo?: string; // filename in /assets/logos/ (es. "real-palermo.png")
+  opponentLogo?: string;
 }
 
 export interface Lineup {
-  starters: Record<string, string>; // slotId -> playerId
-  bench: string[]; // playerIds
+  starters: Record<string, string>;
+  bench: string[];
   coach: string;
 }
 
-export interface AppState {
-  roster: Player[];
-  matchConfig: MatchConfig;
-  lineup: Lineup;
-}
+// ── Formazioni disponibili ───────────────────────────────────
 
 export const FORMATIONS = [
   '4-3-3', '4-2-3-1', '4-4-2', '3-5-2', '3-4-3',

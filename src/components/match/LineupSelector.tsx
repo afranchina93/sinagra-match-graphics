@@ -26,8 +26,13 @@ export function LineupSelector({ roster, formation, lineup, onChange }: LineupSe
   const layout = formationLayouts[formation] ?? formationLayouts['4-3-3'];
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
 
-  // playerIds already selected as starters
-  const selectedStarterIds = new Set(Object.values(lineup.starters));
+  // playerIds already selected as starters in the *current* formation's slots
+  const currentSlotIds = new Set(layout.slots.map((s) => s.id));
+  const selectedStarterIds = new Set(
+    Object.entries(lineup.starters)
+      .filter(([slotId]) => currentSlotIds.has(slotId))
+      .map(([, playerId]) => playerId)
+  );
 
   function setStarter(slotId: string, playerId: string) {
     // If this player is already in another slot, remove them from that slot first

@@ -11,6 +11,7 @@
     "deploy": "vite build && vercel --prod"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.109.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.45.0",
     "react": "^19.2.8",

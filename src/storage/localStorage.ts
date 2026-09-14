@@ -1,25 +1,15 @@
-import type { AppState } from '../domain/types';
+const KEY = 'sinagra_current_match_id';
 
-const STORAGE_KEY = 'sinagra_match_graphics_v1';
-
-export function saveState(state: AppState): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // storage full or unavailable
-  }
+export function getCurrentMatchId(): string | null {
+  // Pulisci il vecchio formato JSON blob se presente
+  localStorage.removeItem('sinagra_match_graphics_v1');
+  return localStorage.getItem(KEY);
 }
 
-export function loadState(): AppState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AppState;
-  } catch {
-    return null;
-  }
+export function setCurrentMatchId(id: string): void {
+  localStorage.setItem(KEY, id);
 }
 
-export function clearState(): void {
-  localStorage.removeItem(STORAGE_KEY);
+export function clearCurrentMatchId(): void {
+  localStorage.removeItem(KEY);
 }

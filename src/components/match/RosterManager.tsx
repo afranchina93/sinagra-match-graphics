@@ -3,8 +3,9 @@ import type { Player, PlayerRole } from '../../domain/types';
 import { Plus, Trash2, X } from 'lucide-react';
 
 interface RosterManagerProps {
-  roster: Player[];
-  onChange: (roster: Player[]) => void;
+  players: Player[];
+  onUpsert: (player: Omit<Player, 'id'> & { id?: string }) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 const ROLES: { value: PlayerRole; label: string }[] = [
@@ -35,29 +36,30 @@ interface NewPlayer {
   role: PlayerRole;
 }
 
-const EMPTY_PLAYER: NewPlayer = { number: '', firstName: '', lastName: '', role: 'midfielder' };
+const EMPTY: NewPlayer = { number: '', firstName: '', lastName: '', role: 'midfielder' };
 
-export function RosterManager({ roster, onChange }: RosterManagerProps) {
+export function RosterManager({ players, onUpsert, onDelete }: RosterManagerProps) {
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState<NewPlayer>(EMPTY_PLAYER);
+  const [form, setForm] = useState<NewPlayer>(EMPTY);
+  const [saving, setSaving] = useState(false);
 
-  function addPlayer() {
+  async function addPlayer() {
     const num = parseInt(form.number);
     if (!form.lastName || isNaN(num)) return;
-    const player: Player = {
-      id: `custom_${Date.now()}`,
-      number: num,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      role: form.role,
-    };
-    onChange([...roster, player]);
-    setForm(EMPTY_PLAYER);
-    setAdding(false);
-  }
-
-  function removePlayer(id: string) {
-    onChange(roster.filter((p) => p.id !== id));
+    setSaving(true);
+    try {
+      await onUpsert({
+        number: num,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        role: form.role,
+        active: true,
+      });
+      setForm(EMPTY);
+      setAdding(false);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const byRole: Record<PlayerRole, Player[]> = {
@@ -66,9 +68,10 @@ export function RosterManager({ roster, onChange }: RosterManagerProps) {
     midfielder: [],
     forward: [],
   };
-  roster.forEach((p) => byRole[p.role].push(p));
+  players.forEach((p) => byRole[p.role]?.push(p));
 
-  const inputCls = 'bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400';
+  const inputCls =
+    'bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400';
 
   return (
     <div className="space-y-4">
@@ -121,21 +124,22 @@ export function RosterManager({ roster, onChange }: RosterManagerProps) {
           </div>
           <button
             onClick={addPlayer}
-            className="w-full bg-yellow-400 text-gray-900 rounded py-1.5 text-xs font-bold uppercase tracking-wide hover:bg-yellow-300 transition-colors"
+            disabled={saving}
+            className="w-full bg-yellow-400 text-gray-900 rounded py-1.5 text-xs font-bold uppercase tracking-wide hover:bg-yellow-300 transition-colors disabled:opacity-50"
           >
-            Aggiungi giocatore
+            {saving ? 'Salvataggio...' : 'Aggiungi giocatore'}
           </button>
         </div>
       )}
 
-      {(Object.entries(byRole) as [PlayerRole, Player[]][]).map(([role, players]) => (
+      {(Object.entries(byRole) as [PlayerRole, Player[]][]).map(([role, rolePlayers]) => (
         <div key={role}>
           <div className="flex items-center gap-2 mb-1.5">
             <span className={`text-xs font-bold ${ROLE_COLORS[role]}`}>{ROLE_LABELS[role]}</span>
-            <span className="text-xs text-gray-500">({players.length})</span>
+            <span className="text-xs text-gray-500">({rolePlayers.length})</span>
           </div>
           <div className="space-y-1">
-            {players.map((p) => (
+            {rolePlayers.map((p) => (
               <div
                 key={p.id}
                 className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 group"
@@ -145,14 +149,14 @@ export function RosterManager({ roster, onChange }: RosterManagerProps) {
                   {p.lastName} {p.firstName.charAt(0)}.
                 </span>
                 <button
-                  onClick={() => removePlayer(p.id)}
+                  onClick={() => onDelete(p.id)}
                   className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 size={12} />
                 </button>
               </div>
             ))}
-            {players.length === 0 && (
+            {rolePlayers.length === 0 && (
               <p className="text-xs text-gray-600 px-2">Nessun giocatore</p>
             )}
           </div>

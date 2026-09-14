@@ -64,10 +64,10 @@ export const PITCH_IMG_OFFSET_Y = 55;    // respiro tra titolo e campo
  *   bottom-right: (1041, 636)
  */
 export const PITCH_VERTICES = {
-  TL: { x: 252, y: 68  },
-  TR: { x: 820, y: 68  },
-  BL: { x: 30,  y: 636 },
-  BR: { x: 1041, y: 636 },
+  TL: { x: 252, y: 52  },
+  TR: { x: 820, y: 52  },
+  BL: { x: 30,  y: 515 },
+  BR: { x: 1041, y: 515 },
 } as const;
 
 /**
