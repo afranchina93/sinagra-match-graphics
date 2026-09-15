@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Player, Team, Competition, Match, MatchView } from '../domain/types';
+import type { Player, Team, Competition, Match, MatchView, Scorer } from '../domain/types';
 
 // ── Players ───────────────────────────────────────────────────────────────────
 
@@ -239,6 +239,10 @@ function dbToMatch(r: Record<string, unknown>): Match {
     coach: (r.coach as string) ?? '',
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
+    homeGoals: (r.home_goals as number) ?? 0,
+    awayGoals: (r.away_goals as number) ?? 0,
+    homeScorers: (r.home_scorers as Scorer[]) ?? [],
+    awayScorers: (r.away_scorers as Scorer[]) ?? [],
   };
 }
 
@@ -252,5 +256,9 @@ function matchToDb(m: Omit<Match, 'id' | 'createdAt' | 'updatedAt'>): Record<str
     formation: m.formation ?? '4-3-3',
     stadium: m.stadium ?? 'Campo Sportivo Sinagra',
     coach: m.coach ?? 'Andrea Ioppolo',
+    home_goals: m.homeGoals ?? 0,
+    away_goals: m.awayGoals ?? 0,
+    home_scorers: m.homeScorers ?? [],
+    away_scorers: m.awayScorers ?? [],
   };
 }

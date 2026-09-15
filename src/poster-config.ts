@@ -118,6 +118,12 @@ export const POSTER_ASSETS = {
   logo:            '/assets/poster/sinagra-logo.png',
   /** Pannello footer pennellato — PNG, RGBA trasparente (1942×809) */
   footerPanel:     '/assets/poster/footer-panel.png',
+  /** Background risultato — PNG stadio Sinagra con fumogeni e sponsor (1080×1350) */
+  resultBackground: '/assets/poster/result-background.png',
+  /** Logo sponsor Fratelli Caprino – more than organic */
+  caprinoLogo: '/assets/poster/fratelli-caprino-logo.png',
+  /** Tabellone sostituzione (asset statico 1774×887, ratio 2:1) */
+  substitutionBoard: '/assets/poster/substitution-board.png',
 } as const;
 
 /**

@@ -281,6 +281,62 @@ Implementazione in `App.tsx`: stato `showMobilePreview: boolean` + classi Tailwi
 
 ---
 
+## Template Result Poster (`src/components/graphics/ResultPoster.tsx`)
+
+Secondo template grafico 1080×1350px per i risultati delle partite.
+
+### Background statico
+`public/assets/poster/result-background.png` — foto stadio Sinagra con sfondo giallo,
+pennellate rosse, montagna, tribune, fumogeni giallo-rossi, ringhiera con i 3 sponsor
+(LA DISTRIBUZIONE | BORRELLO | AUTO TINDIGLIA).
+
+### Layout (coordinate canvas px)
+
+```
+y:  22-175   ResultHeader  — MATCHDAY n / competizione / data·ora / stadio (centrato)
+y: 185-295   PhaseSection  — FULL TIME o HALF TIME (FULL/HALF nero, TIME rosso, 96px)
+y: 310-490   ScoreSection  — [logo+nome casa]  [2 — 1]  [logo+nome ospiti]
+y: 505-680   ScorersSection — due colonne: casa sx, ospiti dx; minuto rosso, nome nero
+y:1285-1335  SocialFooter  — [IG] [FB] sinagra calcio
+```
+
+### Nuovi tipi (`src/domain/types.ts`)
+
+```typescript
+export interface Scorer { minute: number; playerName: string; }
+export type ResultPhase = 'HALF TIME' | 'FULL TIME';
+export interface ResultConfig { phase, matchday, competition, date, stadium,
+  homeTeam, awayTeam, homeLogo?, awayLogo?,
+  homeGoals, awayGoals, homeScorers, awayScorers }
+```
+
+### Campi aggiuntivi in `Match`
+`homeGoals`, `awayGoals`, `homeScorers[]`, `awayScorers[]`
+
+### SQL da eseguire (una tantum su Supabase)
+Vedere `supabase/migration_result.sql`:
+```sql
+alter table matches add column if not exists home_goals integer default 0;
+alter table matches add column if not exists away_goals integer default 0;
+alter table matches add column if not exists home_scorers jsonb default '[]';
+alter table matches add column if not exists away_scorers jsonb default '[]';
+```
+
+### Integrazione App
+
+- Nuova tab **Risultato** (icona Trophy) → mostra `ResultForm`
+- Preview panel: mostra `ResultPoster` quando tab = 'result', altrimenti `FormationPoster`
+- Toggle HALF TIME / FULL TIME (stato locale `resultPhase`) — non persistito in DB
+- Export: usa `resultPreviewRef` per il poster risultato
+- Autosave: campi result inclusi nel payload di `updateMatch`
+
+### Form (`src/components/match/ResultForm.tsx`)
+- Toggle HALF TIME / FULL TIME
+- Contatori `[−] [n] [+]` per gol casa e ospiti
+- Lista marcatori per squadra: minuto + nome, aggiunta inline, rimozione, ordinati per minuto
+
+---
+
 ## Storico modifiche
 
 | Data | Modifica |
@@ -297,3 +353,6 @@ Implementazione in `App.tsx`: stato `showMobilePreview: boolean` + classi Tailwi
 | 2025-07 | Fix build: campo `active` mancante in `roster.ts` legacy |
 | 2025-07 | Layout responsive mobile con toggle anteprima |
 | 2025-07 | Vercel Deployment Protection disabilitato (accesso pubblico) |
+| 2026-09 | Nuovo template Result Poster (FULL TIME / HALF TIME) |
+| 2026-09 | Nuovi campi Match: homeGoals, awayGoals, homeScorers, awayScorers |
+| 2026-09 | Nuova tab Risultato con ResultForm e toggle fase |

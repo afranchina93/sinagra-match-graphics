@@ -1,14 +1,18 @@
 import type { ReactNode } from 'react';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Download, Users, Settings, List, CalendarDays } from 'lucide-react';
+import { Download, Users, Settings, List, CalendarDays, Trophy, ArrowRightLeft } from 'lucide-react';
 import { FormationPoster } from './components/graphics/FormationPoster';
+import { ResultPoster } from './components/graphics/ResultPoster';
+import { SubstitutionPoster } from './components/graphics/SubstitutionPoster';
 import { MatchForm } from './components/match/MatchForm';
 import { LineupSelector } from './components/match/LineupSelector';
 import { RosterManager } from './components/match/RosterManager';
 import { MatchList } from './components/match/MatchList';
+import { ResultForm } from './components/match/ResultForm';
+import { SubstitutionForm } from './components/match/SubstitutionForm';
 import type {
   Player, Team, Competition, Match, MatchView,
-  MatchConfig, Lineup,
+  MatchConfig, Lineup, ResultConfig, ResultPhase, SubstitutionConfig,
 } from './domain/types';
 import {
   getCurrentMatchId, setCurrentMatchId, clearCurrentMatchId,
@@ -23,10 +27,12 @@ import {
 } from './storage/db';
 import { exportAsPng } from './export/exportImage';
 
-type Tab = 'matches' | 'match' | 'lineup' | 'roster';
+type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution';
 
 export default function App() {
   const previewRef = useRef<HTMLDivElement>(null);
+  const resultPreviewRef = useRef<HTMLDivElement>(null);
+  const substitutionPreviewRef = useRef<HTMLDivElement>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -37,6 +43,12 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('matches');
   const [exporting, setExporting] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [resultPhase, setResultPhase] = useState<ResultPhase>('FULL TIME');
+  const [subData, setSubData] = useState({
+    minute: '',
+    playerOut: { number: 0, name: '' },
+    playerIn:  { number: 0, name: '' },
+  });
   const isInitialLoad = useRef(true);
 
   // Mount: carica tutto
@@ -58,7 +70,6 @@ export default function App() {
     loadMatchView(currentMatchId).then((view) => {
       if (view) {
         setCurrentView(view);
-        // Dopo il caricamento iniziale, reset flag
         setTimeout(() => { isInitialLoad.current = false; }, 0);
       }
     });
@@ -93,6 +104,10 @@ export default function App() {
       formation: '4-3-3',
       stadium: 'Campo Sportivo Sinagra',
       coach: 'Andrea Ioppolo',
+      homeGoals: 0,
+      awayGoals: 0,
+      homeScorers: [],
+      awayScorers: [],
     });
     setMatches((prev) => [newMatch, ...prev]);
     setCurrentMatchIdState(newMatch.id);
@@ -172,7 +187,6 @@ export default function App() {
       const url = await uploadTeamLogo(teamId, file);
       const updatedTeam = await upsertTeam({ id: teamId, name: teams.find(t => t.id === teamId)!.name, logoUrl: url });
       setTeams((prev) => prev.map((t) => (t.id === teamId ? updatedTeam : t)));
-      // Aggiorna anche opponent nella currentView
       setCurrentView((v) =>
         v && v.match.opponentId === teamId
           ? { ...v, opponent: updatedTeam }
@@ -212,14 +226,20 @@ export default function App() {
   // ── Export ────────────────────────────────────────────────────────────────
 
   async function handleExport() {
-    if (!previewRef.current) return;
+    const ref =
+      tab === 'result'       ? resultPreviewRef :
+      tab === 'substitution' ? substitutionPreviewRef :
+      previewRef;
+    if (!ref.current) return;
     setExporting(true);
     try {
       const opponent = currentView?.opponent?.name || 'avversario';
-      await exportAsPng(
-        previewRef.current,
-        `sinagra-vs-${opponent.toLowerCase().replace(/\s+/g, '-')}.png`
-      );
+      const slug = opponent.toLowerCase().replace(/\s+/g, '-');
+      const suffix =
+        tab === 'result'       ? `sinagra-risultato-vs-${slug}.png` :
+        tab === 'substitution' ? `sinagra-sostituzione-vs-${slug}.png` :
+        `sinagra-vs-${slug}.png`;
+      await exportAsPng(ref.current, suffix);
     } catch (err) {
       console.error('Export failed:', err);
       alert("Errore durante l'esportazione. Riprova.");
@@ -253,13 +273,64 @@ export default function App() {
     ? { starters: currentView.starters, bench: currentView.bench, coach: currentView.match.coach }
     : { starters: {}, bench: [], coach: '' };
 
+  // ── Adapter: MatchView → ResultPoster props ───────────────────────────────
+
+  const competition = currentView
+    ? competitions.find((c) => c.id === currentView.match.competitionId)?.name ?? ''
+    : '';
+
+  const posterResultConfig: ResultConfig = currentView
+    ? {
+        phase: resultPhase,
+        matchday: currentView.match.matchday,
+        competition,
+        date: currentView.match.matchDate ?? '',
+        stadium: currentView.match.stadium,
+        homeTeam: currentView.match.isHome ? 'SINAGRA CALCIO' : (currentView.opponent?.name ?? 'OSPITI'),
+        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA CALCIO',
+        homeLogo: currentView.match.isHome ? undefined : (currentView.opponent?.logoUrl ?? undefined),
+        awayLogo: currentView.match.isHome ? (currentView.opponent?.logoUrl ?? undefined) : undefined,
+        homeGoals: currentView.match.homeGoals,
+        awayGoals: currentView.match.awayGoals,
+        homeScorers: currentView.match.homeScorers,
+        awayScorers: currentView.match.awayScorers,
+      }
+    : {
+        phase: 'FULL TIME',
+        matchday: '', competition: '', date: '', stadium: '',
+        homeTeam: 'SINAGRA CALCIO', awayTeam: 'AVVERSARIO',
+        homeGoals: 0, awayGoals: 0, homeScorers: [], awayScorers: [],
+      };
+
+  // ── Adapter: MatchView → SubstitutionPoster props ────────────────────────
+
+  const posterSubstitutionConfig: SubstitutionConfig = currentView
+    ? {
+        ...subData,
+        matchday: currentView.match.matchday,
+        competition,
+        date: currentView.match.matchDate ?? '',
+        stadium: currentView.match.stadium,
+        homeTeam: currentView.match.isHome ? 'SINAGRA CALCIO' : (currentView.opponent?.name ?? 'OSPITI'),
+        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA CALCIO',
+        homeLogo: currentView.match.isHome ? undefined : (currentView.opponent?.logoUrl ?? undefined),
+        awayLogo: currentView.match.isHome ? (currentView.opponent?.logoUrl ?? undefined) : undefined,
+      }
+    : {
+        ...subData,
+        matchday: '', competition: '', date: '', stadium: '',
+        homeTeam: 'SINAGRA CALCIO', awayTeam: 'AVVERSARIO',
+      };
+
   // ── Tabs ──────────────────────────────────────────────────────────────────
 
   const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
-    { id: 'matches',  label: 'Partite',    icon: <CalendarDays size={14} /> },
-    { id: 'match',    label: 'Partita',    icon: <Settings size={14} /> },
-    { id: 'lineup',   label: 'Formazione', icon: <List size={14} /> },
-    { id: 'roster',   label: 'Rosa',       icon: <Users size={14} /> },
+    { id: 'matches',      label: 'Partite',       icon: <CalendarDays size={14} /> },
+    { id: 'match',        label: 'Partita',       icon: <Settings size={14} /> },
+    { id: 'lineup',       label: 'Formazione',    icon: <List size={14} /> },
+    { id: 'result',       label: 'Risultato',     icon: <Trophy size={14} /> },
+    { id: 'substitution', label: 'Sostituzione',  icon: <ArrowRightLeft size={14} /> },
+    { id: 'roster',       label: 'Rosa',          icon: <Users size={14} /> },
   ];
 
   const hasMatch = !!currentView;
@@ -277,8 +348,8 @@ export default function App() {
           <p className="text-xs text-yellow-400 font-semibold mt-0.5">Graphics Generator</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-800">
+        {/* Tabs — griglia 3×2 per 6 voci */}
+        <div className="grid grid-cols-3 border-b border-gray-800">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -286,16 +357,16 @@ export default function App() {
                 if (t.id !== 'matches' && !hasMatch) return;
                 setTab(t.id);
               }}
-              className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-b-2 ${
                 tab === t.id
-                  ? 'text-yellow-400 border-b-2 border-yellow-400 bg-gray-800'
+                  ? 'text-yellow-400 border-yellow-400 bg-gray-800'
                   : t.id !== 'matches' && !hasMatch
-                  ? 'text-gray-700 cursor-not-allowed'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'text-gray-700 cursor-not-allowed border-transparent'
+                  : 'text-gray-500 hover:text-gray-300 border-transparent'
               }`}
             >
               {t.icon}
-              <span className="hidden sm:inline">{t.label}</span>
+              <span>{t.label}</span>
             </button>
           ))}
         </div>
@@ -337,6 +408,24 @@ export default function App() {
               formation={currentView.match.formation}
               lineup={posterLineup}
               onChange={setLineup}
+            />
+          )}
+
+          {!loading && tab === 'result' && currentView && (
+            <ResultForm
+              match={currentView.match}
+              phase={resultPhase}
+              onPhaseChange={setResultPhase}
+              onChange={setMatch}
+              players={activeRoster}
+            />
+          )}
+
+          {!loading && tab === 'substitution' && currentView && (
+            <SubstitutionForm
+              data={subData}
+              onChange={setSubData}
+              players={activeRoster}
             />
           )}
 
@@ -400,7 +489,9 @@ export default function App() {
             ← Torna
           </button>
           <span className="hidden md:inline text-xs text-gray-500 font-semibold uppercase tracking-widest">
-            Anteprima — 1080×1350
+            {tab === 'result'       ? 'Anteprima Risultato — 1080×1350'
+           : tab === 'substitution' ? 'Anteprima Sostituzione — 1080×1350'
+           : 'Anteprima Formazione — 1080×1350'}
           </span>
           <span className="text-xs text-gray-600">
             La grafica è in scala ridotta. L&apos;export sarà a risoluzione piena.
@@ -415,12 +506,24 @@ export default function App() {
               marginBottom: '-612px',
             }}
           >
-            <FormationPoster
-              ref={previewRef}
-              roster={activeRoster}
-              matchConfig={posterMatchConfig}
-              lineup={posterLineup}
-            />
+            {tab === 'result' ? (
+              <ResultPoster
+                ref={resultPreviewRef}
+                config={posterResultConfig}
+              />
+            ) : tab === 'substitution' ? (
+              <SubstitutionPoster
+                ref={substitutionPreviewRef}
+                config={posterSubstitutionConfig}
+              />
+            ) : (
+              <FormationPoster
+                ref={previewRef}
+                roster={activeRoster}
+                matchConfig={posterMatchConfig}
+                lineup={posterLineup}
+              />
+            )}
           </div>
         </div>
       </div>

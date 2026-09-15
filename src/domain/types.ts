@@ -22,6 +22,57 @@ export interface FormationLayout {
   slots: FormationSlot[];
 }
 
+// ── Tipi risultato partita ───────────────────────────────────
+
+export type ScorerNote = 'R' | 'AG';
+
+export interface Scorer {
+  minute: number;
+  playerName: string;
+  note?: ScorerNote;  // R = rigore, AG = autogol
+}
+
+export type ResultPhase = 'HALF TIME' | 'LIVE' | 'FULL TIME';
+
+export interface ResultConfig {
+  phase: ResultPhase;
+  matchday: string;
+  competition: string;
+  date: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo?: string;
+  awayLogo?: string;
+  homeGoals: number;
+  awayGoals: number;
+  homeScorers: Scorer[];
+  awayScorers: Scorer[];
+}
+
+// ── Tipi sostituzione ────────────────────────────────────────
+
+export interface SubstitutionPlayer {
+  number: number;
+  name: string;
+}
+
+export interface SubstitutionConfig {
+  /** Minuto senza apostrofo, es. "62" o "90+4" — apostrofo aggiunto in display */
+  minute: string;
+  playerOut: SubstitutionPlayer;
+  playerIn: SubstitutionPlayer;
+  // Contesto partita (per header)
+  matchday: string;
+  competition: string;
+  date: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo?: string;
+  awayLogo?: string;
+}
+
 // ── Tipi relazionali (Supabase) ──────────────────────────────
 
 export interface Team {
@@ -48,6 +99,10 @@ export interface Match {
   coach: string;
   createdAt: string;
   updatedAt: string;
+  homeGoals: number;
+  awayGoals: number;
+  homeScorers: Scorer[];
+  awayScorers: Scorer[];
 }
 
 export interface MatchView {
