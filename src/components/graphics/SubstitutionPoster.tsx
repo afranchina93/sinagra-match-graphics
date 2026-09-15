@@ -14,7 +14,7 @@
  */
 import { forwardRef, useState } from 'react';
 import type { SubstitutionConfig } from '../../domain/types';
-import { POSTER_W, POSTER_H, REGIONS, LOGOS_BASE, POSTER_ASSETS } from '../../poster-config';
+import { POSTER_W, POSTER_H, LOGOS_BASE, POSTER_ASSETS } from '../../poster-config';
 import { SinagraLogo } from './SinagraLogo';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
