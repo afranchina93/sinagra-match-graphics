@@ -253,6 +253,11 @@ npx vercel env add VITE_SUPABASE_URL production --type config
 npx vercel env add VITE_SUPABASE_ANON_KEY production --type config
 ```
 
+### Accesso pubblico
+
+Il sito è accessibile senza login. Il **Deployment Protection** di Vercel va disabilitato:
+`Vercel Dashboard → progetto → Settings → Deployment Protection → Vercel Authentication → Disabled`
+
 ---
 
 ## Come aggiungere una nuova formazione
@@ -265,13 +270,30 @@ I nuovi slot ID devono seguire la convenzione esistente (`gk`, `def1`…`defN`, 
 
 ---
 
-## Storico modifiche rilevanti
+## Layout responsive (mobile)
+
+Su schermi piccoli il layout affiancato non è usabile. Soluzione adottata:
+
+- **Mobile (< md):** il pannello controlli occupa tutto lo schermo; il pulsante grigio **"Anteprima"** (bottom bar) mostra il poster a schermo intero; **"← Torna"** (in alto a sinistra nel pannello preview) riporta ai controlli
+- **Desktop (≥ md):** layout affiancato invariato; i due pulsanti sopra non vengono mostrati
+
+Implementazione in `App.tsx`: stato `showMobilePreview: boolean` + classi Tailwind condizionali `md:flex` / `hidden`.
+
+---
+
+## Storico modifiche
 
 | Data | Modifica |
 |------|----------|
 | 2025-07 | Setup iniziale — poster statico con localStorage |
 | 2025-07 | Integrazione Supabase con JSON blob (`app_state`) |
-| 2025-07 | Migrazione a DB relazionale (6 tabelle + Storage) |
+| 2025-07 | Fix: schermata nera al primo caricamento (stato Supabase vuoto) |
+| 2025-07 | Fix: cambio formazione — giocatori non selezionabili dopo switch |
+| 2025-07 | Migrazione a DB relazionale (6 tabelle + Storage bucket loghi) |
 | 2025-07 | Nuova UI multi-tab: Partite / Partita / Formazione / Rosa |
 | 2025-07 | Sostituzione `pitch.png` con versione con tavole sponsor |
+| 2025-07 | Calibrazione `PITCH_VERTICES` per tavole sponsor (BL/BR y=515) |
 | 2025-07 | Fix: cambio modulo pulisce slot non validi dagli starters |
+| 2025-07 | Fix build: campo `active` mancante in `roster.ts` legacy |
+| 2025-07 | Layout responsive mobile con toggle anteprima |
+| 2025-07 | Vercel Deployment Protection disabilitato (accesso pubblico) |
