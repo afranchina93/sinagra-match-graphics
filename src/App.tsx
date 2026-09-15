@@ -263,11 +263,12 @@ export default function App() {
   ];
 
   const hasMatch = !!currentView;
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
 
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden">
       {/* LEFT PANEL */}
-      <div className="w-80 flex flex-col bg-gray-900 border-r border-gray-800 shrink-0">
+      <div className={`${showMobilePreview ? 'hidden' : 'flex'} md:flex w-full md:w-80 flex-col bg-gray-900 border-r border-gray-800 md:shrink-0`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-800">
           <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">
@@ -371,6 +372,14 @@ export default function App() {
           </div>
 
           <button
+            onClick={() => setShowMobilePreview(true)}
+            disabled={!hasMatch}
+            className="md:hidden w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
+          >
+            Anteprima
+          </button>
+
+          <button
             onClick={handleExport}
             disabled={exporting || !hasMatch}
             className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
@@ -382,9 +391,15 @@ export default function App() {
       </div>
 
       {/* RIGHT PANEL - Preview */}
-      <div className="flex-1 overflow-auto bg-gray-950 flex flex-col">
+      <div className={`${showMobilePreview ? 'flex' : 'hidden'} md:flex flex-1 overflow-auto bg-gray-950 flex-col`}>
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-          <span className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
+          <button
+            onClick={() => setShowMobilePreview(false)}
+            className="md:hidden text-xs text-yellow-400 font-bold uppercase tracking-wide"
+          >
+            ← Torna
+          </button>
+          <span className="hidden md:inline text-xs text-gray-500 font-semibold uppercase tracking-widest">
             Anteprima — 1080×1350
           </span>
           <span className="text-xs text-gray-600">
