@@ -33,6 +33,8 @@ export default function App() {
   const previewRef = useRef<HTMLDivElement>(null);
   const resultPreviewRef = useRef<HTMLDivElement>(null);
   const substitutionPreviewRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(0.55);
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -74,6 +76,18 @@ export default function App() {
       }
     });
   }, [currentMatchId]);
+
+  // Scale preview dinamico — si adatta alla larghezza del container
+  useEffect(() => {
+    const el = previewContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const available = el.clientWidth - 48; // p-6 = 24px per lato
+      setPreviewScale(Math.min(0.55, available / 1080));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Autosave debounced 1.5s su match + lineup
   useEffect(() => {
@@ -286,8 +300,8 @@ export default function App() {
         competition,
         date: currentView.match.matchDate ?? '',
         stadium: currentView.match.stadium,
-        homeTeam: currentView.match.isHome ? 'SINAGRA CALCIO' : (currentView.opponent?.name ?? 'OSPITI'),
-        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA CALCIO',
+        homeTeam: currentView.match.isHome ? 'SINAGRA' : (currentView.opponent?.name ?? 'OSPITI'),
+        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA',
         homeLogo: currentView.match.isHome ? undefined : (currentView.opponent?.logoUrl ?? undefined),
         awayLogo: currentView.match.isHome ? (currentView.opponent?.logoUrl ?? undefined) : undefined,
         homeGoals: currentView.match.homeGoals,
@@ -298,7 +312,7 @@ export default function App() {
     : {
         phase: 'FULL TIME',
         matchday: '', competition: '', date: '', stadium: '',
-        homeTeam: 'SINAGRA CALCIO', awayTeam: 'AVVERSARIO',
+        homeTeam: 'SINAGRA', awayTeam: 'AVVERSARIO',
         homeGoals: 0, awayGoals: 0, homeScorers: [], awayScorers: [],
       };
 
@@ -311,15 +325,15 @@ export default function App() {
         competition,
         date: currentView.match.matchDate ?? '',
         stadium: currentView.match.stadium,
-        homeTeam: currentView.match.isHome ? 'SINAGRA CALCIO' : (currentView.opponent?.name ?? 'OSPITI'),
-        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA CALCIO',
+        homeTeam: currentView.match.isHome ? 'SINAGRA' : (currentView.opponent?.name ?? 'OSPITI'),
+        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA',
         homeLogo: currentView.match.isHome ? undefined : (currentView.opponent?.logoUrl ?? undefined),
         awayLogo: currentView.match.isHome ? (currentView.opponent?.logoUrl ?? undefined) : undefined,
       }
     : {
         ...subData,
         matchday: '', competition: '', date: '', stadium: '',
-        homeTeam: 'SINAGRA CALCIO', awayTeam: 'AVVERSARIO',
+        homeTeam: 'SINAGRA', awayTeam: 'AVVERSARIO',
       };
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
@@ -498,32 +512,39 @@ export default function App() {
           </span>
         </div>
 
-        <div className="flex-1 overflow-auto p-6 flex items-start justify-center">
-          <div
-            style={{
-              transformOrigin: 'top center',
-              transform: 'scale(0.55)',
-              marginBottom: '-612px',
-            }}
-          >
-            {tab === 'result' ? (
-              <ResultPoster
-                ref={resultPreviewRef}
-                config={posterResultConfig}
-              />
-            ) : tab === 'substitution' ? (
-              <SubstitutionPoster
-                ref={substitutionPreviewRef}
-                config={posterSubstitutionConfig}
-              />
-            ) : (
-              <FormationPoster
-                ref={previewRef}
-                roster={activeRoster}
-                matchConfig={posterMatchConfig}
-                lineup={posterLineup}
-              />
-            )}
+        <div ref={previewContainerRef} className="flex-1 overflow-auto p-6 flex items-start justify-center">
+          {/* Wrapper con dimensioni visive reali — evita overflow su mobile */}
+          <div style={{
+            width: Math.round(1080 * previewScale),
+            height: Math.round(1350 * previewScale),
+            flexShrink: 0,
+            position: 'relative',
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: 0, left: 0,
+              transformOrigin: 'top left',
+              transform: `scale(${previewScale})`,
+            }}>
+              {tab === 'result' ? (
+                <ResultPoster
+                  ref={resultPreviewRef}
+                  config={posterResultConfig}
+                />
+              ) : tab === 'substitution' ? (
+                <SubstitutionPoster
+                  ref={substitutionPreviewRef}
+                  config={posterSubstitutionConfig}
+                />
+              ) : (
+                <FormationPoster
+                  ref={previewRef}
+                  roster={activeRoster}
+                  matchConfig={posterMatchConfig}
+                  lineup={posterLineup}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>

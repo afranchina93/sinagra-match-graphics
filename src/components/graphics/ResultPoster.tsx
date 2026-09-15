@@ -96,7 +96,7 @@ function ShieldPlaceholder({ initial }: { initial: string }) {
   );
 }
 
-// ── Layer 1 — Header (identico a FormationPoster, senza riga squadre) ─────────
+// ── Layer 1 — Header (identico a MatchHeader di FormationPoster) ─────────────
 
 function ResultHeader({ config }: { config: ResultConfig }) {
   const r = REGIONS.header; // { x:0, y:0, width:1080, height:245 }
@@ -136,6 +136,27 @@ function ResultHeader({ config }: { config: ResultConfig }) {
 
         {/* Separatore */}
         <div style={{ height: 1, background: 'rgba(26,26,26,0.22)', margin: '2px 0', alignSelf: 'stretch' }} />
+
+        {/* Teams row: HOME [logo] VS [logo] AWAY */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{
+            color: '#1A1A1A', fontSize: 52, fontWeight: 900,
+            fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '0.02em',
+          }}>{config.homeTeam.toUpperCase()}</span>
+          {config.homeLogo
+            ? <img src={logoSrc(config.homeLogo)} alt={config.homeTeam} crossOrigin="anonymous" style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }} />
+            : <SinagraLogo size={64} />
+          }
+          <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
+          {config.awayLogo
+            ? <img src={logoSrc(config.awayLogo)} alt={config.awayTeam} crossOrigin="anonymous" style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }} />
+            : <ShieldPlaceholder initial={(config.awayTeam || '?')[0].toUpperCase()} />
+          }
+          <span style={{
+            color: '#1A1A1A', fontSize: 52, fontWeight: 900,
+            fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '0.02em',
+          }}>{config.awayTeam.toUpperCase()}</span>
+        </div>
 
         {/* Data + stadio */}
         <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>

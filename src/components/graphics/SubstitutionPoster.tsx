@@ -99,92 +99,83 @@ function ShieldPlaceholder({ initial }: { initial: string }) {
   );
 }
 
-// ── Layer 1 — Header con squadre ──────────────────────────────────────────────
+// ── Layer 1 — Header (identico a MatchHeader di FormationPoster) ─────────────
 
 function SubstitutionHeader({ config }: { config: SubstitutionConfig }) {
   const dateStr = formatDate(config.date);
   const timeStr = formatTime(config.date);
-  const homeSrc = logoSrc(config.homeLogo);
-  const awaySrc = logoSrc(config.awayLogo);
+  const opponentInitial = (config.awayTeam || '?')[0].toUpperCase();
 
   return (
     <div style={{
       position: 'absolute',
       left: 0, top: 0, width: POSTER_W, height: 245,
       display: 'flex', alignItems: 'center',
-      padding: '0 32px', boxSizing: 'border-box',
+      padding: '0 28px', boxSizing: 'border-box',
     }}>
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 10,
+        alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
 
-        {/* Competizione + giornata */}
-        <span style={{
-          color: '#2A2A2A', fontSize: 13, fontWeight: 700,
-          letterSpacing: '0.12em', textTransform: 'uppercase',
-        }}>
-          {[config.matchday, config.competition].filter(Boolean).join(' · ') || 'CAMPIONATO DI PROMOZIONE'}
-        </span>
-
-        {/* Squadre con stemmi */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-          {/* Home */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {homeSrc
-                ? <img src={homeSrc} alt={config.homeTeam} crossOrigin="anonymous"
-                    style={{ width: 56, height: 56, objectFit: 'contain' }} />
-                : <SinagraLogo size={56} />
-              }
-            </div>
-            <span style={{
-              fontSize: 22, fontWeight: 900, color: '#1A1A1A',
-              fontFamily: 'Impact, "Arial Narrow", sans-serif',
-              letterSpacing: '0.03em', maxWidth: 280,
-              wordBreak: 'break-word',
-            }}>{config.homeTeam.toUpperCase()}</span>
-          </div>
-
-          {/* VS */}
+        {/* MATCHDAY label + giornata */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
           <span style={{
-            fontSize: 20, fontWeight: 900, color: '#C8102E',
+            color: '#C8102E', fontSize: 48, fontWeight: 800,
+            letterSpacing: '0.18em', fontFamily: 'Impact, sans-serif',
+          }}>MATCHDAY</span>
+          <span style={{
+            color: '#1A1A1A', fontSize: 48, fontWeight: 900,
             fontFamily: 'Impact, "Arial Narrow", sans-serif',
-            letterSpacing: '0.06em',
-          }}>VS</span>
-
-          {/* Away */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{
-              fontSize: 22, fontWeight: 900, color: '#1A1A1A',
-              fontFamily: 'Impact, "Arial Narrow", sans-serif',
-              letterSpacing: '0.03em', maxWidth: 280,
-              wordBreak: 'break-word',
-            }}>{config.awayTeam.toUpperCase()}</span>
-            <div style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {awaySrc
-                ? <img src={awaySrc} alt={config.awayTeam} crossOrigin="anonymous"
-                    style={{ width: 56, height: 56, objectFit: 'contain' }} />
-                : <ShieldPlaceholder initial={(config.awayTeam || '?')[0].toUpperCase()} />
-              }
-            </div>
-          </div>
+            letterSpacing: '0.01em', lineHeight: 1,
+          }}>{config.matchday || 'GIORNATA 1'}</span>
         </div>
 
-        {/* Separatore */}
-        <div style={{ height: 1, background: 'rgba(26,26,26,0.22)', alignSelf: 'stretch' }} />
+        {/* Competizione */}
+        <span style={{
+          color: '#2A2A2A', fontSize: 14, fontWeight: 700,
+          letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1,
+        }}>
+          {config.competition || 'CAMPIONATO DI PROMOZIONE'}
+        </span>
+
+        {/* Linea orizzontale */}
+        <div style={{ height: 1, background: 'rgba(26,26,26,0.22)', margin: '2px 0' }} />
+
+        {/* Teams row: homeTeam [logo] VS [logo] awayTeam */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{
+            color: '#1A1A1A', fontSize: 52, fontWeight: 900,
+            fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '0.02em',
+          }}>{config.homeTeam.toUpperCase()}</span>
+          {config.homeLogo
+            ? <img src={logoSrc(config.homeLogo)} alt={config.homeTeam} crossOrigin="anonymous"
+                style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }} />
+            : <SinagraLogo size={64} />
+          }
+          <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
+          {config.awayLogo
+            ? <img src={logoSrc(config.awayLogo)} alt={config.awayTeam} crossOrigin="anonymous"
+                style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }} />
+            : <ShieldPlaceholder initial={opponentInitial} />
+          }
+          <span style={{
+            color: '#1A1A1A', fontSize: 52, fontWeight: 900,
+            fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '0.02em',
+          }}>{config.awayTeam.toUpperCase()}</span>
+        </div>
 
         {/* Data + stadio */}
         <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <CalendarIcon />
-            <span style={{ color: '#333', fontSize: 13, fontWeight: 700, letterSpacing: '0.05em' }}>
+            <span style={{ color: '#333', fontSize: 14, fontWeight: 700, letterSpacing: '0.05em' }}>
               {dateStr || 'DATA DA DEFINIRE'}{timeStr ? ` · ${timeStr}` : ''}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <LocationIcon />
-            <span style={{ color: '#333', fontSize: 13, fontWeight: 700, letterSpacing: '0.05em' }}>
+            <span style={{ color: '#333', fontSize: 14, fontWeight: 700, letterSpacing: '0.05em' }}>
               {config.stadium || 'CAMPO SPORTIVO SINAGRA'}
             </span>
           </div>
