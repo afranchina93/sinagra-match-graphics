@@ -25,7 +25,7 @@ import {
   loadMatches, createMatch, updateMatch, deleteMatch, loadMatchView,
   saveMatchLineup,
 } from './storage/db';
-import { exportAsPng } from './export/exportImage';
+import { exportAsPng, exportAsBase64 } from './export/exportImage';
 
 type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution';
 
@@ -44,6 +44,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('matches');
   const [exporting, setExporting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [resultPhase, setResultPhase] = useState<ResultPhase>('FULL TIME');
   const [subData, setSubData] = useState({
@@ -259,6 +260,36 @@ export default function App() {
       alert("Errore durante l'esportazione. Riprova.");
     } finally {
       setExporting(false);
+    }
+  }
+
+  // ── Pubblica su Facebook ──────────────────────────────────────────────────
+
+  async function handlePublishFacebook() {
+    const ref =
+      tab === 'result'       ? resultPreviewRef :
+      tab === 'substitution' ? substitutionPreviewRef :
+      previewRef;
+    if (!ref.current) return;
+    setPublishing(true);
+    try {
+      const base64 = await exportAsBase64(ref.current);
+      const res = await fetch('/api/publish-facebook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64 }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string; detail?: string };
+      if (data.success) {
+        alert('✅ Pubblicato su Facebook!');
+      } else {
+        alert(`❌ Errore: ${data.error ?? 'Sconosciuto'}${data.detail ? `\n${data.detail}` : ''}`);
+      }
+    } catch (err) {
+      alert('❌ Errore di rete. Riprova.');
+      console.error(err);
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -489,6 +520,17 @@ export default function App() {
           >
             <Download size={16} />
             {exporting ? 'Esportazione...' : 'Esporta PNG'}
+          </button>
+
+          <button
+            onClick={handlePublishFacebook}
+            disabled={publishing || !hasMatch}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+            {publishing ? 'Pubblicazione...' : 'Pubblica su Facebook'}
           </button>
         </div>
       </div>
