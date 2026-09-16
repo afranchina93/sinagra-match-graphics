@@ -246,22 +246,16 @@ function Scoreboard({ config }: { config: SubstitutionConfig }) {
   const BOARD_H    = Math.round(BOARD_W / 2); // 460 px  (ratio 2:1)
 
   // ── Bounding box — display MINUTO ────────────────────────────────────────
-  // Finestra display: y=54–162px nell'asset (6.1%–18.3%), centro a 12.2%.
-  // t='2%' → centro effettivo a 2+12.15=14.15% (scende leggermente il testo
-  // così non tocca il bordo superiore del display).
-  const MIN_BOX  = { l: '0%',    t: '2%',    w: '100%',  h: '24.3%' };
+  // Ricalcolato dopo crop dei bordi neri (image 1774×887 → 1545×825)
+  const MIN_BOX  = { l: '0%',    t: '0%',    w: '100%',  h: '22%'   };
 
   // ── Bounding box — pannello LED USCENTE (rosso, sinistra) ─────────────────
-  // x: 240→745px = 13.5%→42.0%, width=28.5%, centroX=27.75%
-  // y: t=20%, h=43% → centroY=41.5%  (confermato buono dall'utente)
-  const OUT_NUM  = { l: '13.5%', t: '20%',   w: '28.5%', h: '43%'  };
-  // Fascia nome: ripristino valori precedentemente corretti
-  const OUT_NAME = { l: '13.5%', t: '55.8%', w: '28.5%', h: '10.5%' };
+  const OUT_NUM  = { l: '8%',    t: '22%',   w: '33%',   h: '34%'   };
+  const OUT_NAME = { l: '8%',    t: '56.5%', w: '33%',   h: '11.5%' };
 
   // ── Bounding box — pannello LED ENTRANTE (verde, destra) ──────────────────
-  // x: 1030→1540px = 58.1%→86.8%, width=28.7%, centroX=72.45%
-  const IN_NUM   = { l: '58.1%', t: '20%',   w: '28.7%', h: '43%'  };
-  const IN_NAME  = { l: '58.1%', t: '55.8%', w: '28.7%', h: '10.5%' };
+  const IN_NUM   = { l: '59.5%', t: '22%',   w: '33%',   h: '34%'   };
+  const IN_NAME  = { l: '59.5%', t: '56.5%', w: '33%',   h: '11.5%' };
 
 
   const numOut  = config.playerOut.number || 0;
@@ -278,6 +272,8 @@ function Scoreboard({ config }: { config: SubstitutionConfig }) {
     return Math.round(BOARD_H * 0.094);
   };
   const minuteFs = Math.round(BOARD_H * 0.155);
+  // Stesso size per entrambi i cognomi (basato sul nome più lungo)
+  const sharedNameFs = Math.min(nameFs(nameOut), nameFs(nameIn));
 
   // ── Helper: container assoluto + flex centrato ────────────────────────────
   // Ogni container coincide esattamente con la propria zona LED.
@@ -337,7 +333,7 @@ function Scoreboard({ config }: { config: SubstitutionConfig }) {
       {/* ── NOME USCENTE — fascia LED nera sotto la matrice sinistra ── */}
       <div style={BB(OUT_NAME)}>
         <span style={{
-          fontSize: nameFs(nameOut), fontWeight: 700,
+          fontSize: sharedNameFs, fontWeight: 700,
           color: '#FFFFFF',
           fontFamily: 'Impact, "Arial Narrow", sans-serif',
           letterSpacing: '0.07em',
@@ -359,7 +355,7 @@ function Scoreboard({ config }: { config: SubstitutionConfig }) {
       {/* ── NOME ENTRANTE — fascia LED nera sotto la matrice destra ── */}
       <div style={BB(IN_NAME)}>
         <span style={{
-          fontSize: nameFs(nameIn), fontWeight: 700,
+          fontSize: sharedNameFs, fontWeight: 700,
           color: '#FFFFFF',
           fontFamily: 'Impact, "Arial Narrow", sans-serif',
           letterSpacing: '0.07em',
