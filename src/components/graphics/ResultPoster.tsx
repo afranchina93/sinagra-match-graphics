@@ -216,39 +216,129 @@ function PhaseSection({ phase }: { phase: ResultConfig['phase'] }) {
   );
 }
 
-// ── Layer 3+4 — Score + Marcatori in layout orizzontale ───────────────────────
+// ── Layer 3 — Score ───────────────────────────────────────────────────────────
 
-const SCORER_ROW_H = 28;
-const MAX_SCORERS  = 7;
+function TeamBlock({ name, logo, align }: { name: string; logo?: string; align: 'left' | 'right' }) {
+  const src = logoSrc(logo);
+  const isLeft = align === 'left';
+  const isHome = isLeft; // casa sempre a sinistra
+
+  return (
+    <div style={{
+      flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
+      alignItems: isLeft ? 'flex-end' : 'flex-start', gap: 10,
+    }}>
+      {/* Contenitore stemma a dimensioni fisse — object-fit:contain evita deformazioni */}
+      <div style={{ width: 80, height: 80, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {src ? (
+          <img src={src} alt={name} crossOrigin="anonymous"
+            style={{ width: 80, height: 80, objectFit: 'contain' }} />
+        ) : (
+          isHome
+            ? <SinagraLogo size={80} />
+            : <ShieldPlaceholder initial={(name || '?')[0].toUpperCase()} />
+        )}
+      </div>
+      <span style={{
+        fontSize: 26, fontWeight: 900, color: '#1A1A1A',
+        fontFamily: 'Impact, "Arial Narrow", sans-serif',
+        letterSpacing: '0.03em', textAlign: isLeft ? 'right' : 'left',
+        lineHeight: 1.15, maxWidth: 300,
+        wordBreak: 'break-word', overflowWrap: 'break-word',
+      }}>{name.toUpperCase()}</span>
+    </div>
+  );
+}
+
+function ScoreSection({ config }: { config: ResultConfig }) {
+  // Casa sempre a sinistra: se isHome → Sinagra a sinistra, altrimenti avversario
+  const homeLogo = config.homeLogo;
+  const awayLogo = config.awayLogo;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: 60, top: 375, width: POSTER_W - 120,
+      display: 'flex', alignItems: 'center', gap: 16,
+    }}>
+      <TeamBlock name={config.homeTeam} logo={homeLogo} align="left" />
+
+      {/* Score centrale — dimensioni fisse, sempre matematicamente centrato nel flex */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        fontFamily: 'Impact, "Arial Narrow", sans-serif',
+        flexShrink: 0, lineHeight: 1,
+      }}>
+        <span style={{ fontSize: 190, fontWeight: 900, color: '#1A1A1A' }}>
+          {config.homeGoals}
+        </span>
+        <span style={{ fontSize: 95, fontWeight: 900, color: '#C8102E', margin: '0 8px' }}>
+          —
+        </span>
+        <span style={{ fontSize: 190, fontWeight: 900, color: '#1A1A1A' }}>
+          {config.awayGoals}
+        </span>
+      </div>
+
+      <TeamBlock name={config.awayTeam} logo={awayLogo} align="right" />
+    </div>
+  );
+}
+
+// ── Layer 4 — Scorers ─────────────────────────────────────────────────────────
+//
+// Ogni riga: NOME  MINUTO'
+// Futura estensione: aggiungere un <span> opzionale dopo il minuto per (R) o (AG)
+// senza modificare la struttura — es. {s.note && <span ...>{s.note}</span>}
+//
+// MAX_ROWS = 5: l'altezza è sempre fissa indipendentemente dal numero di marcatori.
+// Se una squadra ha meno di 5 marcatori, lo spazio rimane vuoto.
+
+const SCORER_ROW_H = 26;  // px per riga
+const MAX_SCORERS  = 7;   // supporta fino a 7 marcatori per squadra
+const SCORERS_H    = MAX_SCORERS * SCORER_ROW_H; // 182px
+
+// side='home' → righe right-aligned: il MINUTO' è sempre vicino al divisore,
+//               il NOME si estende verso sinistra. Compatto, nessun flex:1.
+// side='away' → righe left-aligned: il NOME parte dal divisore, MINUTO' a destra.
+// Futura estensione: aggiungere <span> opzionale dopo MINUTO' per (R) o (AG).
 
 function ScorersList({ scorers, side }: { scorers: ResultConfig['homeScorers']; side: 'home' | 'away' }) {
   const sorted = [...scorers].sort((a, b) => a.minute - b.minute).slice(0, MAX_SCORERS);
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', gap: 6,
+      display: 'flex', flexDirection: 'column', gap: 4,
+      width: '100%', height: SCORERS_H, overflow: 'hidden',
+      // home: ogni riga compatta è right-aligned → minuto tocca il divisore
+      // away: ogni riga compatta è left-aligned → nome parte dal divisore
       alignItems: side === 'home' ? 'flex-end' : 'flex-start',
     }}>
       {sorted.map((s, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexShrink: 0 }}>
+        <div key={i} style={{
+          display: 'flex', alignItems: 'baseline', gap: 10,
+          height: SCORER_ROW_H, flexShrink: 0,
+          // NO flex:1 sul nome → riga larga quanto il suo contenuto
+        }}>
           <span style={{
-            color: '#1A1A1A', fontSize: 22, fontWeight: 700,
-            letterSpacing: '0.04em', lineHeight: 1,
+            color: '#1A1A1A', fontSize: 20, fontWeight: 700,
+            letterSpacing: '0.05em', lineHeight: 1,
             textShadow: '0 1px 5px rgba(255,255,255,0.85)',
             whiteSpace: 'nowrap',
           }}>{s.playerName.toUpperCase()}</span>
           <span style={{
-            color: '#C8102E', fontSize: 22, fontWeight: 900,
+            color: '#C8102E', fontSize: 20, fontWeight: 900,
             fontFamily: 'Impact, "Arial Narrow", sans-serif',
             lineHeight: 1, flexShrink: 0,
             textShadow: '0 1px 4px rgba(255,255,255,0.85)',
             whiteSpace: 'nowrap',
           }}>{s.minute}&apos;</span>
+          {/* (R) rigore o (AG) autogol — opzionale, non sposta la geometria */}
           {s.note && (
             <span style={{
-              color: '#1A1A1A', fontSize: 15, fontWeight: 700,
-              lineHeight: 1, flexShrink: 0, opacity: 0.75,
+              color: '#1A1A1A', fontSize: 14, fontWeight: 700,
+              letterSpacing: '0.03em', lineHeight: 1, flexShrink: 0,
               textShadow: '0 1px 4px rgba(255,255,255,0.85)',
-              whiteSpace: 'nowrap',
+              whiteSpace: 'nowrap', opacity: 0.75,
             }}>({s.note})</span>
           )}
         </div>
@@ -257,38 +347,38 @@ function ScorersList({ scorers, side }: { scorers: ResultConfig['homeScorers']; 
   );
 }
 
-function ScoreSection({ config }: { config: ResultConfig }) {
+function ScorersSection({ config }: { config: ResultConfig }) {
+  // Sempre renderizzata — posizione di FULL TIME / score / stemmi non cambia mai.
+  //
+  // Layout:  |← PAD=52 →|←── COL=428 ──→|← DIV=120 →|←── COL=428 ──→|← PAD=52 →|
+  //          0           52              480          600              1028        1080
+  //
+  // HOME: alignItems:'flex-end'  → righe right-justified a x=480 (bordo divisore)
+  // AWAY: alignItems:'flex-start' → righe left-justified a x=600 (bordo divisore)
+  // Separazione visibile: 120px attorno al centro (x=540)
+
+  const COL_W = 480;                      // colonna + padding esterno
+  const DIV_W = POSTER_W - COL_W * 2;    // 120px
+  const PAD   = 52;                       // padding bordo canvas
+
   return (
     <div style={{
       position: 'absolute',
-      left: 0, top: 310, width: POSTER_W,
-      display: 'flex', alignItems: 'center',
-      padding: '0 36px', boxSizing: 'border-box',
-      gap: 16,
+      left: 0, top: 590, width: POSTER_W,
+      display: 'flex', height: SCORERS_H,
     }}>
-      {/* Marcatori CASA — right-aligned, centrati verticalmente sui numeri */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'flex-end' }}>
+      {/* Colonna CASA — right-aligned: minuto ancorato al divisore */}
+      <div style={{ width: COL_W, flexShrink: 0, paddingLeft: PAD, boxSizing: 'border-box' }}>
         <ScorersList scorers={config.homeScorers} side="home" />
       </div>
 
-      {/* Score centrale */}
-      <div style={{
-        display: 'flex', alignItems: 'center', flexShrink: 0,
-        fontFamily: 'Impact, "Arial Narrow", sans-serif', lineHeight: 1,
-      }}>
-        <span style={{ fontSize: 280, fontWeight: 900, color: '#1A1A1A' }}>
-          {config.homeGoals}
-        </span>
-        <span style={{ fontSize: 140, fontWeight: 900, color: '#C8102E', margin: '0 20px' }}>
-          —
-        </span>
-        <span style={{ fontSize: 280, fontWeight: 900, color: '#1A1A1A' }}>
-          {config.awayGoals}
-        </span>
+      {/* Divisore — larghezza fissa, linea centrata */}
+      <div style={{ width: DIV_W, flexShrink: 0, display: 'flex', justifyContent: 'center', paddingTop: 4 }}>
+        <div style={{ width: 1, height: SCORERS_H - 8, background: 'rgba(26,26,26,0.18)' }} />
       </div>
 
-      {/* Marcatori OSPITI — left-aligned, centrati verticalmente sui numeri */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'flex-start' }}>
+      {/* Colonna OSPITI — left-aligned: nome ancorato al divisore */}
+      <div style={{ width: COL_W, flexShrink: 0, paddingRight: PAD, boxSizing: 'border-box' }}>
         <ScorersList scorers={config.awayScorers} side="away" />
       </div>
     </div>
@@ -359,8 +449,11 @@ export const ResultPoster = forwardRef<HTMLDivElement, { config: ResultConfig }>
         {/* Layer 2: FULL TIME / HALF TIME / LIVE */}
         <PhaseSection phase={config.phase} />
 
-        {/* Layer 3+4: Score + Scorers in layout orizzontale */}
+        {/* Layer 3: Score */}
         <ScoreSection config={config} />
+
+        {/* Layer 4: Scorers */}
+        <ScorersSection config={config} />
 
         {/* Layer 5: Social footer */}
         <SocialFooter />
