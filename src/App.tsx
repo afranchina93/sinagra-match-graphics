@@ -270,7 +270,6 @@ export default function App() {
     if (!currentView) return;
     const home = currentView.match.isHome ? 'Sinagra' : (currentView.opponent?.name ?? 'Avversario');
     const away = currentView.match.isHome ? (currentView.opponent?.name ?? 'Avversario') : 'Sinagra';
-    const matchday = currentView.match.matchday ? `Giornata ${currentView.match.matchday} | ` : '';
 
     let caption = '';
     if (tab === 'lineup' || tab === 'match') {
