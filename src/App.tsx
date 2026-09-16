@@ -49,11 +49,6 @@ export default function App() {
   const [fbCaption, setFbCaption] = useState('');
   const [saved, setSaved] = useState(false);
   const [resultPhase, setResultPhase] = useState<ResultPhase>('FULL TIME');
-  const [subData, setSubData] = useState({
-    minute: '',
-    playerOut: { number: 0, name: '' },
-    playerIn:  { number: 0, name: '' },
-  });
   const isInitialLoad = useRef(true);
 
   // Mount: carica tutto
@@ -125,6 +120,7 @@ export default function App() {
       awayGoals: 0,
       homeScorers: [],
       awayScorers: [],
+      substitutions: [],
     });
     setMatches((prev) => [newMatch, ...prev]);
     setCurrentMatchIdState(newMatch.id);
@@ -189,6 +185,23 @@ export default function App() {
           }
         : v
     );
+  }, []);
+
+  // ── Substitution callbacks ────────────────────────────────────────────────
+
+  const handleSubAdd = useCallback((entry: import('./domain/types').SubstitutionEntry) => {
+    setCurrentView((v) => {
+      if (!v) return v;
+      return { ...v, match: { ...v.match, substitutions: [...v.match.substitutions, entry] } };
+    });
+  }, []);
+
+  const handleSubDelete = useCallback((index: number) => {
+    setCurrentView((v) => {
+      if (!v) return v;
+      const subs = v.match.substitutions.filter((_, i) => i !== index);
+      return { ...v, match: { ...v.match, substitutions: subs } };
+    });
   }, []);
 
   // ── Team callbacks ────────────────────────────────────────────────────────
@@ -329,13 +342,14 @@ export default function App() {
         caption = `𝗙𝗨𝗟𝗟 𝗧𝗜𝗠𝗘 💛❤️`;
       }
     } else if (tab === 'substitution') {
-      const out = subData.playerOut.name || 'N/A';
-      const inn = subData.playerIn.name || 'N/A';
-      const min = subData.minute ? `${subData.minute}' | ` : '';
-      caption = `🔄 ${min}| Entra ${inn.toUpperCase()}, esce ${out.toUpperCase()}\n💛❤️`;
+      const sub = currentView.match.substitutions.at(-1);
+      const out = sub?.playerOut.name || 'N/A';
+      const inn = sub?.playerIn.name || 'N/A';
+      const min = sub?.minute ? `${sub.minute}' | ` : '';
+      caption = `🔄 ${min}Entra ${inn.toUpperCase()}, esce ${out.toUpperCase()}\n💛❤️`;
     }
     setFbCaption(caption);
-  }, [tab, currentView, resultPhase, subData]);
+  }, [tab, currentView, resultPhase]);
 
   // ── Pubblica su Facebook ──────────────────────────────────────────────────
 
@@ -424,9 +438,12 @@ export default function App() {
 
   // ── Adapter: MatchView → SubstitutionPoster props ────────────────────────
 
+  const lastSub = currentView?.match.substitutions.at(-1);
   const posterSubstitutionConfig: SubstitutionConfig = currentView
     ? {
-        ...subData,
+        minute: lastSub?.minute ?? '',
+        playerOut: lastSub?.playerOut ?? { number: 0, name: '' },
+        playerIn:  lastSub?.playerIn  ?? { number: 0, name: '' },
         matchday: currentView.match.matchday,
         competition,
         date: currentView.match.matchDate ?? '',
@@ -437,7 +454,7 @@ export default function App() {
         awayLogo: currentView.match.isHome ? (currentView.opponent?.logoUrl ?? undefined) : undefined,
       }
     : {
-        ...subData,
+        minute: '', playerOut: { number: 0, name: '' }, playerIn: { number: 0, name: '' },
         matchday: '', competition: '', date: '', stadium: '',
         homeTeam: 'SINAGRA', awayTeam: 'AVVERSARIO',
       };
@@ -543,8 +560,9 @@ export default function App() {
 
           {!loading && tab === 'substitution' && currentView && (
             <SubstitutionForm
-              data={subData}
-              onChange={setSubData}
+              substitutions={currentView.match.substitutions}
+              onAdd={handleSubAdd}
+              onDelete={handleSubDelete}
               players={activeRoster}
             />
           )}

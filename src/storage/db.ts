@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Player, Team, Competition, Match, MatchView, Scorer } from '../domain/types';
+import type { Player, Team, Competition, Match, MatchView, Scorer, SubstitutionEntry } from '../domain/types';
 
 // ── Players ───────────────────────────────────────────────────────────────────
 
@@ -243,6 +243,7 @@ function dbToMatch(r: Record<string, unknown>): Match {
     awayGoals: (r.away_goals as number) ?? 0,
     homeScorers: (r.home_scorers as Scorer[]) ?? [],
     awayScorers: (r.away_scorers as Scorer[]) ?? [],
+    substitutions: (r.substitutions as SubstitutionEntry[]) ?? [],
   };
 }
 
@@ -260,5 +261,6 @@ function matchToDb(m: Omit<Match, 'id' | 'createdAt' | 'updatedAt'>): Record<str
     away_goals: m.awayGoals ?? 0,
     home_scorers: m.homeScorers ?? [],
     away_scorers: m.awayScorers ?? [],
+    substitutions: m.substitutions ?? [],
   };
 }

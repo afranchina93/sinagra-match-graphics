@@ -57,6 +57,12 @@ export interface SubstitutionPlayer {
   name: string;
 }
 
+export interface SubstitutionEntry {
+  minute: string;
+  playerOut: SubstitutionPlayer;
+  playerIn: SubstitutionPlayer;
+}
+
 export interface SubstitutionConfig {
   /** Minuto senza apostrofo, es. "62" o "90+4" — apostrofo aggiunto in display */
   minute: string;
@@ -103,6 +109,7 @@ export interface Match {
   awayGoals: number;
   homeScorers: Scorer[];
   awayScorers: Scorer[];
+  substitutions: SubstitutionEntry[];
 }
 
 export interface MatchView {
