@@ -218,69 +218,28 @@ function PhaseSection({ phase }: { phase: ResultConfig['phase'] }) {
 
 // ── Layer 3 — Score ───────────────────────────────────────────────────────────
 
-function TeamBlock({ name, logo, align }: { name: string; logo?: string; align: 'left' | 'right' }) {
-  const src = logoSrc(logo);
-  const isLeft = align === 'left';
-  const isHome = isLeft; // casa sempre a sinistra
-
-  return (
-    <div style={{
-      flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
-      alignItems: isLeft ? 'flex-end' : 'flex-start', gap: 10,
-    }}>
-      {/* Contenitore stemma a dimensioni fisse — object-fit:contain evita deformazioni */}
-      <div style={{ width: 80, height: 80, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {src ? (
-          <img src={src} alt={name} crossOrigin="anonymous"
-            style={{ width: 80, height: 80, objectFit: 'contain' }} />
-        ) : (
-          isHome
-            ? <SinagraLogo size={80} />
-            : <ShieldPlaceholder initial={(name || '?')[0].toUpperCase()} />
-        )}
-      </div>
-      <span style={{
-        fontSize: 26, fontWeight: 900, color: '#1A1A1A',
-        fontFamily: 'Impact, "Arial Narrow", sans-serif',
-        letterSpacing: '0.03em', textAlign: isLeft ? 'right' : 'left',
-        lineHeight: 1.15, maxWidth: 300,
-        wordBreak: 'break-word', overflowWrap: 'break-word',
-      }}>{name.toUpperCase()}</span>
-    </div>
-  );
-}
-
 function ScoreSection({ config }: { config: ResultConfig }) {
-  // Casa sempre a sinistra: se isHome → Sinagra a sinistra, altrimenti avversario
-  const homeLogo = config.homeLogo;
-  const awayLogo = config.awayLogo;
-
   return (
     <div style={{
       position: 'absolute',
-      left: 60, top: 375, width: POSTER_W - 120,
-      display: 'flex', alignItems: 'center', gap: 16,
+      left: 0, top: 375, width: POSTER_W,
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
     }}>
-      <TeamBlock name={config.homeTeam} logo={homeLogo} align="left" />
-
-      {/* Score centrale — dimensioni fisse, sempre matematicamente centrato nel flex */}
       <div style={{
         display: 'flex', alignItems: 'center',
         fontFamily: 'Impact, "Arial Narrow", sans-serif',
-        flexShrink: 0, lineHeight: 1,
+        lineHeight: 1,
       }}>
-        <span style={{ fontSize: 190, fontWeight: 900, color: '#1A1A1A' }}>
+        <span style={{ fontSize: 260, fontWeight: 900, color: '#1A1A1A' }}>
           {config.homeGoals}
         </span>
-        <span style={{ fontSize: 95, fontWeight: 900, color: '#C8102E', margin: '0 8px' }}>
+        <span style={{ fontSize: 130, fontWeight: 900, color: '#C8102E', margin: '0 16px' }}>
           —
         </span>
-        <span style={{ fontSize: 190, fontWeight: 900, color: '#1A1A1A' }}>
+        <span style={{ fontSize: 260, fontWeight: 900, color: '#1A1A1A' }}>
           {config.awayGoals}
         </span>
       </div>
-
-      <TeamBlock name={config.awayTeam} logo={awayLogo} align="right" />
     </div>
   );
 }
@@ -294,7 +253,7 @@ function ScoreSection({ config }: { config: ResultConfig }) {
 // MAX_ROWS = 5: l'altezza è sempre fissa indipendentemente dal numero di marcatori.
 // Se una squadra ha meno di 5 marcatori, lo spazio rimane vuoto.
 
-const SCORER_ROW_H = 26;  // px per riga
+const SCORER_ROW_H = 34;  // px per riga
 const MAX_SCORERS  = 7;   // supporta fino a 7 marcatori per squadra
 const SCORERS_H    = MAX_SCORERS * SCORER_ROW_H; // 182px
 
@@ -320,27 +279,26 @@ function ScorersList({ scorers, side }: { scorers: ResultConfig['homeScorers']; 
           // NO flex:1 sul nome → riga larga quanto il suo contenuto
         }}>
           <span style={{
-            color: '#1A1A1A', fontSize: 20, fontWeight: 700,
+            color: '#FFFFFF', fontSize: 26, fontWeight: 700,
             letterSpacing: '0.05em', lineHeight: 1,
-            textShadow: '0 1px 5px rgba(255,255,255,0.85)',
+            textShadow: '0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7)',
             whiteSpace: 'nowrap',
           }}>{s.playerName.toUpperCase()}</span>
-          <span style={{
-            color: '#C8102E', fontSize: 20, fontWeight: 900,
-            fontFamily: 'Impact, "Arial Narrow", sans-serif',
-            lineHeight: 1, flexShrink: 0,
-            textShadow: '0 1px 4px rgba(255,255,255,0.85)',
-            whiteSpace: 'nowrap',
-          }}>{s.minute}&apos;</span>
-          {/* (R) rigore o (AG) autogol — opzionale, non sposta la geometria */}
           {s.note && (
             <span style={{
-              color: '#1A1A1A', fontSize: 14, fontWeight: 700,
+              color: '#FFFFFF', fontSize: 18, fontWeight: 700,
               letterSpacing: '0.03em', lineHeight: 1, flexShrink: 0,
-              textShadow: '0 1px 4px rgba(255,255,255,0.85)',
-              whiteSpace: 'nowrap', opacity: 0.75,
+              textShadow: '0 1px 6px rgba(0,0,0,0.9)',
+              whiteSpace: 'nowrap', opacity: 0.85,
             }}>({s.note})</span>
           )}
+          <span style={{
+            color: '#FF4444', fontSize: 26, fontWeight: 900,
+            fontFamily: 'Impact, "Arial Narrow", sans-serif',
+            lineHeight: 1, flexShrink: 0,
+            textShadow: '0 1px 6px rgba(0,0,0,0.9)',
+            whiteSpace: 'nowrap',
+          }}>{s.minute}&apos;</span>
         </div>
       ))}
     </div>
@@ -364,7 +322,7 @@ function ScorersSection({ config }: { config: ResultConfig }) {
   return (
     <div style={{
       position: 'absolute',
-      left: 0, top: 590, width: POSTER_W,
+      left: 0, top: 650, width: POSTER_W,
       display: 'flex', height: SCORERS_H,
     }}>
       {/* Colonna CASA — right-aligned: minuto ancorato al divisore */}
