@@ -45,6 +45,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('matches');
   const [exporting, setExporting] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [fbCaption, setFbCaption] = useState('');
   const [saved, setSaved] = useState(false);
   const [resultPhase, setResultPhase] = useState<ResultPhase>('FULL TIME');
   const [subData, setSubData] = useState({
@@ -263,6 +264,48 @@ export default function App() {
     }
   }
 
+  // ── Didascalia Facebook default ───────────────────────────────────────────
+
+  useEffect(() => {
+    if (!currentView) return;
+    const home = currentView.match.isHome ? 'Sinagra' : (currentView.opponent?.name ?? 'Avversario');
+    const away = currentView.match.isHome ? (currentView.opponent?.name ?? 'Avversario') : 'Sinagra';
+    const matchday = currentView.match.matchday ? `Giornata ${currentView.match.matchday} | ` : '';
+
+    let caption = '';
+    if (tab === 'lineup' || tab === 'match') {
+      caption = `𝗜 𝗻𝗼𝘀𝘁𝗿𝗶 𝟭𝟭 ⚔️\nScendiamo in campo così 💛❤️`;
+    } else if (tab === 'result') {
+      const hg = currentView.match.homeGoals;
+      const ag = currentView.match.awayGoals;
+      const score = `${home} ${hg} - ${ag} ${away}`;
+      const sinagra = currentView.match.isHome ? 'home' : 'away';
+
+      if (resultPhase === 'LIVE') {
+        // Trova l'ultimo marcatore
+        const allScorers = [
+          ...currentView.match.homeScorers.map(s => ({ ...s, side: 'home' as const })),
+          ...currentView.match.awayScorers.map(s => ({ ...s, side: 'away' as const })),
+        ].sort((a, b) => b.minute - a.minute);
+        const last = allScorers[0];
+        const weScored = last?.side === sinagra;
+        const goalText = weScored ? '⚽ G O A L L L L L' : '⚽ GOAL';
+        const scorerLine = last ? `${last.minute}' ${last.playerName.toUpperCase()}` : '';
+        caption = `🔴 𝗟𝗜𝗩𝗘\n\n${goalText}${scorerLine ? `\n\n${scorerLine}` : ''}\n\n${score}`;
+      } else if (resultPhase === 'HALF TIME') {
+        caption = `${hg}-${ag} 𝗮𝗹𝗹'𝗶𝗻𝘁𝗲𝗿𝘃𝗮𝗹𝗹𝗼 ⚔️\n💛❤️`;
+      } else {
+        caption = `𝗙𝗨𝗟𝗟 𝗧𝗜𝗠𝗘 💛❤️`;
+      }
+    } else if (tab === 'substitution') {
+      const out = subData.playerOut.name || 'N/A';
+      const inn = subData.playerIn.name || 'N/A';
+      const min = subData.minute ? `${subData.minute}' | ` : '';
+      caption = `🔄 ${min}| Entra ${inn.toUpperCase()}, esce ${out.toUpperCase()}\n💛❤️`;
+    }
+    setFbCaption(caption);
+  }, [tab, currentView, resultPhase, subData]);
+
   // ── Pubblica su Facebook ──────────────────────────────────────────────────
 
   async function handlePublishFacebook() {
@@ -277,7 +320,7 @@ export default function App() {
       const res = await fetch('/api/publish-facebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64 }),
+        body: JSON.stringify({ imageBase64: base64, caption: fbCaption }),
       });
       const data = await res.json() as { success?: boolean; error?: string; detail?: string };
       if (data.success) {
@@ -521,6 +564,14 @@ export default function App() {
             <Download size={16} />
             {exporting ? 'Esportazione...' : 'Esporta PNG'}
           </button>
+
+          <textarea
+            value={fbCaption}
+            onChange={(e) => setFbCaption(e.target.value)}
+            placeholder="Testo del post Facebook..."
+            rows={3}
+            className="w-full bg-gray-800 text-white text-xs rounded p-2 resize-none border border-gray-700 focus:border-blue-500 focus:outline-none placeholder-gray-500"
+          />
 
           <button
             onClick={handlePublishFacebook}
