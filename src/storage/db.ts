@@ -34,7 +34,13 @@ export async function upsertPlayer(
 }
 
 export async function deletePlayer(id: string): Promise<void> {
-  await supabase.from('players').delete().eq('id', id);
+  const { error } = await supabase.from('players').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function deactivatePlayer(id: string): Promise<void> {
+  const { error } = await supabase.from('players').update({ active: false }).eq('id', id);
+  if (error) throw error;
 }
 
 // ── Teams ─────────────────────────────────────────────────────────────────────

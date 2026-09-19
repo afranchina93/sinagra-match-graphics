@@ -19,7 +19,7 @@ import {
 } from './storage/localStorage';
 import { formationLayouts } from './domain/formations';
 import {
-  loadPlayers, upsertPlayer, deletePlayer,
+  loadPlayers, upsertPlayer, deletePlayer, deactivatePlayer,
   loadTeams, upsertTeam, uploadTeamLogo,
   loadCompetitions, upsertCompetition,
   loadMatches, createMatch, updateMatch, deleteMatch, loadMatchView,
@@ -249,8 +249,28 @@ export default function App() {
   }, []);
 
   const handleDeletePlayer = useCallback(async (id: string) => {
-    await deletePlayer(id);
-    setPlayers((prev) => prev.filter((p) => p.id !== id));
+    try {
+      await deletePlayer(id);
+      setPlayers((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      // Il giocatore è presente in una o più formazioni salvate (vincolo DB):
+      // non può essere eliminato, lo disattiviamo così sparisce dalle rose future
+      // senza rompere le formazioni passate.
+      await deactivatePlayer(id);
+      setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, active: false } : p)));
+      alert(
+        'Questo giocatore è presente in una formazione salvata e non può essere eliminato: è stato disattivato invece (non comparirà più tra i convocabili).'
+      );
+    }
+    // Rimuove eventuali riferimenti "fantasma" al giocatore dalla partita aperta
+    setCurrentView((v) => {
+      if (!v) return v;
+      const starters = Object.fromEntries(
+        Object.entries(v.starters).filter(([, pid]) => pid !== id)
+      );
+      const bench = v.bench.filter((pid) => pid !== id);
+      return { ...v, starters, bench };
+    });
   }, []);
 
   // ── Export ────────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { Player, Lineup } from '../../domain/types';
 import { formationLayouts } from '../../domain/formations';
 
@@ -25,6 +26,7 @@ const ROLE_COLORS: Record<string, string> = {
 export function LineupSelector({ roster, formation, lineup, onChange }: LineupSelectorProps) {
   const layout = formationLayouts[formation] ?? formationLayouts['4-3-3'];
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
+  const rosterIds = new Set(roster.map((p) => p.id));
 
   // playerIds already selected as starters in the *current* formation's slots
   const currentSlotIds = new Set(layout.slots.map((s) => s.id));
@@ -33,6 +35,22 @@ export function LineupSelector({ roster, formation, lineup, onChange }: LineupSe
       .filter(([slotId]) => currentSlotIds.has(slotId))
       .map(([, playerId]) => playerId)
   );
+
+  // Rimuove riferimenti "fantasma" a giocatori non più in rosa (es. eliminati/disattivati)
+  // che altrimenti occuperebbero un posto in panchina senza essere selezionabili/visibili.
+  useEffect(() => {
+    const cleanBench = lineup.bench.filter((id) => rosterIds.has(id));
+    const cleanStarters = Object.fromEntries(
+      Object.entries(lineup.starters).filter(([, id]) => rosterIds.has(id))
+    );
+    if (
+      cleanBench.length !== lineup.bench.length ||
+      Object.keys(cleanStarters).length !== Object.keys(lineup.starters).length
+    ) {
+      onChange({ ...lineup, starters: cleanStarters, bench: cleanBench });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roster, lineup.bench, lineup.starters]);
 
   function setStarter(slotId: string, playerId: string) {
     // If this player is already in another slot, remove them from that slot first
