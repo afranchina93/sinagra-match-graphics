@@ -7,6 +7,8 @@ export interface Player {
   lastName: string;
   role: PlayerRole;
   active: boolean;
+  dateOfBirth?: string;   // "DD/MM/YY"
+  matricola?: string;     // es. "2392563"
 }
 
 export interface FormationSlot {
@@ -26,10 +28,11 @@ export interface FormationLayout {
 
 export type ScorerNote = 'R' | 'AG';
 
+/** Usato solo come prop dei poster (ResultPoster) */
 export interface Scorer {
   minute: number;
   playerName: string;
-  note?: ScorerNote;  // R = rigore, AG = autogol
+  note?: ScorerNote;
 }
 
 export type ResultPhase = 'HALF TIME' | 'LIVE' | 'FULL TIME';
@@ -52,23 +55,16 @@ export interface ResultConfig {
 
 // ── Tipi sostituzione ────────────────────────────────────────
 
+/** Usato solo come prop dei poster (SubstitutionPoster) */
 export interface SubstitutionPlayer {
   number: number;
   name: string;
 }
 
-export interface SubstitutionEntry {
-  minute: string;
-  playerOut: SubstitutionPlayer;
-  playerIn: SubstitutionPlayer;
-}
-
 export interface SubstitutionConfig {
-  /** Minuto senza apostrofo, es. "62" o "90+4" — apostrofo aggiunto in display */
   minute: string;
   playerOut: SubstitutionPlayer;
   playerIn: SubstitutionPlayer;
-  // Contesto partita (per header)
   matchday: string;
   competition: string;
   date: string;
@@ -77,6 +73,32 @@ export interface SubstitutionConfig {
   awayTeam: string;
   homeLogo?: string;
   awayLogo?: string;
+}
+
+// ── Tipi relazionali DB ──────────────────────────────────────
+
+export interface MatchGoal {
+  id: string;
+  matchId: string;
+  playerId?: string;
+  playerName: string;
+  minute: number;
+  side: 'home' | 'away';
+  note?: ScorerNote;
+  sortOrder: number;
+}
+
+export interface MatchSubstitution {
+  id: string;
+  matchId: string;
+  playerOutId?: string;
+  playerOutNumber: number;
+  playerOutName: string;
+  playerInId?: string;
+  playerInNumber: number;
+  playerInName: string;
+  minute: string;
+  sortOrder: number;
 }
 
 // ── Tipi relazionali (Supabase) ──────────────────────────────
@@ -107,16 +129,17 @@ export interface Match {
   updatedAt: string;
   homeGoals: number;
   awayGoals: number;
-  homeScorers: Scorer[];
-  awayScorers: Scorer[];
-  substitutions: SubstitutionEntry[];
+  kickoffTime: string;
+  distintaMarkers: Record<string, 'K' | 'VK'>;
 }
 
 export interface MatchView {
   match: Match;
   opponent: Team | null;
-  starters: Record<string, string>; // slotId -> playerId
+  starters: Record<string, string>;  // slotId -> playerId
   bench: string[];
+  goals: MatchGoal[];
+  substitutions: MatchSubstitution[];
 }
 
 // ── Tipi usati da FormationPoster (invariati) ────────────────

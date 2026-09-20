@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Download, Users, Settings, List, CalendarDays, Trophy, ArrowRightLeft, Eye, X } from 'lucide-react';
+import { Download, Users, Settings, List, CalendarDays, Trophy, ArrowRightLeft, Eye, X, FileText } from 'lucide-react';
 import { FormationPoster } from './components/graphics/FormationPoster';
 import { ResultPoster } from './components/graphics/ResultPoster';
 import { SubstitutionPoster } from './components/graphics/SubstitutionPoster';
@@ -10,10 +10,15 @@ import { RosterManager } from './components/match/RosterManager';
 import { MatchList } from './components/match/MatchList';
 import { ResultForm } from './components/match/ResultForm';
 import { SubstitutionForm } from './components/match/SubstitutionForm';
+import { DistintaForm } from './components/match/DistintaForm';
+import { DistintaSheet } from './components/distinta/DistintaSheet';
 import type {
   Player, Team, Competition, Match, MatchView,
   MatchConfig, Lineup, ResultConfig, ResultPhase, SubstitutionConfig,
+  MatchGoal, MatchSubstitution,
 } from './domain/types';
+import type { ClubConfig } from './domain/distinta';
+import { DEFAULT_CLUB_CONFIG } from './domain/distinta';
 import {
   getCurrentMatchId, setCurrentMatchId, clearCurrentMatchId,
 } from './storage/localStorage';
@@ -23,11 +28,12 @@ import {
   loadTeams, upsertTeam, uploadTeamLogo,
   loadCompetitions, upsertCompetition,
   loadMatches, createMatch, updateMatch, deleteMatch, loadMatchView,
-  saveMatchLineup,
+  saveMatchLineup, saveMatchGoals, saveMatchSubstitutions,
+  loadClubConfig, saveClubConfig,
 } from './storage/db';
 import { exportAsPng, exportAsBase64, type FormationExportData } from './export/exportImage';
 
-type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution';
+type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta';
 
 export default function App() {
   const previewRef = useRef<HTMLDivElement>(null);
@@ -53,18 +59,21 @@ export default function App() {
   const [resultPhase, setResultPhase] = useState<ResultPhase>('FULL TIME');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showFbModal, setShowFbModal] = useState(false);
+  const [clubConfig, setClubConfig] = useState<ClubConfig>(DEFAULT_CLUB_CONFIG);
   const isInitialLoad = useRef(true);
 
   // Mount: carica tutto
   useEffect(() => {
-    Promise.all([loadPlayers(), loadTeams(), loadCompetitions(), loadMatches()])
-      .then(([p, t, c, m]) => {
-        setPlayers(p);
-        setTeams(t);
-        setCompetitions(c);
-        setMatches(m);
-        setLoading(false);
-      });
+    Promise.all([
+      loadPlayers(), loadTeams(), loadCompetitions(), loadMatches(), loadClubConfig(),
+    ]).then(([p, t, c, m, cc]) => {
+      setPlayers(p);
+      setTeams(t);
+      setCompetitions(c);
+      setMatches(m);
+      setClubConfig(cc);
+      setLoading(false);
+    });
   }, []);
 
   // Quando currentMatchId cambia, carica la view
@@ -79,12 +88,12 @@ export default function App() {
     });
   }, [currentMatchId]);
 
-  // Scale preview dinamico — si adatta alla larghezza del container desktop
+  // Scale preview dinamico — desktop
   useEffect(() => {
     const el = previewContainerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      const available = el.clientWidth - 48; // p-6 = 24px per lato
+      const available = el.clientWidth - 48;
       setPreviewScale(Math.min(0.55, available / 1080));
     });
     ro.observe(el);
@@ -104,7 +113,7 @@ export default function App() {
     return () => ro.disconnect();
   }, [showPreviewModal]);
 
-  // Autosave debounced 1.5s su match + lineup
+  // Autosave debounced 1.5s
   useEffect(() => {
     if (!currentView || isInitialLoad.current) return;
     setSaved(false);
@@ -112,6 +121,8 @@ export default function App() {
       Promise.all([
         updateMatch(currentView.match),
         saveMatchLineup(currentView.match.id, currentView.starters, currentView.bench),
+        saveMatchGoals(currentView.match.id, currentView.goals),
+        saveMatchSubstitutions(currentView.match.id, currentView.substitutions),
       ]).then(() => {
         setSaved(true);
         setTimeout(() => setSaved(false), 1200);
@@ -119,6 +130,12 @@ export default function App() {
     }, 1500);
     return () => clearTimeout(t1);
   }, [currentView]);
+
+  // Autosave club config (debounced)
+  useEffect(() => {
+    const t1 = setTimeout(() => { saveClubConfig(clubConfig); }, 1500);
+    return () => clearTimeout(t1);
+  }, [clubConfig]);
 
   // ── Creazione nuova partita ───────────────────────────────────────────────
 
@@ -135,14 +152,13 @@ export default function App() {
       coach: 'Andrea Ioppolo',
       homeGoals: 0,
       awayGoals: 0,
-      homeScorers: [],
-      awayScorers: [],
-      substitutions: [],
+      kickoffTime: '',
+      distintaMarkers: {},
     });
     setMatches((prev) => [newMatch, ...prev]);
     setCurrentMatchIdState(newMatch.id);
     setCurrentMatchId(newMatch.id);
-    setCurrentView({ match: newMatch, opponent: null, starters: {}, bench: [] });
+    setCurrentView({ match: newMatch, opponent: null, starters: {}, bench: [], goals: [], substitutions: [] });
     isInitialLoad.current = false;
     setTab('match');
   }
@@ -193,31 +209,51 @@ export default function App() {
 
   const setLineup = useCallback((lineup: Lineup) => {
     setCurrentView((v) =>
-      v
-        ? {
-            ...v,
-            starters: lineup.starters,
-            bench: lineup.bench,
-            match: { ...v.match, coach: lineup.coach },
-          }
-        : v
+      v ? {
+        ...v,
+        starters: lineup.starters,
+        bench: lineup.bench,
+        match: { ...v.match, coach: lineup.coach },
+      } : v
     );
+  }, []);
+
+  // ── Goals callbacks ───────────────────────────────────────────────────────
+
+  const handleGoalsChange = useCallback((goals: MatchGoal[]) => {
+    setCurrentView((v) => v ? { ...v, goals } : v);
   }, []);
 
   // ── Substitution callbacks ────────────────────────────────────────────────
 
-  const handleSubAdd = useCallback((entry: import('./domain/types').SubstitutionEntry) => {
+  const handleSubAdd = useCallback((entry: {
+    minute: string;
+    playerOutNumber: number;
+    playerOutName: string;
+    playerInNumber: number;
+    playerInName: string;
+  }) => {
     setCurrentView((v) => {
       if (!v) return v;
-      return { ...v, match: { ...v.match, substitutions: [...v.match.substitutions, entry] } };
+      const newSub: MatchSubstitution = {
+        id: crypto.randomUUID(),
+        matchId: v.match.id,
+        playerOutNumber: entry.playerOutNumber,
+        playerOutName: entry.playerOutName,
+        playerInNumber: entry.playerInNumber,
+        playerInName: entry.playerInName,
+        minute: entry.minute,
+        sortOrder: v.substitutions.length,
+      };
+      return { ...v, substitutions: [...v.substitutions, newSub] };
     });
   }, []);
 
   const handleSubDelete = useCallback((index: number) => {
     setCurrentView((v) => {
       if (!v) return v;
-      const subs = v.match.substitutions.filter((_, i) => i !== index);
-      return { ...v, match: { ...v.match, substitutions: subs } };
+      const substitutions = v.substitutions.filter((_, i) => i !== index);
+      return { ...v, substitutions };
     });
   }, []);
 
@@ -235,9 +271,7 @@ export default function App() {
       const updatedTeam = await upsertTeam({ id: teamId, name: teams.find(t => t.id === teamId)!.name, logoUrl: url });
       setTeams((prev) => prev.map((t) => (t.id === teamId ? updatedTeam : t)));
       setCurrentView((v) =>
-        v && v.match.opponentId === teamId
-          ? { ...v, opponent: updatedTeam }
-          : v
+        v && v.match.opponentId === teamId ? { ...v, opponent: updatedTeam } : v
       );
     },
     [teams]
@@ -257,11 +291,11 @@ export default function App() {
   // ── Player callbacks ──────────────────────────────────────────────────────
 
   const handleUpsertPlayer = useCallback(async (player: Omit<Player, 'id'> & { id?: string }) => {
-    const saved = await upsertPlayer(player);
+    const savedPlayer = await upsertPlayer(player);
     setPlayers((prev) =>
       player.id
-        ? prev.map((p) => (p.id === player.id ? saved : p))
-        : [...prev, saved]
+        ? prev.map((p) => (p.id === player.id ? savedPlayer : p))
+        : [...prev, savedPlayer]
     );
   }, []);
 
@@ -349,11 +383,8 @@ export default function App() {
       const sinagra = currentView.match.isHome ? 'home' : 'away';
 
       if (resultPhase === 'LIVE') {
-        const allScorers = [
-          ...currentView.match.homeScorers.map(s => ({ ...s, side: 'home' as const })),
-          ...currentView.match.awayScorers.map(s => ({ ...s, side: 'away' as const })),
-        ].sort((a, b) => b.minute - a.minute);
-        const last = allScorers[0];
+        const allGoals = [...currentView.goals].sort((a, b) => b.minute - a.minute);
+        const last = allGoals[0];
         const weScored = last?.side === sinagra;
         const goalText = weScored ? '⚽ G O A L L L L L' : '⚽ GOAL';
         const scorerLine = last ? `${last.minute}' ${last.playerName.toUpperCase()}` : '';
@@ -364,9 +395,9 @@ export default function App() {
         caption = `𝗙𝗨𝗟𝗟 𝗧𝗜𝗠𝗘 💛❤️`;
       }
     } else if (tab === 'substitution') {
-      const sub = currentView.match.substitutions.at(-1);
-      const out = sub?.playerOut.name || 'N/A';
-      const inn = sub?.playerIn.name || 'N/A';
+      const sub = currentView.substitutions.at(-1);
+      const out = sub?.playerOutName || 'N/A';
+      const inn = sub?.playerInName || 'N/A';
       const min = sub?.minute ? `${sub.minute}' | ` : '';
       caption = `🔄 ${min}Entra ${inn.toUpperCase()}, esce ${out.toUpperCase()}\n💛❤️`;
     }
@@ -415,17 +446,13 @@ export default function App() {
         opponent: currentView.opponent?.name ?? '',
         isHome: currentView.match.isHome,
         date: currentView.match.matchDate ?? '',
-        competition:
-          competitions.find((c) => c.id === currentView.match.competitionId)?.name ?? '',
+        competition: competitions.find((c) => c.id === currentView.match.competitionId)?.name ?? '',
         matchday: currentView.match.matchday,
         formation: currentView.match.formation,
         stadium: currentView.match.stadium,
         opponentLogo: currentView.opponent?.logoUrl ?? undefined,
       }
-    : {
-        opponent: '', isHome: true, date: '', competition: '',
-        matchday: '', formation: '4-3-3', stadium: '', opponentLogo: undefined,
-      };
+    : { opponent: '', isHome: true, date: '', competition: '', matchday: '', formation: '4-3-3', stadium: '', opponentLogo: undefined };
 
   const posterLineup: Lineup = currentView
     ? { starters: currentView.starters, bench: currentView.bench, coach: currentView.match.coach }
@@ -450,24 +477,27 @@ export default function App() {
         awayLogo: currentView.match.isHome ? (currentView.opponent?.logoUrl ?? undefined) : undefined,
         homeGoals: currentView.match.homeGoals,
         awayGoals: currentView.match.awayGoals,
-        homeScorers: currentView.match.homeScorers,
-        awayScorers: currentView.match.awayScorers,
+        homeScorers: currentView.goals.filter(g => g.side === 'home').map(g => ({
+          minute: g.minute, playerName: g.playerName, ...(g.note ? { note: g.note } : {}),
+        })),
+        awayScorers: currentView.goals.filter(g => g.side === 'away').map(g => ({
+          minute: g.minute, playerName: g.playerName, ...(g.note ? { note: g.note } : {}),
+        })),
       }
     : {
-        phase: 'FULL TIME',
-        matchday: '', competition: '', date: '', stadium: '',
+        phase: 'FULL TIME', matchday: '', competition: '', date: '', stadium: '',
         homeTeam: 'SINAGRA', awayTeam: 'AVVERSARIO',
         homeGoals: 0, awayGoals: 0, homeScorers: [], awayScorers: [],
       };
 
   // ── Adapter: MatchView → SubstitutionPoster props ────────────────────────
 
-  const lastSub = currentView?.match.substitutions.at(-1);
+  const lastSub = currentView?.substitutions.at(-1);
   const posterSubstitutionConfig: SubstitutionConfig = currentView
     ? {
         minute: lastSub?.minute ?? '',
-        playerOut: lastSub?.playerOut ?? { number: 0, name: '' },
-        playerIn:  lastSub?.playerIn  ?? { number: 0, name: '' },
+        playerOut: lastSub ? { number: lastSub.playerOutNumber, name: lastSub.playerOutName } : { number: 0, name: '' },
+        playerIn:  lastSub ? { number: lastSub.playerInNumber,  name: lastSub.playerInName  } : { number: 0, name: '' },
         matchday: currentView.match.matchday,
         competition,
         date: currentView.match.matchDate ?? '',
@@ -486,17 +516,18 @@ export default function App() {
   // ── Tabs ──────────────────────────────────────────────────────────────────
 
   const TABS: { id: Tab; label: string; labelMobile: string; icon: ReactNode; iconMobile: ReactNode }[] = [
-    { id: 'matches',      label: 'Partite',      labelMobile: 'Partite',  icon: <CalendarDays size={14} />, iconMobile: <CalendarDays size={20} /> },
-    { id: 'match',        label: 'Partita',      labelMobile: 'Partita',  icon: <Settings size={14} />,     iconMobile: <Settings size={20} /> },
-    { id: 'lineup',       label: 'Formazione',   labelMobile: 'Formazion.', icon: <List size={14} />,       iconMobile: <List size={20} /> },
-    { id: 'result',       label: 'Risultato',    labelMobile: 'Risultato', icon: <Trophy size={14} />,      iconMobile: <Trophy size={20} /> },
-    { id: 'substitution', label: 'Sostituzione', labelMobile: 'Sostit.',  icon: <ArrowRightLeft size={14} />, iconMobile: <ArrowRightLeft size={20} /> },
-    { id: 'roster',       label: 'Rosa',         labelMobile: 'Rosa',     icon: <Users size={14} />,        iconMobile: <Users size={20} /> },
+    { id: 'matches',      label: 'Partite',      labelMobile: 'Partite',   icon: <CalendarDays size={14} />, iconMobile: <CalendarDays size={18} /> },
+    { id: 'match',        label: 'Partita',      labelMobile: 'Partita',   icon: <Settings size={14} />,     iconMobile: <Settings size={18} /> },
+    { id: 'lineup',       label: 'Formazione',   labelMobile: 'Form.',     icon: <List size={14} />,         iconMobile: <List size={18} /> },
+    { id: 'result',       label: 'Risultato',    labelMobile: 'Risuld.',   icon: <Trophy size={14} />,       iconMobile: <Trophy size={18} /> },
+    { id: 'substitution', label: 'Sostituzione', labelMobile: 'Sost.',     icon: <ArrowRightLeft size={14} />, iconMobile: <ArrowRightLeft size={18} /> },
+    { id: 'roster',       label: 'Rosa',         labelMobile: 'Rosa',      icon: <Users size={14} />,        iconMobile: <Users size={18} /> },
+    { id: 'distinta',     label: 'Distinta',     labelMobile: 'Distinta',  icon: <FileText size={14} />,     iconMobile: <FileText size={18} /> },
   ];
 
   const hasMatch = !!currentView;
 
-  // SVG icons inline
+  // SVG icons
   const FacebookSVG = (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -517,24 +548,20 @@ export default function App() {
 
         {/* Header desktop */}
         <div className="hidden md:block p-4 border-b border-gray-800">
-          <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">
-            Sinagra Match
-          </h1>
+          <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">Sinagra Match</h1>
           <p className="text-xs text-yellow-400 font-semibold mt-0.5">Graphics Generator</p>
         </div>
 
         {/* Mobile top bar */}
         <div className="md:hidden flex items-center justify-between px-4 border-b border-gray-800" style={{ height: 48 }}>
-          <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">
-            Sinagra Match
-          </h1>
+          <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">Sinagra Match</h1>
           <span className={`text-[11px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
             {saved ? '✓ Salvato' : ''}
           </span>
         </div>
 
-        {/* Tabs — griglia 3×2 per 6 voci — solo desktop */}
-        <div className="hidden md:grid grid-cols-3 border-b border-gray-800">
+        {/* Tabs — griglia 4×2 per 7 voci — solo desktop */}
+        <div className="hidden md:grid grid-cols-4 border-b border-gray-800">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -542,7 +569,7 @@ export default function App() {
                 if (t.id !== 'matches' && !hasMatch) return;
                 setTab(t.id);
               }}
-              className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-b-2 ${
+              className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[9px] font-bold uppercase tracking-wide transition-colors border-b-2 ${
                 tab === t.id
                   ? 'text-yellow-400 border-yellow-400 bg-gray-800'
                   : t.id !== 'matches' && !hasMatch
@@ -558,78 +585,70 @@ export default function App() {
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto no-scrollbar p-4 pb-[108px] md:pb-4">
-          {loading && (
-            <p className="text-xs text-gray-500 text-center py-8">Caricamento...</p>
-          )}
+          {loading && <p className="text-xs text-gray-500 text-center py-8">Caricamento...</p>}
 
           {!loading && tab === 'matches' && (
             <MatchList
-              matches={matches}
-              teams={teams}
-              competitions={competitions}
+              matches={matches} teams={teams} competitions={competitions}
               currentMatchId={currentMatchId}
-              onSelect={handleSelectMatch}
-              onCreate={handleCreateMatch}
-              onDelete={handleDeleteMatch}
+              onSelect={handleSelectMatch} onCreate={handleCreateMatch} onDelete={handleDeleteMatch}
             />
           )}
 
           {!loading && tab === 'match' && currentView && (
             <MatchForm
-              match={currentView.match}
-              opponent={currentView.opponent}
-              teams={teams}
-              competitions={competitions}
-              onChange={setMatch}
-              onAddTeam={handleAddTeam}
-              onAddCompetition={handleAddCompetition}
-              onUploadLogo={handleUploadLogo}
+              match={currentView.match} opponent={currentView.opponent}
+              teams={teams} competitions={competitions}
+              onChange={setMatch} onAddTeam={handleAddTeam}
+              onAddCompetition={handleAddCompetition} onUploadLogo={handleUploadLogo}
             />
           )}
 
           {!loading && tab === 'lineup' && currentView && (
             <LineupSelector
-              roster={activeRoster}
-              formation={currentView.match.formation}
-              lineup={posterLineup}
-              onChange={setLineup}
+              roster={activeRoster} formation={currentView.match.formation}
+              lineup={posterLineup} onChange={setLineup}
             />
           )}
 
           {!loading && tab === 'result' && currentView && (
             <ResultForm
-              match={currentView.match}
-              phase={resultPhase}
-              onPhaseChange={setResultPhase}
-              onChange={setMatch}
+              match={currentView.match} goals={currentView.goals}
+              phase={resultPhase} onPhaseChange={setResultPhase}
+              onChange={setMatch} onGoalsChange={handleGoalsChange}
               players={activeRoster}
             />
           )}
 
           {!loading && tab === 'substitution' && currentView && (
             <SubstitutionForm
-              substitutions={currentView.match.substitutions}
-              onAdd={handleSubAdd}
-              onDelete={handleSubDelete}
+              matchId={currentView.match.id}
+              substitutions={currentView.substitutions}
+              onAdd={handleSubAdd} onDelete={handleSubDelete}
               players={activeRoster}
             />
           )}
 
           {!loading && tab === 'roster' && (
-            <RosterManager
-              players={players}
-              onUpsert={handleUpsertPlayer}
-              onDelete={handleDeletePlayer}
+            <RosterManager players={players} onUpsert={handleUpsertPlayer} onDelete={handleDeletePlayer} />
+          )}
+
+          {!loading && tab === 'distinta' && currentView && (
+            <DistintaForm
+              match={currentView.match}
+              view={currentView}
+              players={activeRoster}
+              clubConfig={clubConfig}
+              onChange={setMatch}
+              onClubConfigChange={setClubConfig}
+              onPrint={() => window.print()}
             />
           )}
 
           {!loading && tab !== 'matches' && !currentView && (
             <div className="text-center py-8">
               <p className="text-xs text-gray-500 mb-3">Nessuna partita selezionata</p>
-              <button
-                onClick={() => setTab('matches')}
-                className="text-xs text-yellow-400 hover:text-yellow-300 font-semibold"
-              >
+              <button onClick={() => setTab('matches')} className="text-xs text-yellow-400 hover:text-yellow-300 font-semibold">
                 Vai alle partite →
               </button>
             </div>
@@ -638,17 +657,12 @@ export default function App() {
 
         {/* Bottom bar — solo desktop */}
         <div className="hidden md:block p-4 border-t border-gray-800 space-y-2">
-          <div
-            className={`text-xs text-center transition-opacity ${
-              saved ? 'text-green-400' : 'text-gray-600'
-            }`}
-          >
+          <div className={`text-xs text-center transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
             {saved ? '✓ Salvato' : 'Salvataggio automatico attivo'}
           </div>
 
           <button
-            onClick={handleExport}
-            disabled={exporting || !hasMatch}
+            onClick={handleExport} disabled={exporting || !hasMatch}
             className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
           >
             <Download size={16} />
@@ -664,8 +678,7 @@ export default function App() {
           />
 
           <button
-            onClick={handlePublishFacebook}
-            disabled={publishing || !hasMatch}
+            onClick={handlePublishFacebook} disabled={publishing || !hasMatch}
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
           >
             {FacebookSVG}
@@ -673,8 +686,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={handlePublishInstagram}
-            disabled={publishingIG || !hasMatch}
+            onClick={handlePublishInstagram} disabled={publishingIG || !hasMatch}
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
           >
             {InstagramSVG}
@@ -684,67 +696,53 @@ export default function App() {
 
         {/* ── Mobile action strip + bottom nav ──────────────────────────────── */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 z-40">
-          {/* Action strip */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
             <span className={`flex-1 text-[10px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
               {saved ? '✓ Salvato' : 'Auto-save attivo'}
             </span>
             <button
-              onClick={handleExport}
-              disabled={exporting || !hasMatch}
+              onClick={handleExport} disabled={exporting || !hasMatch}
               className="flex items-center gap-1.5 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-xs font-black px-4 py-2.5 rounded transition-colors uppercase"
             >
               <Download size={14} />
               {exporting ? 'Esport...' : 'Esporta JPG'}
             </button>
             <button
-              onClick={() => setShowPreviewModal(true)}
-              disabled={!hasMatch}
+              onClick={() => setShowPreviewModal(true)} disabled={!hasMatch}
               className="bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
-              title="Anteprima"
             >
               <Eye size={18} />
             </button>
             <button
-              onClick={() => setShowFbModal(true)}
-              disabled={!hasMatch}
+              onClick={() => setShowFbModal(true)} disabled={!hasMatch}
               className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
-              title="Pubblica su Facebook"
             >
               {FacebookSVG}
             </button>
             <button
-              onClick={handlePublishInstagram}
-              disabled={publishingIG || !hasMatch}
+              onClick={handlePublishInstagram} disabled={publishingIG || !hasMatch}
               className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
-              title="Pubblica Storia Instagram"
             >
               {InstagramSVG}
             </button>
           </div>
 
-          {/* Bottom nav */}
           <div className="flex">
             {TABS.map((t) => {
               const isDisabled = t.id !== 'matches' && !hasMatch;
               return (
                 <button
                   key={t.id}
-                  onClick={() => {
-                    if (isDisabled) return;
-                    setTab(t.id);
-                  }}
+                  onClick={() => { if (isDisabled) return; setTab(t.id); }}
                   disabled={isDisabled}
                   className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1 transition-colors ${
-                    tab === t.id
-                      ? 'text-yellow-400 bg-gray-800'
-                      : isDisabled
-                      ? 'text-gray-700 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-gray-300'
+                    tab === t.id ? 'text-yellow-400 bg-gray-800'
+                    : isDisabled ? 'text-gray-700 cursor-not-allowed'
+                    : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
                   {t.iconMobile}
-                  <span className="text-[9px] font-bold uppercase tracking-wide">{t.labelMobile}</span>
+                  <span className="text-[8px] font-bold uppercase tracking-wide">{t.labelMobile}</span>
                 </button>
               );
             })}
@@ -769,32 +767,19 @@ export default function App() {
           <div style={{
             width: Math.round(1080 * previewScale),
             height: Math.round(1350 * previewScale),
-            flexShrink: 0,
-            position: 'relative',
+            flexShrink: 0, position: 'relative',
           }}>
             <div style={{
-              position: 'absolute',
-              top: 0, left: 0,
+              position: 'absolute', top: 0, left: 0,
               transformOrigin: 'top left',
               transform: `scale(${previewScale})`,
             }}>
               {tab === 'result' ? (
-                <ResultPoster
-                  ref={resultPreviewRef}
-                  config={posterResultConfig}
-                />
+                <ResultPoster ref={resultPreviewRef} config={posterResultConfig} />
               ) : tab === 'substitution' ? (
-                <SubstitutionPoster
-                  ref={substitutionPreviewRef}
-                  config={posterSubstitutionConfig}
-                />
+                <SubstitutionPoster ref={substitutionPreviewRef} config={posterSubstitutionConfig} />
               ) : (
-                <FormationPoster
-                  ref={previewRef}
-                  roster={activeRoster}
-                  matchConfig={posterMatchConfig}
-                  lineup={posterLineup}
-                />
+                <FormationPoster ref={previewRef} roster={activeRoster} matchConfig={posterMatchConfig} lineup={posterLineup} />
               )}
             </div>
           </div>
@@ -823,32 +808,19 @@ export default function App() {
             <div style={{
               width: Math.round(1080 * modalPreviewScale),
               height: Math.round(1350 * modalPreviewScale),
-              flexShrink: 0,
-              position: 'relative',
+              flexShrink: 0, position: 'relative',
             }}>
               <div style={{
-                position: 'absolute',
-                top: 0, left: 0,
+                position: 'absolute', top: 0, left: 0,
                 transformOrigin: 'top left',
                 transform: `scale(${modalPreviewScale})`,
               }}>
                 {tab === 'result' ? (
-                  <ResultPoster
-                    ref={resultPreviewRef}
-                    config={posterResultConfig}
-                  />
+                  <ResultPoster ref={resultPreviewRef} config={posterResultConfig} />
                 ) : tab === 'substitution' ? (
-                  <SubstitutionPoster
-                    ref={substitutionPreviewRef}
-                    config={posterSubstitutionConfig}
-                  />
+                  <SubstitutionPoster ref={substitutionPreviewRef} config={posterSubstitutionConfig} />
                 ) : (
-                  <FormationPoster
-                    ref={previewRef}
-                    roster={activeRoster}
-                    matchConfig={posterMatchConfig}
-                    lineup={posterLineup}
-                  />
+                  <FormationPoster ref={previewRef} roster={activeRoster} matchConfig={posterMatchConfig} lineup={posterLineup} />
                 )}
               </div>
             </div>
@@ -856,8 +828,7 @@ export default function App() {
 
           <footer className="flex gap-2 p-4 border-t border-gray-800">
             <button
-              onClick={handleExport}
-              disabled={exporting}
+              onClick={handleExport} disabled={exporting}
               className="flex-1 flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-sm font-black py-3 rounded transition-colors uppercase"
             >
               <Download size={16} />
@@ -872,8 +843,7 @@ export default function App() {
               Facebook
             </button>
             <button
-              onClick={handlePublishInstagram}
-              disabled={publishingIG}
+              onClick={handlePublishInstagram} disabled={publishingIG}
               className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors uppercase"
             >
               {InstagramSVG}
@@ -888,13 +858,8 @@ export default function App() {
         <div className="md:hidden fixed inset-0 z-50 bg-black/70 flex items-end">
           <div className="bg-gray-900 w-full rounded-t-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-white uppercase tracking-wide">
-                Testo del post Facebook
-              </h3>
-              <button
-                onClick={() => setShowFbModal(false)}
-                className="text-gray-400 hover:text-white p-1"
-              >
+              <h3 className="text-sm font-black text-white uppercase tracking-wide">Testo del post Facebook</h3>
+              <button onClick={() => setShowFbModal(false)} className="text-gray-400 hover:text-white p-1">
                 <X size={18} />
               </button>
             </div>
@@ -907,8 +872,7 @@ export default function App() {
             />
             <div className="flex gap-2">
               <button
-                onClick={handlePublishFacebook}
-                disabled={publishing}
+                onClick={handlePublishFacebook} disabled={publishing}
                 className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase"
               >
                 {FacebookSVG}
@@ -922,6 +886,20 @@ export default function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Distinta Sheet (nascosta, visibile solo in stampa) ─────────────── */}
+      {currentView && (
+        <div className="hidden">
+          <DistintaSheet
+            match={currentView.match}
+            view={currentView}
+            players={activeRoster}
+            competition={competition}
+            opponentName={currentView.opponent?.name ?? ''}
+            clubConfig={clubConfig}
+          />
         </div>
       )}
 

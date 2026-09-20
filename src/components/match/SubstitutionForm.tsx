@@ -1,17 +1,26 @@
 import { useState } from 'react';
-import type { SubstitutionConfig, SubstitutionEntry, Player } from '../../domain/types';
+import type { MatchSubstitution, Player } from '../../domain/types';
 
-type SubData = Pick<SubstitutionConfig, 'minute' | 'playerOut' | 'playerIn'>;
+type SubDraft = {
+  minute: string;
+  playerOutNumber: number;
+  playerOutName: string;
+  playerInNumber: number;
+  playerInName: string;
+};
 
-const EMPTY: SubData = {
+const EMPTY: SubDraft = {
   minute: '',
-  playerOut: { number: 0, name: '' },
-  playerIn:  { number: 0, name: '' },
+  playerOutNumber: 0,
+  playerOutName: '',
+  playerInNumber: 0,
+  playerInName: '',
 };
 
 interface SubstitutionFormProps {
-  substitutions: SubstitutionEntry[];
-  onAdd: (entry: SubstitutionEntry) => void;
+  matchId: string;
+  substitutions: MatchSubstitution[];
+  onAdd: (entry: SubDraft) => void;
   onDelete: (index: number) => void;
   players?: Player[];
 }
@@ -22,28 +31,29 @@ const selectCls = 'bg-gray-800 border border-gray-700 text-white text-xs rounded
 
 function PlayerInput({
   label,
-  player,
+  number,
+  name,
   onChange,
   players,
 }: {
   label: string;
-  player: SubData['playerOut'];
-  onChange: (p: SubData['playerOut']) => void;
+  number: number;
+  name: string;
+  onChange: (number: number, name: string) => void;
   players?: Player[];
 }) {
   const sorted = players ? [...players].sort((a, b) => a.number - b.number) : [];
 
   function handleSelect(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value;
-    if (!id) { onChange({ number: 0, name: '' }); return; }
+    if (!id) { onChange(0, ''); return; }
     const p = players?.find(pl => pl.id === id);
-    if (p) onChange({ number: p.number, name: p.lastName.toUpperCase() });
+    if (p) onChange(p.number, p.lastName.toUpperCase());
   }
 
   return (
     <div className="space-y-2">
       <span className={labelCls}>{label}</span>
-
       {sorted.length > 0 && (
         <select className={selectCls} defaultValue="" onChange={handleSelect}>
           <option value="">Seleziona dalla rosa…</option>
@@ -54,7 +64,6 @@ function PlayerInput({
           ))}
         </select>
       )}
-
       <div className="flex gap-2">
         <input
           className={`${inputCls} w-16 text-center`}
@@ -62,15 +71,15 @@ function PlayerInput({
           min={1}
           max={99}
           placeholder="#"
-          value={player.number || ''}
-          onChange={e => onChange({ ...player, number: parseInt(e.target.value) || 0 })}
+          value={number || ''}
+          onChange={e => onChange(parseInt(e.target.value) || 0, name)}
         />
         <input
           className={inputCls}
           type="text"
           placeholder="Cognome"
-          value={player.name}
-          onChange={e => onChange({ ...player, name: e.target.value.toUpperCase() })}
+          value={name}
+          onChange={e => onChange(number, e.target.value.toUpperCase())}
         />
       </div>
     </div>
@@ -78,13 +87,13 @@ function PlayerInput({
 }
 
 export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: SubstitutionFormProps) {
-  const [draft, setDraft] = useState<SubData>(EMPTY);
+  const [draft, setDraft] = useState<SubDraft>(EMPTY);
 
-  const canAdd = !!draft.minute && !!draft.playerOut.name && !!draft.playerIn.name;
+  const canAdd = !!draft.minute && !!draft.playerOutName && !!draft.playerInName;
 
   function handleAdd() {
     if (!canAdd) return;
-    onAdd({ minute: draft.minute, playerOut: draft.playerOut, playerIn: draft.playerIn });
+    onAdd(draft);
     setDraft(EMPTY);
   }
 
@@ -94,14 +103,13 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
         Sostituzioni
       </h2>
 
-      {/* Lista sostituzioni salvate */}
       {substitutions.length > 0 && (
         <div className="space-y-1.5">
           {substitutions.map((s, i) => (
-            <div key={i} className="flex items-center gap-2 bg-gray-800/60 border border-gray-700 rounded px-3 py-2 text-xs">
+            <div key={s.id} className="flex items-center gap-2 bg-gray-800/60 border border-gray-700 rounded px-3 py-2 text-xs">
               <span className="text-yellow-400 font-bold w-10 shrink-0">{s.minute}'</span>
-              <span className="text-red-400 flex-1 truncate">↓ {s.playerOut.number}. {s.playerOut.name}</span>
-              <span className="text-green-400 flex-1 truncate">↑ {s.playerIn.number}. {s.playerIn.name}</span>
+              <span className="text-red-400 flex-1 truncate">↓ {s.playerOutNumber}. {s.playerOutName}</span>
+              <span className="text-green-400 flex-1 truncate">↑ {s.playerInNumber}. {s.playerInName}</span>
               <button
                 onClick={() => onDelete(i)}
                 className="text-gray-600 hover:text-red-400 transition-colors ml-1 shrink-0"
@@ -118,11 +126,9 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
         <p className="text-xs text-gray-600 text-center py-2">Nessuna sostituzione salvata</p>
       )}
 
-      {/* Form nuova sostituzione */}
       <div className="border-t border-gray-700 pt-4 space-y-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nuova sostituzione</p>
 
-        {/* Minuto */}
         <div>
           <label className={labelCls}>Minuto</label>
           <input
@@ -135,12 +141,12 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
           <p className="text-xs text-gray-600 mt-1">L&apos;apostrofo viene aggiunto automaticamente</p>
         </div>
 
-        {/* Giocatore uscente */}
         <div className="p-3 rounded bg-gray-800/50 border border-red-900/40">
           <PlayerInput
             label="Esce"
-            player={draft.playerOut}
-            onChange={p => setDraft(d => ({ ...d, playerOut: p }))}
+            number={draft.playerOutNumber}
+            name={draft.playerOutName}
+            onChange={(number, name) => setDraft(d => ({ ...d, playerOutNumber: number, playerOutName: name }))}
             players={players}
           />
           <div className="mt-1 flex items-center gap-1">
@@ -149,12 +155,12 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
           </div>
         </div>
 
-        {/* Giocatore entrante */}
         <div className="p-3 rounded bg-gray-800/50 border border-green-900/40">
           <PlayerInput
             label="Entra"
-            player={draft.playerIn}
-            onChange={p => setDraft(d => ({ ...d, playerIn: p }))}
+            number={draft.playerInNumber}
+            name={draft.playerInName}
+            onChange={(number, name) => setDraft(d => ({ ...d, playerInNumber: number, playerInName: name }))}
             players={players}
           />
           <div className="mt-1 flex items-center gap-1">

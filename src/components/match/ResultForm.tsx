@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import type { Match, Scorer, ScorerNote, ResultPhase, Player } from '../../domain/types';
+import type { Match, ScorerNote, ResultPhase, Player, MatchGoal } from '../../domain/types';
 
 interface ResultFormProps {
   match: Match;
+  goals: MatchGoal[];
   phase: ResultPhase;
   onPhaseChange: (phase: ResultPhase) => void;
   onChange: (match: Match) => void;
+  onGoalsChange: (goals: MatchGoal[]) => void;
   players?: Player[];
 }
 
@@ -41,66 +43,81 @@ const NOTE_LABELS: { value: ScorerNote; label: string }[] = [
   { value: 'AG', label: 'A.G.' },
 ];
 
-function ScorersList({
-  title, scorers, onChange, players,
-}: { title: string; scorers: Scorer[]; onChange: (s: Scorer[]) => void; players?: Player[] }) {
+function GoalsList({
+  title, side, matchId, goals, onGoalsChange, players,
+}: {
+  title: string;
+  side: 'home' | 'away';
+  matchId: string;
+  goals: MatchGoal[];
+  onGoalsChange: (goals: MatchGoal[]) => void;
+  players?: Player[];
+}) {
   const [minute, setMinute] = useState('');
   const [name, setName] = useState('');
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [note, setNote] = useState<ScorerNote | ''>('');
 
-  const useRoster = !!players && players.length > 0;
+  const sideGoals = goals.filter(g => g.side === side);
+  const useRoster = !!players && players.length > 0 && side === 'home';
+  const sortedPlayers = useRoster ? [...players].sort((a, b) => a.number - b.number) : [];
 
   function add() {
     const min = parseInt(minute);
     if (isNaN(min) || min < 1) return;
 
     let playerName: string;
+    let playerId: string | undefined;
     if (useRoster) {
       if (!selectedPlayerId) return;
-      const p = players.find((pl) => pl.id === selectedPlayerId);
+      const p = players!.find((pl) => pl.id === selectedPlayerId);
       if (!p) return;
       playerName = p.lastName.toUpperCase();
+      playerId = p.id;
     } else {
       if (!name.trim()) return;
       playerName = name.trim().toUpperCase();
     }
 
-    const scorer: Scorer = { minute: min, playerName, ...(note ? { note } : {}) };
-    const updated = [...scorers, scorer].sort((a, b) => a.minute - b.minute);
-    onChange(updated);
+    const newGoal: MatchGoal = {
+      id: crypto.randomUUID(),
+      matchId,
+      playerId,
+      playerName,
+      minute: min,
+      side,
+      note: note || undefined,
+      sortOrder: goals.length,
+    };
+    const updated = [...goals, newGoal].sort((a, b) => a.minute - b.minute);
+    onGoalsChange(updated);
     setMinute('');
     setName('');
     setSelectedPlayerId('');
     setNote('');
   }
 
-  function remove(i: number) {
-    onChange(scorers.filter((_, idx) => idx !== i));
+  function remove(id: string) {
+    onGoalsChange(goals.filter(g => g.id !== id));
   }
-
-  const sortedPlayers = useRoster
-    ? [...players].sort((a, b) => a.number - b.number)
-    : [];
 
   return (
     <div className="space-y-2">
       <span className={labelCls}>{title}</span>
 
-      {/* Lista marcatori esistenti */}
-      {scorers.length > 0 && (
+      {sideGoals.length > 0 && (
         <div className="space-y-1">
-          {scorers.map((s, i) => (
-            <div key={i} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 group">
+          {sideGoals.map((g) => (
+            <div key={g.id} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 group">
               <span className="text-xs font-bold text-red-400 w-8 shrink-0" style={{ fontFamily: 'Impact, sans-serif' }}>
-                {s.minute}&apos;
+                {g.minute}&apos;
               </span>
-              <span className="text-xs text-white flex-1 uppercase tracking-wide">{s.playerName}</span>
-              {s.note && (
-                <span className="text-xs font-bold text-yellow-400 shrink-0">({s.note})</span>
+              <span className="text-xs text-white flex-1 uppercase tracking-wide">{g.playerName}</span>
+              {g.note && (
+                <span className="text-xs font-bold text-yellow-400 shrink-0">({g.note})</span>
               )}
               <button
-                onClick={() => remove(i)}
+                onClick={() => remove(g.id)}
                 className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Trash2 size={12} />
@@ -110,7 +127,6 @@ function ScorersList({
         </div>
       )}
 
-      {/* Form aggiunta */}
       <div className="flex gap-2 items-center">
         <input
           className={`${inputCls} w-14 text-center`}
@@ -145,7 +161,6 @@ function ScorersList({
             onKeyDown={(e) => e.key === 'Enter' && add()}
           />
         )}
-        {/* Toggle R / AG — nessuna selezione = gol normale */}
         <div className="flex gap-1 shrink-0">
           {NOTE_LABELS.map(({ value, label }) => (
             <button
@@ -162,10 +177,7 @@ function ScorersList({
             </button>
           ))}
         </div>
-        <button
-          onClick={add}
-          className="text-yellow-400 hover:text-yellow-300"
-        >
+        <button onClick={add} className="text-yellow-400 hover:text-yellow-300">
           <Plus size={16} />
         </button>
       </div>
@@ -173,14 +185,13 @@ function ScorersList({
   );
 }
 
-export function ResultForm({ match, phase, onPhaseChange, onChange, players }: ResultFormProps) {
+export function ResultForm({ match, goals, phase, onPhaseChange, onChange, onGoalsChange, players }: ResultFormProps) {
   return (
     <div className="space-y-5">
       <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2">
         Risultato
       </h2>
 
-      {/* Toggle fase */}
       <div>
         <label className={labelCls}>Fase</label>
         <div className="flex gap-2">
@@ -201,7 +212,6 @@ export function ResultForm({ match, phase, onPhaseChange, onChange, players }: R
         </div>
       </div>
 
-      {/* Risultato */}
       <div>
         <label className={labelCls}>Gol</label>
         <div className="flex items-center justify-around bg-gray-800 rounded-lg p-4">
@@ -219,19 +229,21 @@ export function ResultForm({ match, phase, onPhaseChange, onChange, players }: R
         </div>
       </div>
 
-      {/* Marcatori casa */}
-      <ScorersList
+      <GoalsList
         title="Marcatori casa"
-        scorers={match.homeScorers}
-        onChange={(s) => onChange({ ...match, homeScorers: s })}
+        side="home"
+        matchId={match.id}
+        goals={goals}
+        onGoalsChange={onGoalsChange}
         players={players}
       />
 
-      {/* Marcatori ospiti */}
-      <ScorersList
-        title={`Marcatori ospiti`}
-        scorers={match.awayScorers}
-        onChange={(s) => onChange({ ...match, awayScorers: s })}
+      <GoalsList
+        title="Marcatori ospiti"
+        side="away"
+        matchId={match.id}
+        goals={goals}
+        onGoalsChange={onGoalsChange}
       />
 
       <p className="text-xs text-gray-600 text-center">

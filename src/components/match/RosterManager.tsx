@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Player, PlayerRole } from '../../domain/types';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface RosterManagerProps {
   players: Player[];
@@ -38,6 +38,102 @@ interface NewPlayer {
 
 const EMPTY: NewPlayer = { number: '', firstName: '', lastName: '', role: 'midfielder' };
 
+const inputCls =
+  'bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400';
+
+function PlayerRow({ player, onUpsert, onDelete }: {
+  player: Player;
+  onUpsert: (p: Omit<Player, 'id'> & { id?: string }) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [dob, setDob] = useState(player.dateOfBirth ?? '');
+  const [matricola, setMatricola] = useState(player.matricola ?? '');
+  const [saving, setSaving] = useState(false);
+
+  async function saveExtras() {
+    if (dob === (player.dateOfBirth ?? '') && matricola === (player.matricola ?? '')) return;
+    setSaving(true);
+    try {
+      await onUpsert({
+        id: player.id,
+        number: player.number,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        role: player.role,
+        active: player.active,
+        dateOfBirth: dob || undefined,
+        matricola: matricola || undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const hasExtras = !!(player.dateOfBirth || player.matricola);
+
+  return (
+    <div className="rounded hover:bg-gray-800/50 group">
+      <div className="flex items-center gap-2 px-2 py-1">
+        <span className={`text-xs font-bold w-5 ${ROLE_COLORS[player.role]}`}>{player.number}</span>
+        <span className="text-xs text-white flex-1">
+          {player.lastName} {player.firstName.charAt(0)}.
+        </span>
+        {hasExtras && (
+          <span className="text-xs text-gray-600 font-mono">{player.matricola ?? '—'}</span>
+        )}
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="text-gray-600 hover:text-yellow-400 transition-colors"
+          title="Dati distinta"
+        >
+          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+        <button
+          onClick={() => onDelete(player.id)}
+          className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="px-2 pb-2 pt-1 space-y-2 border-t border-gray-700/50 ml-7">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">
+                Data nascita (GG/MM/AA)
+              </label>
+              <input
+                className={inputCls + ' w-full'}
+                type="text"
+                placeholder="es. 06/07/01"
+                value={dob}
+                onChange={e => setDob(e.target.value)}
+                onBlur={saveExtras}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">
+                N° Matricola FIGC
+              </label>
+              <input
+                className={inputCls + ' w-full'}
+                type="text"
+                placeholder="es. 2392563"
+                value={matricola}
+                onChange={e => setMatricola(e.target.value)}
+                onBlur={saveExtras}
+              />
+            </div>
+          </div>
+          {saving && <p className="text-[10px] text-gray-500">Salvataggio...</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RosterManager({ players, onUpsert, onDelete }: RosterManagerProps) {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<NewPlayer>(EMPTY);
@@ -69,9 +165,6 @@ export function RosterManager({ players, onUpsert, onDelete }: RosterManagerProp
     forward: [],
   };
   players.forEach((p) => byRole[p.role]?.push(p));
-
-  const inputCls =
-    'bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400';
 
   return (
     <div className="space-y-4">
@@ -138,23 +231,9 @@ export function RosterManager({ players, onUpsert, onDelete }: RosterManagerProp
             <span className={`text-xs font-bold ${ROLE_COLORS[role]}`}>{ROLE_LABELS[role]}</span>
             <span className="text-xs text-gray-500">({rolePlayers.length})</span>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {rolePlayers.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 group"
-              >
-                <span className={`text-xs font-bold w-5 ${ROLE_COLORS[role]}`}>{p.number}</span>
-                <span className="text-xs text-white flex-1">
-                  {p.lastName} {p.firstName.charAt(0)}.
-                </span>
-                <button
-                  onClick={() => onDelete(p.id)}
-                  className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
+              <PlayerRow key={p.id} player={p} onUpsert={onUpsert} onDelete={onDelete} />
             ))}
             {rolePlayers.length === 0 && (
               <p className="text-xs text-gray-600 px-2">Nessun giocatore</p>

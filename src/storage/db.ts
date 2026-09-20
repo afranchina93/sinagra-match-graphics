@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
-import type { Player, Team, Competition, Match, MatchView, Scorer, SubstitutionEntry } from '../domain/types';
+import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote } from '../domain/types';
+import type { ClubConfig } from '../domain/distinta';
+import { DEFAULT_CLUB_CONFIG } from '../domain/distinta';
 
 // ── Players ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +24,8 @@ export async function upsertPlayer(
     last_name: player.lastName,
     role: player.role,
     active: player.active ?? true,
+    date_of_birth: player.dateOfBirth ?? null,
+    matricola: player.matricola ?? null,
   };
   if (player.id) row.id = player.id;
   const { data, error } = await supabase
@@ -134,11 +138,19 @@ export async function deleteMatch(id: string): Promise<void> {
 }
 
 export async function loadMatchView(matchId: string): Promise<MatchView | null> {
-  const [matchRes, startersRes, benchRes] = await Promise.all([
+  const [matchRes, startersRes, benchRes, goalsRes, subsRes] = await Promise.all([
     supabase.from('matches').select('*').eq('id', matchId).single(),
     supabase.from('match_starters').select('slot_id, player_id').eq('match_id', matchId),
     supabase.from('match_bench')
       .select('player_id, sort_order')
+      .eq('match_id', matchId)
+      .order('sort_order'),
+    supabase.from('match_goals')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('minute'),
+    supabase.from('match_substitutions')
+      .select('*')
       .eq('match_id', matchId)
       .order('sort_order'),
   ]);
@@ -159,8 +171,10 @@ export async function loadMatchView(matchId: string): Promise<MatchView | null> 
     starters[row.slot_id] = row.player_id;
   }
   const bench = (benchRes.data ?? []).map((r) => r.player_id as string);
+  const goals = (goalsRes.data ?? []).map(dbToMatchGoal);
+  const substitutions = (subsRes.data ?? []).map(dbToMatchSubstitution);
 
-  return { match, opponent, starters, bench };
+  return { match, opponent, starters, bench, goals, substitutions };
 }
 
 export async function saveMatchLineup(
@@ -197,6 +211,65 @@ export async function saveMatchLineup(
   ]);
 }
 
+export async function saveMatchGoals(
+  matchId: string,
+  goals: MatchGoal[]
+): Promise<void> {
+  await supabase.from('match_goals').delete().eq('match_id', matchId);
+  if (goals.length === 0) return;
+  const rows = goals.map((g, i) => ({
+    match_id: matchId,
+    player_id: g.playerId ?? null,
+    player_name: g.playerName,
+    minute: g.minute,
+    side: g.side,
+    note: g.note ?? null,
+    sort_order: i,
+  }));
+  const { error } = await supabase.from('match_goals').insert(rows);
+  if (error) console.error('saveMatchGoals:', error);
+}
+
+export async function saveMatchSubstitutions(
+  matchId: string,
+  subs: MatchSubstitution[]
+): Promise<void> {
+  await supabase.from('match_substitutions').delete().eq('match_id', matchId);
+  if (subs.length === 0) return;
+  const rows = subs.map((s, i) => ({
+    match_id: matchId,
+    player_out_id: s.playerOutId ?? null,
+    player_out_number: s.playerOutNumber,
+    player_out_name: s.playerOutName,
+    player_in_id: s.playerInId ?? null,
+    player_in_number: s.playerInNumber,
+    player_in_name: s.playerInName,
+    minute: s.minute,
+    sort_order: i,
+  }));
+  const { error } = await supabase.from('match_substitutions').insert(rows);
+  if (error) console.error('saveMatchSubstitutions:', error);
+}
+
+// ── Club Config ───────────────────────────────────────────────────────────────
+
+export async function loadClubConfig(): Promise<ClubConfig> {
+  const { data, error } = await supabase
+    .from('club_config')
+    .select('data')
+    .eq('id', 1)
+    .single();
+  if (error || !data) return DEFAULT_CLUB_CONFIG;
+  return { ...DEFAULT_CLUB_CONFIG, ...(data.data as Partial<ClubConfig>) };
+}
+
+export async function saveClubConfig(config: ClubConfig): Promise<void> {
+  const { error } = await supabase
+    .from('club_config')
+    .upsert({ id: 1, data: config });
+  if (error) console.error('saveClubConfig:', error);
+}
+
 // ── DB ↔ TypeScript mappers ───────────────────────────────────────────────────
 
 function dbToPlayer(r: Record<string, unknown>): Player {
@@ -207,6 +280,8 @@ function dbToPlayer(r: Record<string, unknown>): Player {
     lastName: r.last_name as string,
     role: r.role as Player['role'],
     active: r.active as boolean,
+    dateOfBirth: (r.date_of_birth as string) ?? undefined,
+    matricola: (r.matricola as string) ?? undefined,
   };
 }
 
@@ -241,9 +316,8 @@ function dbToMatch(r: Record<string, unknown>): Match {
     updatedAt: r.updated_at as string,
     homeGoals: (r.home_goals as number) ?? 0,
     awayGoals: (r.away_goals as number) ?? 0,
-    homeScorers: (r.home_scorers as Scorer[]) ?? [],
-    awayScorers: (r.away_scorers as Scorer[]) ?? [],
-    substitutions: (r.substitutions as SubstitutionEntry[]) ?? [],
+    kickoffTime: (r.kickoff_time as string) ?? '',
+    distintaMarkers: (r.distinta_markers as Record<string, 'K' | 'VK'>) ?? {},
   };
 }
 
@@ -259,8 +333,35 @@ function matchToDb(m: Omit<Match, 'id' | 'createdAt' | 'updatedAt'>): Record<str
     coach: m.coach ?? 'Andrea Ioppolo',
     home_goals: m.homeGoals ?? 0,
     away_goals: m.awayGoals ?? 0,
-    home_scorers: m.homeScorers ?? [],
-    away_scorers: m.awayScorers ?? [],
-    substitutions: m.substitutions ?? [],
+    kickoff_time: m.kickoffTime ?? null,
+    distinta_markers: m.distintaMarkers ?? {},
+  };
+}
+
+function dbToMatchGoal(r: Record<string, unknown>): MatchGoal {
+  return {
+    id: r.id as string,
+    matchId: r.match_id as string,
+    playerId: (r.player_id as string) ?? undefined,
+    playerName: r.player_name as string,
+    minute: r.minute as number,
+    side: r.side as 'home' | 'away',
+    note: (r.note as ScorerNote) ?? undefined,
+    sortOrder: r.sort_order as number,
+  };
+}
+
+function dbToMatchSubstitution(r: Record<string, unknown>): MatchSubstitution {
+  return {
+    id: r.id as string,
+    matchId: r.match_id as string,
+    playerOutId: (r.player_out_id as string) ?? undefined,
+    playerOutNumber: (r.player_out_number as number) ?? 0,
+    playerOutName: (r.player_out_name as string) ?? '',
+    playerInId: (r.player_in_id as string) ?? undefined,
+    playerInNumber: (r.player_in_number as number) ?? 0,
+    playerInName: (r.player_in_name as string) ?? '',
+    minute: (r.minute as string) ?? '',
+    sortOrder: (r.sort_order as number) ?? 0,
   };
 }
