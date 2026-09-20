@@ -12,7 +12,7 @@
  *    4. BenchPanel        — footer-panel.png + PANCHINA + ALLENATORE + social
  * ─────────────────────────────────────────────────────────────────────────────
  */
-import { forwardRef, useState } from 'react';
+import { forwardRef } from 'react';
 import type { Player, MatchConfig, Lineup } from '../../domain/types';
 import { formationLayouts } from '../../domain/formations';
 import {
@@ -92,8 +92,7 @@ function TitleBrushstroke() {
   );
 }
 
-function CssBackground({ bgLoaded }: { bgLoaded: boolean }) {
-  if (bgLoaded) return null;
+function CssBackground() {
   return (
     <>
       <div style={{ position: 'absolute', inset: 0, background: '#F5C500' }} />
@@ -115,7 +114,7 @@ function CssBackground({ bgLoaded }: { bgLoaded: boolean }) {
   );
 }
 
-function PosterBackground({ onLoad }: { onLoad: () => void }) {
+function PosterBackground() {
   return (
     <img
       src={POSTER_ASSETS.background}
@@ -127,8 +126,6 @@ function PosterBackground({ onLoad }: { onLoad: () => void }) {
         objectFit: 'cover',
         display: 'block',
       }}
-      onLoad={onLoad}
-      onError={() => { /* silently ignore — CSS fallback rimane */ }}
     />
   );
 }
@@ -489,7 +486,6 @@ function BenchPanel({ bench, roster, coach, duplicateLastNames }: { bench: strin
 
 export const FormationPoster = forwardRef<HTMLDivElement, FormationPosterProps>(
   ({ roster, matchConfig, lineup }, ref) => {
-    const [bgLoaded, setBgLoaded] = useState(false);
     const layout = formationLayouts[matchConfig.formation] ?? formationLayouts['4-3-3'];
 
     const opponentName = matchConfig.opponent || 'AVVERSARIO';
@@ -523,11 +519,11 @@ export const FormationPoster = forwardRef<HTMLDivElement, FormationPosterProps>(
           flexShrink: 0,
         }}
       >
-        {/* Layer 0a: CSS fallback */}
-        <CssBackground bgLoaded={bgLoaded} />
+        {/* Layer 0a: CSS fallback — sempre nel DOM, coperto dal webp se disponibile */}
+        <CssBackground />
 
-        {/* Layer 0b: Background asset */}
-        <PosterBackground onLoad={() => setBgLoaded(true)} />
+        {/* Layer 0b: Background asset — copre il CSS fallback quando disponibile */}
+        <PosterBackground />
 
         {/* Layer 1: Header editoriale NUOVO */}
         <MatchHeader
