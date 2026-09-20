@@ -9,6 +9,21 @@ export interface Player {
   active: boolean;
   dateOfBirth?: string;   // "DD/MM/YY"
   matricola?: string;     // es. "2392563"
+  docIdentity?: string;
+}
+
+export type StaffRole = 'allenatore' | 'direttore_gara' | 'dirigente' | 'medico_sociale' | 'collaboratore' | 'forza_pubblica';
+
+export interface StaffPerson {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  dateOfBirth?: string;
+  matricola?: string;
+  docIdentity?: string;
+  tesseraFIGC?: string;
+  active: boolean;
 }
 
 export interface FormationSlot {

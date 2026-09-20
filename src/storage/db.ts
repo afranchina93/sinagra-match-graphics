@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote } from '../domain/types';
+import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote, StaffPerson } from '../domain/types';
 import type { ClubConfig } from '../domain/distinta';
 import { DEFAULT_CLUB_CONFIG } from '../domain/distinta';
 
@@ -26,6 +26,7 @@ export async function upsertPlayer(
     active: player.active ?? true,
     date_of_birth: player.dateOfBirth ?? null,
     matricola: player.matricola ?? null,
+    doc_identity: player.docIdentity ?? null,
   };
   if (player.id) row.id = player.id;
   const { data, error } = await supabase
@@ -282,6 +283,7 @@ function dbToPlayer(r: Record<string, unknown>): Player {
     active: r.active as boolean,
     dateOfBirth: (r.date_of_birth as string) ?? undefined,
     matricola: (r.matricola as string) ?? undefined,
+    docIdentity: (r.doc_identity as string) ?? undefined,
   };
 }
 
@@ -364,4 +366,57 @@ function dbToMatchSubstitution(r: Record<string, unknown>): MatchSubstitution {
     minute: (r.minute as string) ?? '',
     sortOrder: (r.sort_order as number) ?? 0,
   };
+}
+
+function dbToStaff(r: Record<string, unknown>): StaffPerson {
+  return {
+    id: r.id as string,
+    firstName: (r.first_name as string) ?? '',
+    lastName: (r.last_name as string) ?? '',
+    role: (r.role as string) ?? '',
+    dateOfBirth: (r.date_of_birth as string) ?? undefined,
+    matricola: (r.matricola as string) ?? undefined,
+    docIdentity: (r.doc_identity as string) ?? undefined,
+    tesseraFIGC: (r.tessera_figc as string) ?? undefined,
+    active: (r.active as boolean) ?? true,
+  };
+}
+
+// ── Staff ─────────────────────────────────────────────────────────────────────
+
+export async function loadStaff(): Promise<StaffPerson[]> {
+  const { data, error } = await supabase
+    .from('staff_members')
+    .select('*')
+    .order('last_name')
+    .order('first_name');
+  if (error) { console.error('loadStaff:', error); return []; }
+  return (data ?? []).map(dbToStaff);
+}
+
+export async function upsertStaff(
+  person: Omit<StaffPerson, 'id'> & { id?: string }
+): Promise<StaffPerson> {
+  const row: Record<string, unknown> = {
+    first_name: person.firstName,
+    last_name: person.lastName,
+    role: person.role,
+    date_of_birth: person.dateOfBirth ?? null,
+    matricola: person.matricola ?? null,
+    doc_identity: person.docIdentity ?? null,
+    tessera_figc: person.tesseraFIGC ?? null,
+    active: person.active ?? true,
+  };
+  if (person.id) row.id = person.id;
+  const { data, error } = await supabase
+    .from('staff_members')
+    .upsert(row)
+    .select()
+    .single();
+  if (error) throw error;
+  return dbToStaff(data);
+}
+
+export async function deleteStaff(id: string): Promise<void> {
+  await supabase.from('staff_members').delete().eq('id', id);
 }

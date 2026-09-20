@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Printer } from 'lucide-react';
-import type { Player, Match, MatchView } from '../../domain/types';
+import type { Player, Match, MatchView, StaffPerson } from '../../domain/types';
 import type { ClubConfig } from '../../domain/distinta';
 
 interface DistintaFormProps {
   match: Match;
   view: MatchView;
   players: Player[];
+  staff: StaffPerson[];
   clubConfig: ClubConfig;
   onChange: (match: Match) => void;
   onClubConfigChange: (config: ClubConfig) => void;
@@ -16,23 +17,40 @@ interface DistintaFormProps {
 const inputCls =
   'bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400 w-full';
 const labelCls = 'block text-[10px] text-gray-500 uppercase tracking-wider mb-0.5';
+const selectCls =
+  'bg-gray-800 border border-gray-600 text-gray-400 text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400 w-full';
 
 type Marker = 'K' | 'VK';
 
 function StaffField({
-  label, name, extra, extraLabel,
-  onName, onExtra,
+  label, name, extra, extraLabel, staff,
+  onName, onExtra, onSelectStaff,
 }: {
   label: string;
   name: string;
   extra?: string;
   extraLabel?: string;
+  staff: StaffPerson[];
   onName: (v: string) => void;
   onExtra?: (v: string) => void;
+  onSelectStaff: (person: StaffPerson) => void;
 }) {
   return (
     <div className="space-y-1">
       <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{label}</span>
+      {staff.length > 0 && (
+        <select className={selectCls}
+          value=""
+          onChange={e => {
+            const p = staff.find(s => s.id === e.target.value);
+            if (p) onSelectStaff(p);
+          }}>
+          <option value="">Seleziona da lista...</option>
+          {staff.map(s => (
+            <option key={s.id} value={s.id}>{s.lastName} {s.firstName}</option>
+          ))}
+        </select>
+      )}
       <div className={onExtra ? 'grid grid-cols-2 gap-2' : ''}>
         <input className={inputCls} value={name} onChange={e => onName(e.target.value)} placeholder="Nome completo" />
         {onExtra && extraLabel && (
@@ -43,7 +61,7 @@ function StaffField({
   );
 }
 
-export function DistintaForm({ match, view, players, clubConfig, onChange, onClubConfigChange, onPrint }: DistintaFormProps) {
+export function DistintaForm({ match, view, players, staff, clubConfig, onChange, onClubConfigChange, onPrint }: DistintaFormProps) {
   const [showStaff, setShowStaff] = useState(false);
 
   const markers = match.distintaMarkers ?? {};
@@ -210,38 +228,48 @@ export function DistintaForm({ match, view, players, clubConfig, onChange, onClu
             </div>
 
             <StaffField label="Dirigente accompagnatore"
+              staff={staff}
               name={clubConfig.dirigente.name ?? ''}
               extra={clubConfig.dirigente.docIdentity} extraLabel="Doc. identità"
               onName={v => setCC(c => ({ ...c, dirigente: { ...c.dirigente, name: v } }))}
               onExtra={v => setCC(c => ({ ...c, dirigente: { ...c.dirigente, docIdentity: v } }))}
+              onSelectStaff={p => setCC(c => ({ ...c, dirigente: { name: `${p.lastName} ${p.firstName}`.trim(), docIdentity: p.docIdentity ?? c.dirigente.docIdentity } }))}
             />
 
             <StaffField label="Dirigente addetto gara"
+              staff={staff}
               name={clubConfig.direttoreGara.name ?? ''}
               extra={clubConfig.direttoreGara.docIdentity} extraLabel="Doc. identità"
               onName={v => setCC(c => ({ ...c, direttoreGara: { ...c.direttoreGara, name: v } }))}
               onExtra={v => setCC(c => ({ ...c, direttoreGara: { ...c.direttoreGara, docIdentity: v } }))}
+              onSelectStaff={p => setCC(c => ({ ...c, direttoreGara: { name: `${p.lastName} ${p.firstName}`.trim(), docIdentity: p.docIdentity ?? c.direttoreGara.docIdentity } }))}
             />
 
             <StaffField label="Allenatore"
+              staff={staff}
               name={clubConfig.allenatore.name ?? ''}
               extra={clubConfig.allenatore.matricola} extraLabel="Matricola tecnico"
               onName={v => setCC(c => ({ ...c, allenatore: { ...c.allenatore, name: v } }))}
               onExtra={v => setCC(c => ({ ...c, allenatore: { ...c.allenatore, matricola: v } }))}
+              onSelectStaff={p => setCC(c => ({ ...c, allenatore: { name: `${p.lastName} ${p.firstName}`.trim(), matricola: p.matricola ?? c.allenatore.matricola } }))}
             />
 
             <StaffField label="Medico Sociale"
+              staff={staff}
               name={clubConfig.medicoSociale.name ?? ''}
               extra={clubConfig.medicoSociale.tesseraFIGC} extraLabel="Tessera FIGC n°"
               onName={v => setCC(c => ({ ...c, medicoSociale: { ...c.medicoSociale, name: v } }))}
               onExtra={v => setCC(c => ({ ...c, medicoSociale: { ...c.medicoSociale, tesseraFIGC: v } }))}
+              onSelectStaff={p => setCC(c => ({ ...c, medicoSociale: { name: `${p.lastName} ${p.firstName}`.trim(), tesseraFIGC: p.tesseraFIGC ?? c.medicoSociale.tesseraFIGC } }))}
             />
 
             <StaffField label="Collaboratore"
+              staff={staff}
               name={clubConfig.collaboratore.name ?? ''}
               extra={clubConfig.collaboratore.matricola} extraLabel="Matricola"
               onName={v => setCC(c => ({ ...c, collaboratore: { ...c.collaboratore, name: v } }))}
               onExtra={v => setCC(c => ({ ...c, collaboratore: { ...c.collaboratore, matricola: v } }))}
+              onSelectStaff={p => setCC(c => ({ ...c, collaboratore: { name: `${p.lastName} ${p.firstName}`.trim(), matricola: p.matricola ?? c.collaboratore.matricola } }))}
             />
 
             <div>

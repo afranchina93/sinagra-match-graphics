@@ -15,7 +15,7 @@ import { DistintaSheet } from './components/distinta/DistintaSheet';
 import type {
   Player, Team, Competition, Match, MatchView,
   MatchConfig, Lineup, ResultConfig, ResultPhase, SubstitutionConfig,
-  MatchGoal, MatchSubstitution,
+  MatchGoal, MatchSubstitution, StaffPerson,
 } from './domain/types';
 import type { ClubConfig } from './domain/distinta';
 import { DEFAULT_CLUB_CONFIG } from './domain/distinta';
@@ -30,6 +30,7 @@ import {
   loadMatches, createMatch, updateMatch, deleteMatch, loadMatchView,
   saveMatchLineup, saveMatchGoals, saveMatchSubstitutions,
   loadClubConfig, saveClubConfig,
+  loadStaff, upsertStaff, deleteStaff,
 } from './storage/db';
 import { exportAsPng, exportAsBase64, type FormationExportData } from './export/exportImage';
 
@@ -60,18 +61,20 @@ export default function App() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showFbModal, setShowFbModal] = useState(false);
   const [clubConfig, setClubConfig] = useState<ClubConfig>(DEFAULT_CLUB_CONFIG);
+  const [staff, setStaff] = useState<StaffPerson[]>([]);
   const isInitialLoad = useRef(true);
 
   // Mount: carica tutto
   useEffect(() => {
     Promise.all([
-      loadPlayers(), loadTeams(), loadCompetitions(), loadMatches(), loadClubConfig(),
-    ]).then(([p, t, c, m, cc]) => {
+      loadPlayers(), loadTeams(), loadCompetitions(), loadMatches(), loadClubConfig(), loadStaff(),
+    ]).then(([p, t, c, m, cc, s]) => {
       setPlayers(p);
       setTeams(t);
       setCompetitions(c);
       setMatches(m);
       setClubConfig(cc);
+      setStaff(s);
       setLoading(false);
     });
   }, []);
@@ -304,6 +307,21 @@ export default function App() {
     setPlayers((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  const handleUpsertStaff = useCallback(async (person: Omit<StaffPerson, 'id'> & { id?: string }) => {
+    const saved = await upsertStaff(person);
+    setStaff((prev) =>
+      person.id
+        ? prev.map((s) => (s.id === person.id ? saved : s))
+        : [...prev, saved]
+    );
+    return saved;
+  }, []);
+
+  const handleDeleteStaff = useCallback(async (id: string) => {
+    await deleteStaff(id);
+    setStaff((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
   // ── Export ────────────────────────────────────────────────────────────────
 
   function formationServerData(): FormationExportData {
@@ -526,6 +544,7 @@ export default function App() {
   ];
 
   const hasMatch = !!currentView;
+  const showPreview = (tab === 'lineup' || tab === 'result' || tab === 'substitution') && hasMatch;
 
   // SVG icons
   const FacebookSVG = (
@@ -630,7 +649,11 @@ export default function App() {
           )}
 
           {!loading && tab === 'roster' && (
-            <RosterManager players={players} onUpsert={handleUpsertPlayer} onDelete={handleDeletePlayer} />
+            <RosterManager
+              players={players} staff={staff}
+              onUpsertPlayer={handleUpsertPlayer} onDeletePlayer={handleDeletePlayer}
+              onUpsertStaff={handleUpsertStaff} onDeleteStaff={handleDeleteStaff}
+            />
           )}
 
           {!loading && tab === 'distinta' && currentView && (
@@ -638,6 +661,7 @@ export default function App() {
               match={currentView.match}
               view={currentView}
               players={activeRoster}
+              staff={staff}
               clubConfig={clubConfig}
               onChange={setMatch}
               onClubConfigChange={setClubConfig}
@@ -696,36 +720,44 @@ export default function App() {
 
         {/* ── Mobile action strip + bottom nav ──────────────────────────────── */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 z-40">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
-            <span className={`flex-1 text-[10px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
-              {saved ? '✓ Salvato' : 'Auto-save attivo'}
-            </span>
-            <button
-              onClick={handleExport} disabled={exporting || !hasMatch}
-              className="flex items-center gap-1.5 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-xs font-black px-4 py-2.5 rounded transition-colors uppercase"
-            >
-              <Download size={14} />
-              {exporting ? 'Esport...' : 'Esporta JPG'}
-            </button>
-            <button
-              onClick={() => setShowPreviewModal(true)} disabled={!hasMatch}
-              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
-            >
-              <Eye size={18} />
-            </button>
-            <button
-              onClick={() => setShowFbModal(true)} disabled={!hasMatch}
-              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
-            >
-              {FacebookSVG}
-            </button>
-            <button
-              onClick={handlePublishInstagram} disabled={publishingIG || !hasMatch}
-              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
-            >
-              {InstagramSVG}
-            </button>
-          </div>
+          {showPreview ? (
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
+              <span className={`flex-1 text-[10px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
+                {saved ? '✓ Salvato' : 'Auto-save attivo'}
+              </span>
+              <button
+                onClick={handleExport} disabled={exporting}
+                className="flex items-center gap-1.5 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-xs font-black px-4 py-2.5 rounded transition-colors uppercase"
+              >
+                <Download size={14} />
+                {exporting ? 'Esport...' : 'Esporta JPG'}
+              </button>
+              <button
+                onClick={() => setShowPreviewModal(true)}
+                className="bg-gray-700 hover:bg-gray-600 text-white p-2.5 rounded transition-colors"
+              >
+                <Eye size={18} />
+              </button>
+              <button
+                onClick={() => setShowFbModal(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded transition-colors"
+              >
+                {FacebookSVG}
+              </button>
+              <button
+                onClick={handlePublishInstagram} disabled={publishingIG}
+                className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
+              >
+                {InstagramSVG}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center px-3 py-2 border-b border-gray-800">
+              <span className={`text-[10px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
+                {saved ? '✓ Salvato' : 'Auto-save attivo'}
+              </span>
+            </div>
+          )}
 
           <div className="flex">
             {TABS.map((t) => {
@@ -752,38 +784,49 @@ export default function App() {
 
       {/* ── RIGHT PANEL - Preview (desktop only) ────────────────────────────── */}
       <div className="hidden md:flex flex-1 overflow-auto bg-gray-950 flex-col">
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-          <span className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
-            {tab === 'result'       ? 'Anteprima Risultato — 1080×1350'
-           : tab === 'substitution' ? 'Anteprima Sostituzione — 1080×1350'
-           : 'Anteprima Formazione — 1080×1350'}
-          </span>
-          <span className="text-xs text-gray-600">
-            La grafica è in scala ridotta. L&apos;export sarà a risoluzione piena.
-          </span>
-        </div>
-
-        <div ref={previewContainerRef} className="flex-1 overflow-auto p-6 flex items-start justify-center">
-          <div style={{
-            width: Math.round(1080 * previewScale),
-            height: Math.round(1350 * previewScale),
-            flexShrink: 0, position: 'relative',
-          }}>
-            <div style={{
-              position: 'absolute', top: 0, left: 0,
-              transformOrigin: 'top left',
-              transform: `scale(${previewScale})`,
-            }}>
-              {tab === 'result' ? (
-                <ResultPoster ref={resultPreviewRef} config={posterResultConfig} />
-              ) : tab === 'substitution' ? (
-                <SubstitutionPoster ref={substitutionPreviewRef} config={posterSubstitutionConfig} />
-              ) : (
-                <FormationPoster ref={previewRef} roster={activeRoster} matchConfig={posterMatchConfig} lineup={posterLineup} />
-              )}
+        {showPreview ? (
+          <>
+            <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+              <span className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
+                {tab === 'result'       ? 'Anteprima Risultato — 1080×1350'
+               : tab === 'substitution' ? 'Anteprima Sostituzione — 1080×1350'
+               : 'Anteprima Formazione — 1080×1350'}
+              </span>
+              <span className="text-xs text-gray-600">
+                La grafica è in scala ridotta. L&apos;export sarà a risoluzione piena.
+              </span>
             </div>
+
+            <div ref={previewContainerRef} className="flex-1 overflow-auto p-6 flex items-start justify-center">
+              <div style={{
+                width: Math.round(1080 * previewScale),
+                height: Math.round(1350 * previewScale),
+                flexShrink: 0, position: 'relative',
+              }}>
+                <div style={{
+                  position: 'absolute', top: 0, left: 0,
+                  transformOrigin: 'top left',
+                  transform: `scale(${previewScale})`,
+                }}>
+                  {tab === 'result' ? (
+                    <ResultPoster ref={resultPreviewRef} config={posterResultConfig} />
+                  ) : tab === 'substitution' ? (
+                    <SubstitutionPoster ref={substitutionPreviewRef} config={posterSubstitutionConfig} />
+                  ) : (
+                    <FormationPoster ref={previewRef} roster={activeRoster} matchConfig={posterMatchConfig} lineup={posterLineup} />
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-700 flex-col gap-2">
+            <span className="text-2xl">🖼</span>
+            <span className="text-xs uppercase tracking-widest font-semibold">
+              Anteprima disponibile in Formazione, Risultato e Sostituzione
+            </span>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── Preview modal (mobile only) ──────────────────────────────────────── */}
