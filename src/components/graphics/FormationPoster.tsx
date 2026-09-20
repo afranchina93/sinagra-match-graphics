@@ -100,6 +100,7 @@ function CssBackground() {
         src="/castello.png"
         alt=""
         aria-hidden="true"
+        crossOrigin="anonymous"
         style={{
           position: 'absolute', right: -20, top: '16%',
           height: '46%', width: 'auto', objectFit: 'contain',
