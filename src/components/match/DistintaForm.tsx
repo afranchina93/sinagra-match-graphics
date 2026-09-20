@@ -95,18 +95,6 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
         Distinta di Gara
       </h2>
 
-      {/* Orario */}
-      <div>
-        <label className={labelCls}>Orario calcio d&apos;inizio (es. 15.30)</label>
-        <input
-          className={inputCls}
-          type="text"
-          placeholder="15.30"
-          value={match.kickoffTime ?? ''}
-          onChange={e => onChange({ ...match, kickoffTime: e.target.value })}
-        />
-      </div>
-
       {/* Giocatori */}
       <div>
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">

@@ -1,4 +1,5 @@
-import type { Player, Lineup } from '../../domain/types';
+import type { Player, Lineup, Match } from '../../domain/types';
+import { FORMATIONS } from '../../domain/types';
 import { formationLayouts } from '../../domain/formations';
 
 interface LineupSelectorProps {
@@ -6,6 +7,9 @@ interface LineupSelectorProps {
   formation: string;
   lineup: Lineup;
   onChange: (lineup: Lineup) => void;
+  onFormationChange: (formation: string) => void;
+  match: Match;
+  onMatchChange: (m: Match) => void;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -15,6 +19,34 @@ const ROLE_LABELS: Record<string, string> = {
   forward: 'ATT',
 };
 
+/** Traduzione abbreviazioni tattiche inglesi → italiano */
+const SLOT_LABEL_IT: Record<string, string> = {
+  GK:  'POR',
+  LB:  'TS',    // Terzino Sinistro
+  RB:  'TD',    // Terzino Destro
+  CB:  'DC',    // Difensore Centrale
+  LCB: 'DC-S',
+  RCB: 'DC-D',
+  LWB: 'FS',    // Fluidificante Sinistro
+  RWB: 'FD',    // Fluidificante Destro
+  DM:  'MED',   // Mediano
+  CM:  'CC',    // Centrocampista Centrale
+  LCM: 'CC-S',
+  RCM: 'CC-D',
+  LM:  'CS',    // Centrocampista Sinistro
+  RM:  'CD',    // Centrocampista Destro
+  AM:  'TRQ',   // Trequartista
+  LAM: 'TRQ-S',
+  RAM: 'TRQ-D',
+  TRQ: 'TRQ',
+  LW:  'ALA-S', // Ala Sinistra
+  RW:  'ALA-D', // Ala Destra
+  CF:  'CA',    // Centravanti
+  ST:  'ATT',   // Attaccante
+  LS:  'ATT-S',
+  RS:  'ATT-D',
+};
+
 const ROLE_COLORS: Record<string, string> = {
   goalkeeper: 'text-blue-400',
   defender: 'text-green-400',
@@ -22,7 +54,7 @@ const ROLE_COLORS: Record<string, string> = {
   forward: 'text-red-400',
 };
 
-export function LineupSelector({ roster, formation, lineup, onChange }: LineupSelectorProps) {
+export function LineupSelector({ roster, formation, lineup, onChange, onFormationChange, match, onMatchChange }: LineupSelectorProps) {
   const layout = formationLayouts[formation] ?? formationLayouts['4-3-3'];
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
 
@@ -72,6 +104,20 @@ export function LineupSelector({ roster, formation, lineup, onChange }: LineupSe
 
   return (
     <div className="space-y-4">
+      {/* Modulo */}
+      <div>
+        <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Modulo</label>
+        <select
+          className={inputCls}
+          value={formation}
+          onChange={(e) => onFormationChange(e.target.value)}
+        >
+          {FORMATIONS.map((f) => (
+            <option key={f} value={f}>{f}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Starters */}
       <div>
         <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2 mb-3">
@@ -86,7 +132,7 @@ export function LineupSelector({ roster, formation, lineup, onChange }: LineupSe
                 <span
                   className={`text-xs font-bold w-8 shrink-0 ${ROLE_COLORS[slot.role] ?? 'text-gray-400'}`}
                 >
-                  {slot.label ?? ROLE_LABELS[slot.role]}
+                  {(slot.label ? (SLOT_LABEL_IT[slot.label] ?? slot.label) : ROLE_LABELS[slot.role])}
                 </span>
                 <select
                   className={inputCls}
@@ -112,6 +158,24 @@ export function LineupSelector({ roster, formation, lineup, onChange }: LineupSe
                   <span className={`text-xs shrink-0 ${ROLE_COLORS[selectedPlayer.role]}`}>
                     {ROLE_LABELS[selectedPlayer.role]}
                   </span>
+                )}
+                {selectedId && playerMap[selectedId] && (
+                  <input
+                    type="number"
+                    min={1} max={99}
+                    value={match.numberOverrides?.[selectedId] ?? playerMap[selectedId].number}
+                    onChange={e => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val) && val > 0) {
+                        onMatchChange({
+                          ...match,
+                          numberOverrides: { ...(match.numberOverrides ?? {}), [selectedId]: val }
+                        });
+                      }
+                    }}
+                    className="w-10 bg-gray-700 border border-gray-600 text-yellow-400 text-xs font-bold text-center rounded px-1 py-0.5 focus:outline-none focus:border-yellow-400"
+                    title="Numero per questa partita"
+                  />
                 )}
               </div>
             );

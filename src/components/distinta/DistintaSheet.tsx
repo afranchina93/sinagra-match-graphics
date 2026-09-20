@@ -11,17 +11,41 @@ interface DistintaSheetProps {
   clubConfig: ClubConfig;
 }
 
-const cell = (extra = ''): React.CSSProperties => ({
-  border: '1px solid black',
-  padding: '2px 4px',
-  fontSize: 9,
-  fontFamily: 'Arial, sans-serif',
+// ─── Style tokens ────────────────────────────────────────────────────────────
+const FONT = 'Arial, sans-serif';
+const BORDER = '1px solid #888';
+const BORDER_DARK = '1px solid #333';
+
+const base: React.CSSProperties = {
+  border: BORDER,
+  padding: '3px 5px',
+  fontSize: 10,
+  fontFamily: FONT,
   verticalAlign: 'middle',
-  ...Object.fromEntries(extra.split(';').filter(Boolean).map(s => {
-    const [k, v] = s.split(':');
-    return [k.trim().replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase()), v?.trim()];
-  })),
+};
+
+const cell = (extra: React.CSSProperties = {}): React.CSSProperties => ({ ...base, ...extra });
+
+const labelCell = (extra: React.CSSProperties = {}): React.CSSProperties => ({
+  ...base,
+  backgroundColor: '#f2f2f2',
+  color: '#444',
+  whiteSpace: 'nowrap',
+  ...extra,
 });
+
+
+const thCell = (extra: React.CSSProperties = {}): React.CSSProperties => ({
+  ...base,
+  border: BORDER_DARK,
+  backgroundColor: '#e0e0e0',
+  fontWeight: 'bold',
+  textAlign: 'center',
+  fontSize: 9,
+  ...extra,
+});
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function dob(player: Player): { g: string; m: string; a: string } {
   const raw = player.dateOfBirth ?? '';
@@ -36,44 +60,51 @@ function formatDate(isoDate: string | null): string {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+// ─── Row components ───────────────────────────────────────────────────────────
+
 interface PlayerRowProps {
   player: Player;
   marker?: 'K' | 'VK';
+  index: number;
 }
 
-function PlayerRow({ player, marker }: PlayerRowProps) {
+function PlayerRow({ player, marker, index }: PlayerRowProps) {
   const { g, m, a } = dob(player);
+  const bg = index % 2 === 0 ? '#ffffff' : '#f7f7f7';
+  const rowCell = (extra: React.CSSProperties = {}) => cell({ backgroundColor: bg, ...extra });
   return (
     <tr>
-      <td style={cell('text-align:center; font-weight:bold')}>{player.number}</td>
-      <td style={cell('text-align:center')}>{g}</td>
-      <td style={cell('text-align:center')}>{m}</td>
-      <td style={cell('text-align:center')}>{a}</td>
-      <td style={cell('font-weight:bold; text-transform:uppercase')}>
+      <td style={rowCell({ textAlign: 'center', fontWeight: 'bold' })}>{player.number}</td>
+      <td style={rowCell({ textAlign: 'center' })}>{g}</td>
+      <td style={rowCell({ textAlign: 'center' })}>{m}</td>
+      <td style={rowCell({ textAlign: 'center' })}>{a}</td>
+      <td style={rowCell({ fontWeight: 'bold', textTransform: 'uppercase' })}>
         {player.lastName} {player.firstName}
       </td>
-      <td style={cell('text-align:center; font-weight:bold')}>{marker ?? ''}</td>
-      <td style={cell('text-align:center')}>{player.matricola ?? ''}</td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
+      <td style={rowCell({ textAlign: 'center', fontWeight: 'bold' })}>{marker ?? ''}</td>
+      <td style={rowCell({ textAlign: 'center' })}>{player.matricola ?? ''}</td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
     </tr>
   );
 }
 
-function EmptyRow({ label }: { label?: string }) {
+function EmptyRow({ index }: { index: number }) {
+  const bg = index % 2 === 0 ? '#ffffff' : '#f7f7f7';
+  const rowCell = (extra: React.CSSProperties = {}) => cell({ backgroundColor: bg, ...extra });
   return (
     <tr>
-      <td style={cell('text-align:center; font-weight:bold; color:#999')}>{label ?? ''}</td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
-      <td style={cell()}></td>
+      <td style={rowCell({ textAlign: 'center', color: '#ccc' })}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
+      <td style={rowCell()}></td>
     </tr>
   );
 }
@@ -81,247 +112,291 @@ function EmptyRow({ label }: { label?: string }) {
 function SeparatorRow() {
   return (
     <tr>
-      <td colSpan={10} style={{ height: 6, backgroundColor: '#eee', border: '1px solid black' }} />
+      <td colSpan={10} style={{
+        padding: '3px 6px',
+        backgroundColor: '#444',
+        color: 'white',
+        fontSize: 8,
+        fontWeight: 'bold',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        border: BORDER_DARK,
+      }}>
+        Riserve
+      </td>
     </tr>
   );
 }
 
+// ─── Staff info picker ────────────────────────────────────────────────────────
+
+/** Returns the label/value to display: extra field if present, else doc identity. */
+function staffInfo(
+  extraLabel: string,
+  extraValue: string | undefined,
+  docValue: string | undefined,
+): { label: string; value: string } {
+  if (extraValue) return { label: extraLabel, value: extraValue };
+  if (docValue) return { label: 'Doc. Identità', value: docValue };
+  return { label: '', value: '' };
+}
+
+// ─── Sorting ──────────────────────────────────────────────────────────────────
+
+function sortPlayerIds(ids: string[], players: Player[], gkId?: string): string[] {
+  return [...ids].sort((a, b) => {
+    const pa = players.find(p => p.id === a);
+    const pb = players.find(p => p.id === b);
+    const aIsGk = a === gkId || pa?.role === 'goalkeeper';
+    const bIsGk = b === gkId || pb?.role === 'goalkeeper';
+    if (aIsGk && !bIsGk) return -1;
+    if (bIsGk && !aIsGk) return 1;
+    return (pa?.number ?? 99) - (pb?.number ?? 99);
+  });
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function DistintaSheet({ match, view, players, competition, opponentName, clubConfig }: DistintaSheetProps) {
   const markers = match.distintaMarkers ?? {};
-
   const getPlayer = (id: string) => players.find(p => p.id === id);
 
-  const starterIds = Object.values(view.starters).filter(Boolean);
-  const benchIds = view.bench.filter(Boolean);
+  const gkSlotKey = Object.keys(view.starters).find(k => k.toLowerCase() === 'gk');
+  const gkId = gkSlotKey ? view.starters[gkSlotKey] : undefined;
+
+  const starterIds = sortPlayerIds(Object.values(view.starters).filter(Boolean), players, gkId);
+  const benchIds = sortPlayerIds(view.bench.filter(Boolean), players);
 
   const homeTeam = match.isHome ? 'SINAGRA CALCIO' : (opponentName || 'AVVERSARIO');
   const awayTeam = match.isHome ? (opponentName || 'AVVERSARIO') : 'SINAGRA CALCIO';
   const dateStr = formatDate(match.matchDate);
   const timeStr = match.kickoffTime ? `ALLE ORE ${match.kickoffTime} ` : '';
   const stadioStr = match.stadium ? `PRESSO ${match.stadium.toUpperCase()}` : '';
-
   const cc = clubConfig;
 
   return (
     <div className="distinta-sheet" style={{
       backgroundColor: 'white',
       color: 'black',
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 9,
-      padding: '12mm 10mm',
+      fontFamily: FONT,
+      fontSize: 10,
+      padding: '8mm 10mm',
       width: '210mm',
       minHeight: '297mm',
       boxSizing: 'border-box',
     }}>
 
-      {/* HEADER */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 6 }}>
+      {/* ── HEADER ── */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 5 }}>
         <tbody>
           <tr>
-            <td style={{ width: 60, textAlign: 'center', border: '1px solid black', padding: 4 }}>
-              <SinagraLogo size={48} />
+            <td style={{ width: 72, textAlign: 'center', border: BORDER_DARK, padding: 6, backgroundColor: '#fafafa' }}>
+              <SinagraLogo size={46} />
             </td>
-            <td style={{ textAlign: 'center', border: '1px solid black', padding: 4 }}>
-              <div style={{ fontSize: 16, fontWeight: 'bold', letterSpacing: 1 }}>
-                F.I.G.C. LEGA NAZIONALE DILETTANTI
+            <td style={{ textAlign: 'center', border: BORDER_DARK, padding: '6px 10px', backgroundColor: '#fafafa' }}>
+              <div style={{ fontSize: 13, fontWeight: 'bold', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                F.I.G.C. — Lega Nazionale Dilettanti
               </div>
               <div style={{ fontSize: 11, fontWeight: 'bold', marginTop: 4 }}>
-                {cc.clubFullName} MATR. {cc.matricola}
+                {cc.clubFullName}
               </div>
-              <div style={{ fontSize: 9, color: '#555' }}>(denominazione società)</div>
+              <div style={{ fontSize: 10, color: '#555', marginTop: 1 }}>
+                Matricola società: <strong>{cc.matricola}</strong>
+              </div>
             </td>
-            <td style={{ width: 60, textAlign: 'center', border: '1px solid black', padding: 4 }}>
-              {/* LND placeholder */}
-              <div style={{ fontSize: 7, fontWeight: 'bold', textAlign: 'center', lineHeight: 1.2 }}>
-                LND<br/>LEGA NAZ.<br/>DIL.
-              </div>
+            <td style={{ width: 72, textAlign: 'center', border: BORDER_DARK, padding: 6, backgroundColor: '#fafafa' }}>
+              <img src="/lnd-logo.jpg" alt="LND" style={{ width: 52, height: 'auto', display: 'block', margin: '0 auto' }} />
             </td>
           </tr>
         </tbody>
       </table>
 
-      {/* Match info */}
-      <div style={{ border: '1px solid black', borderTop: 'none', padding: '3px 6px', marginBottom: 4 }}>
-        <div style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase' }}>{competition}</div>
-        <div style={{ fontSize: 9 }}>
-          DISTINTA DEI GIOCATORI PARTECIPANTI ALLA GARA:{' '}
-          <strong>{homeTeam} - {awayTeam}</strong>
+      {/* ── MATCH INFO ── */}
+      <div style={{
+        border: BORDER_DARK,
+        borderTop: 'none',
+        padding: '5px 8px',
+        marginBottom: 5,
+        backgroundColor: '#fafafa',
+      }}>
+        <div style={{ fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 1 }}>{competition}</div>
+        <div style={{ fontSize: 10 }}>
+          Distinta dei giocatori partecipanti alla gara:{' '}
+          <strong style={{ textTransform: 'uppercase' }}>{homeTeam} — {awayTeam}</strong>
         </div>
         {(dateStr || timeStr || stadioStr) && (
-          <div style={{ fontSize: 9 }}>
-            DA DISPUTARE IL {dateStr} {timeStr}{stadioStr}
+          <div style={{ fontSize: 10, marginTop: 1, color: '#333' }}>
+            Da disputare il <strong>{dateStr}</strong> {timeStr}{stadioStr}
           </div>
         )}
       </div>
 
-      {/* Player table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 4 }}>
+      {/* ── PLAYER TABLE ── */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 5, border: BORDER_DARK }}>
         <thead>
           <tr>
-            <th rowSpan={2} style={cell('text-align:center; background:#f0f0f0; width:28px')}>N°</th>
-            <th colSpan={3} style={cell('text-align:center; background:#f0f0f0; white-space:nowrap')}>
-              DATA DI NASCITA
-            </th>
-            <th rowSpan={2} style={cell('text-align:center; background:#f0f0f0')}>COGNOME E NOME</th>
-            <th rowSpan={2} style={cell('text-align:center; background:#f0f0f0; width:32px')}>C/VK</th>
-            <th rowSpan={2} style={cell('text-align:center; background:#f0f0f0; width:60px')}>N°MATRICOLA</th>
-            <th colSpan={3} style={cell('text-align:center; background:#f0f0f0')}>
-              DOCUMENTO DI IDENTIFICAZIONE
-            </th>
+            <th rowSpan={2} style={thCell({ width: 30 })}>N°</th>
+            <th colSpan={3} style={thCell({ whiteSpace: 'nowrap' })}>Data di Nascita</th>
+            <th rowSpan={2} style={thCell()}>Cognome e Nome</th>
+            <th rowSpan={2} style={thCell({ width: 36 })}>C/VK</th>
+            <th rowSpan={2} style={thCell({ width: 66 })}>N° Matricola</th>
+            <th colSpan={3} style={thCell()}>Documento di Identificazione</th>
           </tr>
           <tr>
-            <th style={cell('text-align:center; background:#f0f0f0; width:20px')}>G</th>
-            <th style={cell('text-align:center; background:#f0f0f0; width:20px')}>M</th>
-            <th style={cell('text-align:center; background:#f0f0f0; width:20px')}>A</th>
-            <th style={cell('text-align:center; background:#f0f0f0; width:36px')}>TIPO</th>
-            <th style={cell('text-align:center; background:#f0f0f0; width:60px')}>NUMERO</th>
-            <th style={cell('text-align:center; background:#f0f0f0; width:60px')}>RILASCIATO</th>
+            <th style={thCell({ width: 22 })}>G</th>
+            <th style={thCell({ width: 22 })}>M</th>
+            <th style={thCell({ width: 22 })}>A</th>
+            <th style={thCell({ width: 40 })}>Tipo</th>
+            <th style={thCell({ width: 66 })}>Numero</th>
+            <th style={thCell({ width: 66 })}>Rilasciato</th>
           </tr>
         </thead>
         <tbody>
-          {/* Titolari */}
-          {starterIds.map(id => {
+          {starterIds.map((id, i) => {
             const p = getPlayer(id);
             if (!p) return null;
-            return <PlayerRow key={id} player={p} marker={markers[id]} />;
+            return <PlayerRow key={id} player={p} marker={markers[id]} index={i} />;
           })}
-          {/* Righe vuote titolari fino a 11 */}
           {Array.from({ length: Math.max(0, 11 - starterIds.length) }).map((_, i) => (
-            <EmptyRow key={`e-s-${i}`} />
+            <EmptyRow key={`e-s-${i}`} index={starterIds.length + i} />
           ))}
 
-          {/* Separatore panchina */}
           <SeparatorRow />
 
-          {/* Panchina */}
-          {benchIds.map(id => {
+          {benchIds.map((id, i) => {
             const p = getPlayer(id);
             if (!p) return null;
-            return <PlayerRow key={id} player={p} marker={markers[id]} />;
+            return <PlayerRow key={id} player={p} marker={markers[id]} index={i} />;
           })}
-          {/* Righe vuote panchina fino a 9 */}
           {Array.from({ length: Math.max(0, 9 - benchIds.length) }).map((_, i) => (
-            <EmptyRow key={`e-b-${i}`} />
+            <EmptyRow key={`e-b-${i}`} index={benchIds.length + i} />
           ))}
         </tbody>
       </table>
 
-      {/* STAFF */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 4 }}>
+      {/* ── STAFF ── */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 5, border: BORDER_DARK }}>
+        <colgroup>
+          <col style={{ width: '28%' }} />
+          <col style={{ width: '30%' }} />
+          <col style={{ width: '19%' }} />
+          <col style={{ width: '23%' }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th style={thCell({ textAlign: 'left', padding: '4px 6px' })}>Ruolo</th>
+            <th style={thCell({ textAlign: 'left', padding: '4px 6px' })}>Nominativo</th>
+            <th style={thCell({ textAlign: 'left', padding: '4px 6px' })}>Doc. / Matricola</th>
+            <th style={thCell({ textAlign: 'left', padding: '4px 6px' })}>Valore</th>
+          </tr>
+        </thead>
         <tbody>
-          {/* Dirigente accompagnatore */}
-          <tr>
-            <td style={cell('width:180px')}>Dirigente accompagnatore ufficiale della Squadra:</td>
-            <td style={cell('font-weight:bold; text-transform:uppercase')}>{cc.dirigente.name ?? ''}</td>
-          </tr>
-          <tr>
-            <td style={cell()}>Doc. Identità:</td>
-            <td style={cell()}>{cc.dirigente.docIdentity ?? ''}</td>
-          </tr>
-
-          {/* Dirigente addetto gara */}
-          <tr>
-            <td style={cell()}>Dirigente addetto ufficiali di Gara:</td>
-            <td style={{ ...cell(), display: 'flex', gap: 8 }}>
-              <span style={{ fontWeight: 'bold', textTransform: 'uppercase', flex: 1 }}>
-                {cc.direttoreGara.name ?? ''}
-              </span>
-              <span style={{ whiteSpace: 'nowrap' }}>
-                Tessera Impersonale FIGC n°:{' '}
-                <span style={{ display: 'inline-block', border: '1px solid black', width: 60, height: 12 }} />
-              </span>
-            </td>
-          </tr>
-          <tr>
-            <td style={cell()}>Doc. Identità:</td>
-            <td style={cell()}>{cc.direttoreGara.docIdentity ?? ''}</td>
-          </tr>
-
-          {/* Allenatore */}
-          <tr>
-            <td style={cell()}>Allenatore:</td>
-            <td style={cell()}>
-              <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{cc.allenatore.name ?? ''}</span>
-              {cc.allenatore.matricola && (
-                <span style={{ marginLeft: 16 }}>Matricola tecnico: <strong>{cc.allenatore.matricola}</strong></span>
-              )}
-            </td>
-          </tr>
-          <tr>
-            <td style={cell()}>Doc. Identità:</td>
-            <td style={cell()}>{cc.allenatore.docIdentity ?? ''}</td>
-          </tr>
-
-          {/* Medico */}
-          <tr>
-            <td style={cell()}>Medico Sociale:</td>
-            <td style={cell()}>
-              <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{cc.medicoSociale.name ?? ''}</span>
-              {(cc.medicoSociale.tesseraFIGC !== undefined) && (
-                <span style={{ marginLeft: 16 }}>
-                  Tessera FIGC n°: <strong>{cc.medicoSociale.tesseraFIGC ?? ''}</strong>
-                </span>
-              )}
-            </td>
-          </tr>
-          <tr>
-            <td style={cell()}>Doc. Identità:</td>
-            <td style={cell()}>{cc.medicoSociale.docIdentity ?? ''}</td>
-          </tr>
-
-          {/* Collaboratore */}
-          <tr>
-            <td style={cell()}>Collaboratore:</td>
-            <td style={cell()}>
-              <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{cc.collaboratore.name ?? ''}</span>
-              {cc.collaboratore.matricola && (
-                <span style={{ marginLeft: 16 }}>Matricola: <strong>{cc.collaboratore.matricola}</strong></span>
-              )}
-            </td>
-          </tr>
-          <tr>
-            <td style={cell()}>Doc. Identità:</td>
-            <td style={cell()}>{cc.collaboratore.docIdentity ?? ''}</td>
-          </tr>
+          {(() => {
+            const { label, value } = staffInfo('Doc. Identità', cc.dirigente.docIdentity, undefined);
+            return (
+              <tr>
+                <td style={labelCell()}>Dirigente Accompagnatore</td>
+                <td style={cell({ fontWeight: 'bold', textTransform: 'uppercase' })}>{cc.dirigente.name ?? ''}</td>
+                <td style={labelCell()}>{label}</td>
+                <td style={cell()}>{value}</td>
+              </tr>
+            );
+          })()}
+          {(() => {
+            // Se ha doc identity la mostriamo, altrimenti il box tessera impersonale da compilare a mano
+            const showDoc = !!cc.direttoreGara.docIdentity;
+            return (
+              <tr>
+                <td style={labelCell()}>Dirigente Addetto Gara</td>
+                <td style={cell({ fontWeight: 'bold', textTransform: 'uppercase' })}>{cc.direttoreGara.name ?? ''}</td>
+                <td style={labelCell()}>{showDoc ? 'Doc. Identità' : 'Tessera Imp. FIGC n°'}</td>
+                <td style={cell()}>
+                  {showDoc
+                    ? cc.direttoreGara.docIdentity
+                    : <span style={{ display: 'inline-block', border: '1px solid #aaa', width: 90, height: 13 }} />}
+                </td>
+              </tr>
+            );
+          })()}
+          {(() => {
+            const { label, value } = staffInfo('Matricola tecnico', cc.allenatore.matricola, cc.allenatore.docIdentity);
+            return (
+              <tr>
+                <td style={labelCell()}>Allenatore</td>
+                <td style={cell({ fontWeight: 'bold', textTransform: 'uppercase' })}>{cc.allenatore.name ?? ''}</td>
+                <td style={labelCell()}>{label}</td>
+                <td style={cell()}>{value}</td>
+              </tr>
+            );
+          })()}
+          {(() => {
+            const { label, value } = staffInfo('Tessera FIGC n°', cc.medicoSociale.tesseraFIGC, cc.medicoSociale.docIdentity);
+            return (
+              <tr>
+                <td style={labelCell()}>Medico Sociale</td>
+                <td style={cell({ fontWeight: 'bold', textTransform: 'uppercase' })}>{cc.medicoSociale.name ?? ''}</td>
+                <td style={labelCell()}>{label}</td>
+                <td style={cell()}>{value}</td>
+              </tr>
+            );
+          })()}
+          {(() => {
+            const { label, value } = staffInfo('Matricola', cc.collaboratore.matricola, cc.collaboratore.docIdentity);
+            return (
+              <tr>
+                <td style={labelCell()}>Collaboratore</td>
+                <td style={cell({ fontWeight: 'bold', textTransform: 'uppercase' })}>{cc.collaboratore.name ?? ''}</td>
+                <td style={labelCell()}>{label}</td>
+                <td style={cell()}>{value}</td>
+              </tr>
+            );
+          })()}
         </tbody>
       </table>
 
-      {/* Dirigenti Forza Pubblica */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 4 }}>
-        <tbody>
+      {/* ── FORZA PUBBLICA ── */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 5, border: BORDER_DARK }}>
+        <colgroup>
+          <col style={{ width: '28%' }} />
+          <col style={{ width: '30%' }} />
+          <col style={{ width: '19%' }} />
+          <col style={{ width: '23%' }} />
+        </colgroup>
+        <thead>
           <tr>
-            <td colSpan={4} style={cell('font-weight:bold')}>
+            <th colSpan={4} style={thCell({ textAlign: 'left', padding: '4px 6px' })}>
               Dirigenti Addetti al Servizio Sostitutivo di Forza Pubblica
-            </td>
+            </th>
           </tr>
+        </thead>
+        <tbody>
           {cc.dirigentiForza.map((df, i) => (
             <tr key={i}>
-              <td style={cell('width:28px')}>Sig:</td>
-              <td style={cell('font-weight:bold; text-transform:uppercase; width:180px')}>
-                {df.name ?? ''}
-              </td>
-              <td style={cell('width:80px; text-align:right')}>Doc. Identità:</td>
+              <td style={labelCell()}>Sig. {i + 1}</td>
+              <td style={cell({ fontWeight: 'bold', textTransform: 'uppercase' })}>{df.name ?? ''}</td>
+              <td style={labelCell()}>Doc. Identità</td>
               <td style={cell()}>{df.docIdentity ?? ''}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Footer firme */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
+      {/* ── FOOTER FIRME ── */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', border: BORDER_DARK }}>
         <tbody>
           <tr>
-            <td style={{ ...cell(), width: '50%', paddingTop: 20 }}>
-              V° L&apos;arbitro
-              <div style={{ borderTop: '1px solid black', marginTop: 16, paddingTop: 2 }} />
+            <td style={{ ...cell({ width: '50%', paddingTop: 18, paddingBottom: 6 }), border: BORDER_DARK }}>
+              <div style={{ fontSize: 9, color: '#555', marginBottom: 16 }}>V° L&apos;Arbitro</div>
+              <div style={{ borderTop: '1px solid #555', paddingTop: 2, fontSize: 8, color: '#999', textAlign: 'center' }}>firma</div>
             </td>
-            <td style={{ ...cell(), paddingTop: 20, textAlign: 'right' }}>
-              Il Dirigente Accompagnatore Ufficiale
-              <div style={{ borderTop: '1px solid black', marginTop: 16, paddingTop: 2 }} />
+            <td style={{ ...cell({ paddingTop: 18, paddingBottom: 6, textAlign: 'right' }), border: BORDER_DARK }}>
+              <div style={{ fontSize: 9, color: '#555', marginBottom: 16 }}>Il Dirigente Accompagnatore Ufficiale</div>
+              <div style={{ borderTop: '1px solid #555', paddingTop: 2, fontSize: 8, color: '#999', textAlign: 'center' }}>firma</div>
             </td>
           </tr>
         </tbody>
       </table>
+
     </div>
   );
 }

@@ -9,6 +9,7 @@ interface RosterManagerProps {
   onDeletePlayer: (id: string) => Promise<void>;
   onUpsertStaff: (person: Omit<StaffPerson, 'id'> & { id?: string }) => Promise<StaffPerson>;
   onDeleteStaff: (id: string) => Promise<void>;
+  onSelectPlayer: (player: Player) => void;
 }
 
 const ROLES: { value: PlayerRole; label: string }[] = [
@@ -49,10 +50,11 @@ const inputCls =
 
 // ── Player Row ────────────────────────────────────────────────────────────────
 
-function PlayerRow({ player, onUpsert, onDelete }: {
+function PlayerRow({ player, onUpsert, onDelete, onSelect }: {
   player: Player;
   onUpsert: (p: Omit<Player, 'id'> & { id?: string }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onSelect: (p: Player) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [dob, setDob] = useState(player.dateOfBirth ?? '');
@@ -89,10 +91,15 @@ function PlayerRow({ player, onUpsert, onDelete }: {
   return (
     <div className="rounded hover:bg-gray-800/50 group">
       <div className="flex items-center gap-2 px-2 py-1">
-        <span className={`text-xs font-bold w-5 ${ROLE_COLORS[player.role]}`}>{player.number}</span>
-        <span className="text-xs text-white flex-1">
-          {player.lastName} {player.firstName.charAt(0)}.
-        </span>
+        <button
+          onClick={() => onSelect(player)}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+        >
+          <span className={`text-xs font-bold w-5 shrink-0 ${ROLE_COLORS[player.role]}`}>{player.number}</span>
+          <span className="text-xs text-white flex-1 truncate">
+            {player.lastName} {player.firstName.charAt(0)}.
+          </span>
+        </button>
         {hasExtras && (
           <span className="text-xs text-gray-600 font-mono">{player.matricola ?? '—'}</span>
         )}
@@ -264,7 +271,7 @@ interface NewStaff {
 
 const EMPTY_STAFF: NewStaff = { firstName: '', lastName: '', role: 'allenatore' };
 
-export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, onUpsertStaff, onDeleteStaff }: RosterManagerProps) {
+export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, onUpsertStaff, onDeleteStaff, onSelectPlayer }: RosterManagerProps) {
   const [section, setSection] = useState<'players' | 'staff'>('players');
 
   // Player form
@@ -366,7 +373,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
               </div>
               <div className="space-y-0.5">
                 {rolePlayers.map(p => (
-                  <PlayerRow key={p.id} player={p} onUpsert={onUpsertPlayer} onDelete={onDeletePlayer} />
+                  <PlayerRow key={p.id} player={p} onUpsert={onUpsertPlayer} onDelete={onDeletePlayer} onSelect={onSelectPlayer} />
                 ))}
                 {rolePlayers.length === 0 && <p className="text-xs text-gray-600 px-2">Nessun giocatore</p>}
               </div>

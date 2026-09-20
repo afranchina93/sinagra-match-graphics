@@ -1,5 +1,13 @@
 export type PlayerRole = 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
 
+export interface PlayerStats {
+  appearances: number;
+  starterAppearances: number;
+  minutesPlayed: number;
+  goals: number;
+  goalsConceded: number; // GK only
+}
+
 export interface Player {
   id: string;
   number: number;
@@ -146,6 +154,7 @@ export interface Match {
   awayGoals: number;
   kickoffTime: string;
   distintaMarkers: Record<string, 'K' | 'VK'>;
+  numberOverrides?: Record<string, number>;
 }
 
 export interface MatchView {
@@ -179,7 +188,7 @@ export interface Lineup {
 // ── Formazioni disponibili ───────────────────────────────────
 
 export const FORMATIONS = [
-  '4-3-3', '4-2-3-1', '4-4-2', '3-5-2', '3-4-3',
+  '4-3-3', '4-2-3-1', '4-4-2', '4-1-4-1', '3-5-2', '3-4-3',
   '4-3-1-2', '4-3-2-1', '3-4-2-1', '3-5-1-1', '5-3-2', '5-4-1',
 ] as const;
 export type Formation = (typeof FORMATIONS)[number];

@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { Upload, Plus, X } from 'lucide-react';
 import type { Match, Team, Competition } from '../../domain/types';
-import { FORMATIONS } from '../../domain/types';
 
 interface MatchFormProps {
   match: Match;
@@ -217,24 +216,13 @@ export function MatchForm({
             className={inputCls}
             type="datetime-local"
             value={match.matchDate ? match.matchDate.slice(0, 16) : ''}
-            onChange={(e) =>
-              set('matchDate', e.target.value ? new Date(e.target.value).toISOString() : null)
-            }
+            onChange={(e) => {
+              const val = e.target.value;
+              // Salva la stringa locale così com'è (no conversione UTC) e aggiorna kickoffTime
+              const time = val ? val.slice(11, 16).replace(':', '.') : '';
+              onChange({ ...match, matchDate: val || null, kickoffTime: time });
+            }}
           />
-        </div>
-
-        {/* Modulo */}
-        <div>
-          <label className={labelCls}>Modulo</label>
-          <select
-            className={inputCls}
-            value={match.formation}
-            onChange={(e) => set('formation', e.target.value)}
-          >
-            {FORMATIONS.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
         </div>
 
         {/* Allenatore */}

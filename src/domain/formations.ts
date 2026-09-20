@@ -222,4 +222,24 @@ export const formationLayouts: Record<string, FormationLayout> = {
       fwd('fwd1', 0.5, 0.22, 'CF'),
     ],
   },
+  '4-1-4-1': {
+    name: '4-1-4-1',
+    slots: [
+      gk(0.5, 0.92),
+      // Difesa
+      def('def1', 0.10, 0.75, 'LB'),
+      def('def2', 0.35, 0.75, 'CB'),
+      def('def3', 0.65, 0.75, 'CB'),
+      def('def4', 0.90, 0.75, 'RB'),
+      // Mediano davanti alla difesa
+      mid('mid1', 0.50, 0.60, 'DM'),
+      // Linea di centrocampo a 4
+      mid('mid2', 0.10, 0.42, 'LM'),
+      mid('mid3', 0.37, 0.42, 'LCM'),
+      mid('mid4', 0.63, 0.42, 'RCM'),
+      mid('mid5', 0.90, 0.42, 'RM'),
+      // Punta
+      fwd('fwd1', 0.50, 0.18, 'ST'),
+    ],
+  },
 };

@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote, StaffPerson } from '../domain/types';
+import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote, StaffPerson, PlayerStats } from '../domain/types';
 import type { ClubConfig } from '../domain/distinta';
 import { DEFAULT_CLUB_CONFIG } from '../domain/distinta';
 
@@ -40,6 +40,65 @@ export async function upsertPlayer(
 
 export async function deletePlayer(id: string): Promise<void> {
   await supabase.from('players').delete().eq('id', id);
+}
+
+export async function loadPlayerStats(playerId: string): Promise<PlayerStats> {
+  const [starterRes, goalRes, subInRes, subOutRes] = await Promise.all([
+    supabase
+      .from('match_starters')
+      .select('match_id, slot_id, matches(home_goals, away_goals, is_home)')
+      .eq('player_id', playerId),
+    supabase
+      .from('match_goals')
+      .select('id')
+      .eq('player_id', playerId)
+      .or('note.is.null,note.neq.AG'),
+    supabase
+      .from('match_substitutions')
+      .select('match_id, minute')
+      .eq('player_in_id', playerId),
+    supabase
+      .from('match_substitutions')
+      .select('match_id, minute')
+      .eq('player_out_id', playerId),
+  ]);
+
+  const starterRows = (starterRes.data ?? []) as Array<{
+    match_id: string;
+    slot_id: string;
+    matches: { home_goals: number; away_goals: number; is_home: boolean } | null;
+  }>;
+  const goalRows = goalRes.data ?? [];
+  const subInRows = (subInRes.data ?? []) as Array<{ match_id: string; minute: string }>;
+  const subOutRows = (subOutRes.data ?? []) as Array<{ match_id: string; minute: string }>;
+
+  const starterMatchIds = new Set(starterRows.map(r => r.match_id));
+  const subMatchIds = new Set(subInRows.map(r => r.match_id));
+  const appearances = new Set([...starterMatchIds, ...subMatchIds]).size;
+  const starterAppearances = starterMatchIds.size;
+
+  let minutesPlayed = 0;
+  for (const r of starterRows) {
+    const subOut = subOutRows.find(s => s.match_id === r.match_id);
+    minutesPlayed += subOut ? (parseInt(subOut.minute) || 90) : 90;
+  }
+  for (const r of subInRows) {
+    const subOut = subOutRows.find(s => s.match_id === r.match_id);
+    const inMinute = parseInt(r.minute) || 0;
+    const outMinute = subOut ? (parseInt(subOut.minute) || 90) : 90;
+    minutesPlayed += outMinute - inMinute;
+  }
+
+  const goals = goalRows.length;
+
+  let goalsConceded = 0;
+  for (const r of starterRows) {
+    if (r.slot_id === 'gk' && r.matches) {
+      goalsConceded += r.matches.is_home ? (r.matches.away_goals ?? 0) : (r.matches.home_goals ?? 0);
+    }
+  }
+
+  return { appearances, starterAppearances, minutesPlayed, goals, goalsConceded };
 }
 
 // ── Teams ─────────────────────────────────────────────────────────────────────
@@ -320,6 +379,7 @@ function dbToMatch(r: Record<string, unknown>): Match {
     awayGoals: (r.away_goals as number) ?? 0,
     kickoffTime: (r.kickoff_time as string) ?? '',
     distintaMarkers: (r.distinta_markers as Record<string, 'K' | 'VK'>) ?? {},
+    numberOverrides: (r.number_overrides as Record<string, number>) ?? {},
   };
 }
 
@@ -337,6 +397,7 @@ function matchToDb(m: Omit<Match, 'id' | 'createdAt' | 'updatedAt'>): Record<str
     away_goals: m.awayGoals ?? 0,
     kickoff_time: m.kickoffTime ?? null,
     distinta_markers: m.distintaMarkers ?? {},
+    number_overrides: m.numberOverrides ?? {},
   };
 }
 

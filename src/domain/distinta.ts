@@ -20,21 +20,9 @@ export const DEFAULT_CLUB_CONFIG: ClubConfig = {
   clubFullName: 'A.D.P SINAGRA CALCIO',
   matricola: '916079',
   dirigente: {},
-  direttoreGara: {
-    name: 'PULLELLA NUNZIO',
-    docIdentity: 'CA55584WB',
-  },
-  allenatore: {
-    name: 'IOPPOLO ANDREA',
-    matricola: '112403',
-  },
+  direttoreGara: {},
+  allenatore: {},
   medicoSociale: {},
-  collaboratore: {
-    name: 'BALLATO GIOVANNI ERMINIO',
-    matricola: '5322998',
-  },
-  dirigentiForza: [
-    { name: 'CALAMUNCI ROBERTO', docIdentity: 'CA15790TF' },
-    {},
-  ],
+  collaboratore: {},
+  dirigentiForza: [{}, {}],
 };
