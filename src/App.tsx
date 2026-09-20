@@ -25,7 +25,7 @@ import {
   loadMatches, createMatch, updateMatch, deleteMatch, loadMatchView,
   saveMatchLineup,
 } from './storage/db';
-import { exportAsPng, exportAsBase64 } from './export/exportImage';
+import { exportAsPng, exportAsBase64, type FormationExportData } from './export/exportImage';
 
 type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution';
 
@@ -255,6 +255,10 @@ export default function App() {
 
   // ── Export ────────────────────────────────────────────────────────────────
 
+  function formationServerData(): FormationExportData {
+    return { roster: activeRoster, matchConfig: posterMatchConfig, lineup: posterLineup };
+  }
+
   async function handleExport() {
     const ref =
       tab === 'result'       ? resultPreviewRef :
@@ -266,10 +270,11 @@ export default function App() {
       const opponent = currentView?.opponent?.name || 'avversario';
       const slug = opponent.toLowerCase().replace(/\s+/g, '-');
       const suffix =
-        tab === 'result'       ? `sinagra-risultato-vs-${slug}.png` :
-        tab === 'substitution' ? `sinagra-sostituzione-vs-${slug}.png` :
-        `sinagra-vs-${slug}.png`;
-      await exportAsPng(ref.current, suffix);
+        tab === 'result'       ? `sinagra-risultato-vs-${slug}.jpg` :
+        tab === 'substitution' ? `sinagra-sostituzione-vs-${slug}.jpg` :
+        `sinagra-vs-${slug}.jpg`;
+      const isFormation = tab !== 'result' && tab !== 'substitution';
+      await exportAsPng(ref.current, suffix, isFormation ? formationServerData() : undefined);
     } catch (err) {
       console.error('Export failed:', err);
       alert("Errore durante l'esportazione. Riprova.");
@@ -289,7 +294,8 @@ export default function App() {
     if (!ref.current) return;
     setPublishingIG(true);
     try {
-      const base64 = await exportAsBase64(ref.current);
+      const isFormation = tab !== 'result' && tab !== 'substitution';
+      const base64 = await exportAsBase64(ref.current, isFormation ? formationServerData() : undefined);
       const res = await fetch('/api/publish-instagram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -362,7 +368,8 @@ export default function App() {
     if (!ref.current) return;
     setPublishing(true);
     try {
-      const base64 = await exportAsBase64(ref.current);
+      const isFormationFb = tab !== 'result' && tab !== 'substitution';
+      const base64 = await exportAsBase64(ref.current, isFormationFb ? formationServerData() : undefined);
       const res = await fetch('/api/publish-facebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

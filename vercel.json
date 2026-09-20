@@ -1,8 +1,9 @@
 {
   "functions": {
-    "api/generate-poster.ts": {
+    "api/generate-image.ts": {
       "memory": 1024,
-      "maxDuration": 60
+      "maxDuration": 30,
+      "includeFiles": "public/assets/**"
     }
   }
 }

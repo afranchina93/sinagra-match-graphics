@@ -1,61 +1,71 @@
-import { toPng } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
+import type { Player, MatchConfig, Lineup } from '../domain/types';
 
-const PNG_OPTIONS = {
+const JPEG_OPTIONS = {
   width: 1080,
   height: 1350,
   pixelRatio: 1,
-  quality: 1,
+  quality: 0.92,
   cacheBust: true,
 };
+
+export interface FormationExportData {
+  roster: Player[];
+  matchConfig: MatchConfig;
+  lineup: Lineup;
+}
 
 function isIOS(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
-/**
- * Genera il PNG lato server tramite Puppeteer.
- * Usato su iOS dove html-to-image non riesce a catturare le immagini.
- */
-async function renderToPngViaServer(element: HTMLElement): Promise<Blob> {
-  const res = await fetch('/api/generate-poster', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      html: element.outerHTML,
-      baseUrl: window.location.origin,
-    }),
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
-  if (!res.ok) throw new Error(`Server error: ${res.status}`);
-  return res.blob();
 }
 
-export async function exportAsPng(element: HTMLElement, filename = 'formazione-ufficiale.png'): Promise<void> {
-  if (isIOS()) {
-    const blob = await renderToPngViaServer(element);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
-    return;
-  }
-  const png = await toPng(element, PNG_OPTIONS);
+async function renderFormationViaServer(data: FormationExportData): Promise<string> {
+  const res = await fetch('/api/generate-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Server error: ${res.status}`);
+  const blob = await res.blob();
+  return blobToDataUrl(blob);
+}
+
+function triggerDownload(dataUrl: string, filename: string): void {
   const link = document.createElement('a');
   link.download = filename;
-  link.href = png;
+  link.href = dataUrl;
   link.click();
 }
 
-export async function exportAsBase64(element: HTMLElement): Promise<string> {
-  if (isIOS()) {
-    const blob = await renderToPngViaServer(element);
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+export async function exportAsPng(
+  element: HTMLElement,
+  filename = 'formazione.jpg',
+  serverData?: FormationExportData,
+): Promise<void> {
+  if (isIOS() && serverData) {
+    const dataUrl = await renderFormationViaServer(serverData);
+    triggerDownload(dataUrl, filename);
+    return;
   }
-  return toPng(element, PNG_OPTIONS);
+  const jpeg = await toJpeg(element, JPEG_OPTIONS);
+  triggerDownload(jpeg, filename);
+}
+
+export async function exportAsBase64(
+  element: HTMLElement,
+  serverData?: FormationExportData,
+): Promise<string> {
+  if (isIOS() && serverData) {
+    return renderFormationViaServer(serverData);
+  }
+  return toJpeg(element, JPEG_OPTIONS);
 }
