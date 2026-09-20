@@ -15,17 +15,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { html, baseUrl } = req.body as { html: string; baseUrl: string };
   if (!html || !baseUrl) return res.status(400).json({ error: 'missing html or baseUrl' });
 
+  // I path assoluti (es. /assets/poster/background.webp) non si risolvono
+  // quando il documento viene caricato con setContent() (nessuna origine).
+  // Sostituiamo tutti i src="/..." e href="/..." con l'URL completo.
+  const resolvedHtml = html.replace(/(src|href)="\/((?!\/)[^"]*)/g, `$1="${baseUrl}/$2`);
+
   const fullHtml = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <base href="${baseUrl}/" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 1080px; height: 1350px; overflow: hidden; background: transparent; }
+    html, body { width: 1080px; height: 1350px; overflow: hidden; }
   </style>
 </head>
-<body>${html}</body>
+<body>${resolvedHtml}</body>
 </html>`;
 
   const browser = await puppeteer.launch({
