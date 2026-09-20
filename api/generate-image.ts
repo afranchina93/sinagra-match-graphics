@@ -7,10 +7,16 @@
  * risoluzione moduli ESM su Vercel.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createCanvas, loadImage } from '@napi-rs/canvas';
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import type { Canvas, CanvasRenderingContext2D, Image } from '@napi-rs/canvas';
 import fs from 'fs';
 import path from 'path';
+
+// Registra i font bundlati con la funzione (api/fonts/ incluso via includeFiles)
+const FONTS_DIR = path.join(process.cwd(), 'api', 'fonts');
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Impact.ttf'), 'Impact');
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Arial.ttf'), 'Arial');
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Arial Bold.ttf'), 'Arial Bold');
 
 // ── Types (erased at runtime) ─────────────────────────────────────────────────
 
