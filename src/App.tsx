@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Download, Users, Settings, List, CalendarDays, Trophy, ArrowRightLeft } from 'lucide-react';
+import { Download, Users, Settings, List, CalendarDays, Trophy, ArrowRightLeft, Eye, X } from 'lucide-react';
 import { FormationPoster } from './components/graphics/FormationPoster';
 import { ResultPoster } from './components/graphics/ResultPoster';
 import { SubstitutionPoster } from './components/graphics/SubstitutionPoster';
@@ -34,7 +34,9 @@ export default function App() {
   const resultPreviewRef = useRef<HTMLDivElement>(null);
   const substitutionPreviewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  const modalPreviewContainerRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(0.55);
+  const [modalPreviewScale, setModalPreviewScale] = useState(0.3);
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -49,6 +51,8 @@ export default function App() {
   const [fbCaption, setFbCaption] = useState('');
   const [saved, setSaved] = useState(false);
   const [resultPhase, setResultPhase] = useState<ResultPhase>('FULL TIME');
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showFbModal, setShowFbModal] = useState(false);
   const isInitialLoad = useRef(true);
 
   // Mount: carica tutto
@@ -75,7 +79,7 @@ export default function App() {
     });
   }, [currentMatchId]);
 
-  // Scale preview dinamico — si adatta alla larghezza del container
+  // Scale preview dinamico — si adatta alla larghezza del container desktop
   useEffect(() => {
     const el = previewContainerRef.current;
     if (!el) return;
@@ -86,6 +90,19 @@ export default function App() {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // Scale preview dinamico — modal mobile
+  useEffect(() => {
+    const el = modalPreviewContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth - 32;
+      const h = el.clientHeight - 32;
+      setModalPreviewScale(Math.min(w / 1080, h / 1350));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showPreviewModal]);
 
   // Autosave debounced 1.5s su match + lineup
   useEffect(() => {
@@ -332,7 +349,6 @@ export default function App() {
       const sinagra = currentView.match.isHome ? 'home' : 'away';
 
       if (resultPhase === 'LIVE') {
-        // Trova l'ultimo marcatore
         const allScorers = [
           ...currentView.match.homeScorers.map(s => ({ ...s, side: 'home' as const })),
           ...currentView.match.awayScorers.map(s => ({ ...s, side: 'away' as const })),
@@ -378,6 +394,7 @@ export default function App() {
       const data = await res.json() as { success?: boolean; error?: string; detail?: string };
       if (data.success) {
         alert('✅ Pubblicato su Facebook!');
+        setShowFbModal(false);
       } else {
         alert(`❌ Errore: ${data.error ?? 'Sconosciuto'}${data.detail ? `\n${data.detail}` : ''}`);
       }
@@ -468,32 +485,56 @@ export default function App() {
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
 
-  const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
-    { id: 'matches',      label: 'Partite',       icon: <CalendarDays size={14} /> },
-    { id: 'match',        label: 'Partita',       icon: <Settings size={14} /> },
-    { id: 'lineup',       label: 'Formazione',    icon: <List size={14} /> },
-    { id: 'result',       label: 'Risultato',     icon: <Trophy size={14} /> },
-    { id: 'substitution', label: 'Sostituzione',  icon: <ArrowRightLeft size={14} /> },
-    { id: 'roster',       label: 'Rosa',          icon: <Users size={14} /> },
+  const TABS: { id: Tab; label: string; labelMobile: string; icon: ReactNode; iconMobile: ReactNode }[] = [
+    { id: 'matches',      label: 'Partite',      labelMobile: 'Partite',  icon: <CalendarDays size={14} />, iconMobile: <CalendarDays size={20} /> },
+    { id: 'match',        label: 'Partita',      labelMobile: 'Partita',  icon: <Settings size={14} />,     iconMobile: <Settings size={20} /> },
+    { id: 'lineup',       label: 'Formazione',   labelMobile: 'Formazion.', icon: <List size={14} />,       iconMobile: <List size={20} /> },
+    { id: 'result',       label: 'Risultato',    labelMobile: 'Risultato', icon: <Trophy size={14} />,      iconMobile: <Trophy size={20} /> },
+    { id: 'substitution', label: 'Sostituzione', labelMobile: 'Sostit.',  icon: <ArrowRightLeft size={14} />, iconMobile: <ArrowRightLeft size={20} /> },
+    { id: 'roster',       label: 'Rosa',         labelMobile: 'Rosa',     icon: <Users size={14} />,        iconMobile: <Users size={20} /> },
   ];
 
   const hasMatch = !!currentView;
-  const [showMobilePreview, setShowMobilePreview] = useState(false);
+
+  // SVG icons inline
+  const FacebookSVG = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    </svg>
+  );
+
+  const InstagramSVG = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+    </svg>
+  );
 
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden">
-      {/* LEFT PANEL */}
-      <div className={`${showMobilePreview ? 'hidden' : 'flex'} md:flex w-full md:w-80 flex-col bg-gray-900 border-r border-gray-800 md:shrink-0`}>
-        {/* Header */}
-        <div className="p-4 border-b border-gray-800">
+
+      {/* ── LEFT PANEL ──────────────────────────────────────────────────────── */}
+      <div className="flex md:w-80 w-full flex-col bg-gray-900 border-r border-gray-800 md:shrink-0">
+
+        {/* Header desktop */}
+        <div className="hidden md:block p-4 border-b border-gray-800">
           <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">
             Sinagra Match
           </h1>
           <p className="text-xs text-yellow-400 font-semibold mt-0.5">Graphics Generator</p>
         </div>
 
-        {/* Tabs — griglia 3×2 per 6 voci */}
-        <div className="grid grid-cols-3 border-b border-gray-800">
+        {/* Mobile top bar */}
+        <div className="md:hidden flex items-center justify-between px-4 border-b border-gray-800" style={{ height: 48 }}>
+          <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">
+            Sinagra Match
+          </h1>
+          <span className={`text-[11px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
+            {saved ? '✓ Salvato' : ''}
+          </span>
+        </div>
+
+        {/* Tabs — griglia 3×2 per 6 voci — solo desktop */}
+        <div className="hidden md:grid grid-cols-3 border-b border-gray-800">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -516,7 +557,7 @@ export default function App() {
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto no-scrollbar p-4">
+        <div className="flex-1 overflow-y-auto no-scrollbar p-4 pb-[108px] md:pb-4">
           {loading && (
             <p className="text-xs text-gray-500 text-center py-8">Caricamento...</p>
           )}
@@ -595,8 +636,8 @@ export default function App() {
           )}
         </div>
 
-        {/* Bottom bar */}
-        <div className="p-4 border-t border-gray-800 space-y-2">
+        {/* Bottom bar — solo desktop */}
+        <div className="hidden md:block p-4 border-t border-gray-800 space-y-2">
           <div
             className={`text-xs text-center transition-opacity ${
               saved ? 'text-green-400' : 'text-gray-600'
@@ -606,20 +647,12 @@ export default function App() {
           </div>
 
           <button
-            onClick={() => setShowMobilePreview(true)}
-            disabled={!hasMatch}
-            className="md:hidden w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
-          >
-            Anteprima
-          </button>
-
-          <button
             onClick={handleExport}
             disabled={exporting || !hasMatch}
             className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
           >
             <Download size={16} />
-            {exporting ? 'Esportazione...' : 'Esporta PNG'}
+            {exporting ? 'Esportazione...' : 'Esporta JPG'}
           </button>
 
           <textarea
@@ -635,9 +668,7 @@ export default function App() {
             disabled={publishing || !hasMatch}
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
+            {FacebookSVG}
             {publishing ? 'Pubblicazione...' : 'Pubblica su Facebook'}
           </button>
 
@@ -646,24 +677,85 @@ export default function App() {
             disabled={publishingIG || !hasMatch}
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-            </svg>
+            {InstagramSVG}
             {publishingIG ? 'Pubblicazione...' : 'Pubblica Storia Instagram'}
           </button>
         </div>
+
+        {/* ── Mobile action strip + bottom nav ──────────────────────────────── */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 z-40">
+          {/* Action strip */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
+            <span className={`flex-1 text-[10px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
+              {saved ? '✓ Salvato' : 'Auto-save attivo'}
+            </span>
+            <button
+              onClick={handleExport}
+              disabled={exporting || !hasMatch}
+              className="flex items-center gap-1.5 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-xs font-black px-4 py-2.5 rounded transition-colors uppercase"
+            >
+              <Download size={14} />
+              {exporting ? 'Esport...' : 'Esporta JPG'}
+            </button>
+            <button
+              onClick={() => setShowPreviewModal(true)}
+              disabled={!hasMatch}
+              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
+              title="Anteprima"
+            >
+              <Eye size={18} />
+            </button>
+            <button
+              onClick={() => setShowFbModal(true)}
+              disabled={!hasMatch}
+              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
+              title="Pubblica su Facebook"
+            >
+              {FacebookSVG}
+            </button>
+            <button
+              onClick={handlePublishInstagram}
+              disabled={publishingIG || !hasMatch}
+              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
+              title="Pubblica Storia Instagram"
+            >
+              {InstagramSVG}
+            </button>
+          </div>
+
+          {/* Bottom nav */}
+          <div className="flex">
+            {TABS.map((t) => {
+              const isDisabled = t.id !== 'matches' && !hasMatch;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    setTab(t.id);
+                  }}
+                  disabled={isDisabled}
+                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1 transition-colors ${
+                    tab === t.id
+                      ? 'text-yellow-400 bg-gray-800'
+                      : isDisabled
+                      ? 'text-gray-700 cursor-not-allowed'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {t.iconMobile}
+                  <span className="text-[9px] font-bold uppercase tracking-wide">{t.labelMobile}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      {/* RIGHT PANEL - Preview */}
-      <div className={`${showMobilePreview ? 'flex' : 'hidden'} md:flex flex-1 overflow-auto bg-gray-950 flex-col`}>
+      {/* ── RIGHT PANEL - Preview (desktop only) ────────────────────────────── */}
+      <div className="hidden md:flex flex-1 overflow-auto bg-gray-950 flex-col">
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-          <button
-            onClick={() => setShowMobilePreview(false)}
-            className="md:hidden text-xs text-yellow-400 font-bold uppercase tracking-wide"
-          >
-            ← Torna
-          </button>
-          <span className="hidden md:inline text-xs text-gray-500 font-semibold uppercase tracking-widest">
+          <span className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
             {tab === 'result'       ? 'Anteprima Risultato — 1080×1350'
            : tab === 'substitution' ? 'Anteprima Sostituzione — 1080×1350'
            : 'Anteprima Formazione — 1080×1350'}
@@ -674,7 +766,6 @@ export default function App() {
         </div>
 
         <div ref={previewContainerRef} className="flex-1 overflow-auto p-6 flex items-start justify-center">
-          {/* Wrapper con dimensioni visive reali — evita overflow su mobile */}
           <div style={{
             width: Math.round(1080 * previewScale),
             height: Math.round(1350 * previewScale),
@@ -709,6 +800,131 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* ── Preview modal (mobile only) ──────────────────────────────────────── */}
+      {showPreviewModal && (
+        <div className="md:hidden fixed inset-0 z-50 bg-gray-950 flex flex-col">
+          <header className="flex items-center justify-between px-4 border-b border-gray-800" style={{ height: 52 }}>
+            <button
+              onClick={() => setShowPreviewModal(false)}
+              className="flex items-center gap-2 text-yellow-400 font-bold text-sm uppercase tracking-wide"
+            >
+              <X size={16} />
+              Chiudi
+            </button>
+            <span className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
+              {tab === 'result'       ? 'Risultato 1080×1350'
+             : tab === 'substitution' ? 'Sostituzione 1080×1350'
+             : 'Formazione 1080×1350'}
+            </span>
+          </header>
+
+          <div ref={modalPreviewContainerRef} className="flex-1 overflow-auto flex items-start justify-center p-4">
+            <div style={{
+              width: Math.round(1080 * modalPreviewScale),
+              height: Math.round(1350 * modalPreviewScale),
+              flexShrink: 0,
+              position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 0, left: 0,
+                transformOrigin: 'top left',
+                transform: `scale(${modalPreviewScale})`,
+              }}>
+                {tab === 'result' ? (
+                  <ResultPoster
+                    ref={resultPreviewRef}
+                    config={posterResultConfig}
+                  />
+                ) : tab === 'substitution' ? (
+                  <SubstitutionPoster
+                    ref={substitutionPreviewRef}
+                    config={posterSubstitutionConfig}
+                  />
+                ) : (
+                  <FormationPoster
+                    ref={previewRef}
+                    roster={activeRoster}
+                    matchConfig={posterMatchConfig}
+                    lineup={posterLineup}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          <footer className="flex gap-2 p-4 border-t border-gray-800">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex-1 flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-sm font-black py-3 rounded transition-colors uppercase"
+            >
+              <Download size={16} />
+              {exporting ? 'Esport...' : 'Esporta JPG'}
+            </button>
+            <button
+              onClick={() => { setShowPreviewModal(false); setShowFbModal(true); }}
+              disabled={publishing}
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors uppercase"
+            >
+              {FacebookSVG}
+              Facebook
+            </button>
+            <button
+              onClick={handlePublishInstagram}
+              disabled={publishingIG}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors uppercase"
+            >
+              {InstagramSVG}
+              Instagram
+            </button>
+          </footer>
+        </div>
+      )}
+
+      {/* ── FB caption modal (mobile only) ──────────────────────────────────── */}
+      {showFbModal && (
+        <div className="md:hidden fixed inset-0 z-50 bg-black/70 flex items-end">
+          <div className="bg-gray-900 w-full rounded-t-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-white uppercase tracking-wide">
+                Testo del post Facebook
+              </h3>
+              <button
+                onClick={() => setShowFbModal(false)}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <textarea
+              value={fbCaption}
+              onChange={(e) => setFbCaption(e.target.value)}
+              placeholder="Testo del post Facebook..."
+              rows={4}
+              className="w-full bg-gray-800 text-white text-sm rounded p-3 resize-none border border-gray-700 focus:border-blue-500 focus:outline-none placeholder-gray-500"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handlePublishFacebook}
+                disabled={publishing}
+                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase"
+              >
+                {FacebookSVG}
+                {publishing ? 'Pubblicazione...' : 'Pubblica su Facebook'}
+              </button>
+              <button
+                onClick={() => setShowFbModal(false)}
+                className="px-5 py-3 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold rounded transition-colors"
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
