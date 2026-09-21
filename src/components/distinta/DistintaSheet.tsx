@@ -66,15 +66,17 @@ interface PlayerRowProps {
   player: Player;
   marker?: 'K' | 'VK';
   index: number;
+  numberOverride?: number;
 }
 
-function PlayerRow({ player, marker, index }: PlayerRowProps) {
+function PlayerRow({ player, marker, index, numberOverride }: PlayerRowProps) {
   const { g, m, a } = dob(player);
   const bg = index % 2 === 0 ? '#ffffff' : '#f7f7f7';
   const rowCell = (extra: React.CSSProperties = {}) => cell({ backgroundColor: bg, ...extra });
+  const displayNumber = numberOverride ?? player.number;
   return (
     <tr>
-      <td style={rowCell({ textAlign: 'center', fontWeight: 'bold' })}>{player.number}</td>
+      <td style={rowCell({ textAlign: 'center', fontWeight: 'bold' })}>{displayNumber}</td>
       <td style={rowCell({ textAlign: 'center' })}>{g}</td>
       <td style={rowCell({ textAlign: 'center' })}>{m}</td>
       <td style={rowCell({ textAlign: 'center' })}>{a}</td>
@@ -143,7 +145,7 @@ function staffInfo(
 
 // ─── Sorting ──────────────────────────────────────────────────────────────────
 
-function sortPlayerIds(ids: string[], players: Player[], gkId?: string): string[] {
+function sortPlayerIds(ids: string[], players: Player[], gkId?: string, overrides: Record<string, number> = {}): string[] {
   return [...ids].sort((a, b) => {
     const pa = players.find(p => p.id === a);
     const pb = players.find(p => p.id === b);
@@ -151,7 +153,9 @@ function sortPlayerIds(ids: string[], players: Player[], gkId?: string): string[
     const bIsGk = b === gkId || pb?.role === 'goalkeeper';
     if (aIsGk && !bIsGk) return -1;
     if (bIsGk && !aIsGk) return 1;
-    return (pa?.number ?? 99) - (pb?.number ?? 99);
+    const numA = overrides[a] ?? pa?.number ?? 99;
+    const numB = overrides[b] ?? pb?.number ?? 99;
+    return numA - numB;
   });
 }
 
@@ -164,8 +168,9 @@ export function DistintaSheet({ match, view, players, competition, opponentName,
   const gkSlotKey = Object.keys(view.starters).find(k => k.toLowerCase() === 'gk');
   const gkId = gkSlotKey ? view.starters[gkSlotKey] : undefined;
 
-  const starterIds = sortPlayerIds(Object.values(view.starters).filter(Boolean), players, gkId);
-  const benchIds = sortPlayerIds(view.bench.filter(Boolean), players);
+  const overrides = match.numberOverrides ?? {};
+  const starterIds = sortPlayerIds(Object.values(view.starters).filter(Boolean), players, gkId, overrides);
+  const benchIds = sortPlayerIds(view.bench.filter(Boolean), players, undefined, overrides);
 
   const homeTeam = match.isHome ? 'SINAGRA CALCIO' : (opponentName || 'AVVERSARIO');
   const awayTeam = match.isHome ? (opponentName || 'AVVERSARIO') : 'SINAGRA CALCIO';
@@ -257,7 +262,7 @@ export function DistintaSheet({ match, view, players, competition, opponentName,
           {starterIds.map((id, i) => {
             const p = getPlayer(id);
             if (!p) return null;
-            return <PlayerRow key={id} player={p} marker={markers[id]} index={i} />;
+            return <PlayerRow key={id} player={p} marker={markers[id]} index={i} numberOverride={overrides[id]} />;
           })}
           {Array.from({ length: Math.max(0, 11 - starterIds.length) }).map((_, i) => (
             <EmptyRow key={`e-s-${i}`} index={starterIds.length + i} />
@@ -268,7 +273,7 @@ export function DistintaSheet({ match, view, players, competition, opponentName,
           {benchIds.map((id, i) => {
             const p = getPlayer(id);
             if (!p) return null;
-            return <PlayerRow key={id} player={p} marker={markers[id]} index={i} />;
+            return <PlayerRow key={id} player={p} marker={markers[id]} index={i} numberOverride={overrides[id]} />;
           })}
           {Array.from({ length: Math.max(0, 9 - benchIds.length) }).map((_, i) => (
             <EmptyRow key={`e-b-${i}`} index={benchIds.length + i} />

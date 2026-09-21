@@ -77,12 +77,17 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
     onChange({ ...match, distintaMarkers: updated });
   }
 
+  const overrides = match.numberOverrides ?? {};
   const starterIds = Object.values(view.starters).filter(Boolean);
   const benchIds = view.bench.filter(Boolean);
   const allIds = [...new Set([...starterIds, ...benchIds])];
 
   function getPlayer(id: string) {
     return players.find(p => p.id === id);
+  }
+
+  function displayNumber(id: string, player: Player) {
+    return overrides[id] ?? player.number;
   }
 
   const setCC = (fn: (prev: ClubConfig) => ClubConfig) =>
@@ -119,9 +124,9 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                   const marker = markers[id];
                   return (
                     <div key={id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-app-surface transition-colors">
-                      <span className="text-[12px] font-bold text-app-signal w-5">{p.number}</span>
+                      <span className="text-[12px] font-bold text-app-signal w-5">{displayNumber(id, p)}</span>
                       <span className="text-[13px] text-app-text flex-1 truncate">
-                        {p.lastName} {p.firstName.charAt(0)}.
+                        {p.lastName} {p.firstName}
                       </span>
                       <div className="flex gap-1">
                         {(['K', 'VK'] as Marker[]).map(m => (
@@ -155,9 +160,9 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                   const marker = markers[id];
                   return (
                     <div key={id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-app-surface transition-colors">
-                      <span className="text-[12px] font-bold text-app-muted w-5">{p.number}</span>
+                      <span className="text-[12px] font-bold text-app-muted w-5">{displayNumber(id, p)}</span>
                       <span className="text-[13px] text-app-text/70 flex-1 truncate">
-                        {p.lastName} {p.firstName.charAt(0)}.
+                        {p.lastName} {p.firstName}
                       </span>
                       <div className="flex gap-1">
                         {(['K', 'VK'] as Marker[]).map(m => (
