@@ -237,7 +237,7 @@ function PlayerRow({
 export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange, onNotesChange }: ScoutFormProps) {
   const [showNotes, setShowNotes] = useState(false);
   const [openPlayerId, setOpenPlayerId] = useState<string | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const playerMap = Object.fromEntries(players.map(p => [p.id, p]));
   const starterIds = Object.values(view.starters).filter(Boolean);
@@ -262,11 +262,14 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
   }
 
   function debouncedSave(updated: Record<string, PlayerMatchStat>, playerId: string) {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
+    const existing = saveTimersRef.current.get(playerId);
+    if (existing) clearTimeout(existing);
+    const timer = setTimeout(() => {
       const s = updated[playerId];
       if (s) upsertPlayerMatchStat(matchId, s);
+      saveTimersRef.current.delete(playerId);
     }, 600);
+    saveTimersRef.current.set(playerId, timer);
   }
 
   const toggleTracked = useCallback((playerId: string) => {
@@ -296,11 +299,13 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
     debouncedSave(updated, playerId);
   }, [fullStats, matchId]);
 
+  const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   function updateNotes(patch: Partial<MatchScoutNotes>) {
     const updated = { ...notes, ...patch };
     onNotesChange(updated);
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => saveScoutNotes(matchId, updated), 800);
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
+    notesTimerRef.current = setTimeout(() => saveScoutNotes(matchId, updated), 800);
   }
 
   const inputCls = 'w-full bg-app-surface border border-white/10 text-app-text text-[13px] rounded-md px-3 py-2.5 focus:outline-none focus:border-app-signal/60 transition-colors';
