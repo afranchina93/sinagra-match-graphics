@@ -60,6 +60,22 @@ export async function exportAsPng(
   triggerDownload(jpeg, filename);
 }
 
+export async function exportAsDistintaPdf(
+  sheetElement: HTMLElement,
+  filename = 'distinta.pdf',
+): Promise<void> {
+  const res = await fetch('/api/generate-distinta', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html: sheetElement.outerHTML }),
+  });
+  if (!res.ok) throw new Error(`Server error: ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  triggerDownload(url, filename);
+  URL.revokeObjectURL(url);
+}
+
 export async function exportAsBase64(
   element: HTMLElement,
   serverData?: FormationExportData,

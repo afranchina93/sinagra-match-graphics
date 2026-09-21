@@ -28,18 +28,3 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
-@media print {
-  @page { size: A4 portrait; margin: 0; }
-  body * { visibility: hidden; }
-  .distinta-sheet, .distinta-sheet * { visibility: visible; }
-  .distinta-sheet {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 210mm;
-    height: 297mm;
-    background: white;
-    z-index: 9999;
-  }
-}

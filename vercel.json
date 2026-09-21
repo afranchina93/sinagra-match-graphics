@@ -4,6 +4,10 @@
       "memory": 1024,
       "maxDuration": 30,
       "includeFiles": "public/assets/**,api/fonts/**"
+    },
+    "api/generate-distinta.ts": {
+      "memory": 1024,
+      "maxDuration": 30
     }
   }
 }

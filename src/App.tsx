@@ -33,7 +33,7 @@ import {
   loadClubConfig, saveClubConfig,
   loadStaff, upsertStaff, deleteStaff,
 } from './storage/db';
-import { exportAsPng, exportAsBase64, type FormationExportData } from './export/exportImage';
+import { exportAsPng, exportAsBase64, exportAsDistintaPdf, type FormationExportData } from './export/exportImage';
 
 type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta';
 type MainTab = 'matches' | 'roster' | 'match';
@@ -723,7 +723,12 @@ export default function App() {
               clubConfig={clubConfig}
               onChange={setMatch}
               onClubConfigChange={setClubConfig}
-              onPrint={() => window.print()}
+              onPrint={async () => {
+                const el = document.querySelector('.distinta-sheet') as HTMLElement | null;
+                if (!el) return;
+                const slug = currentView?.opponent?.name?.toLowerCase().replace(/\s+/g, '-') ?? 'distinta';
+                await exportAsDistintaPdf(el, `distinta-vs-${slug}.pdf`);
+              }}
             />
           )}
 
