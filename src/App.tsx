@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Download, Users, Settings, List, CalendarDays, Trophy, ArrowRightLeft, Eye, X, FileText } from 'lucide-react';
+import { AppIcon } from './components/ui/AppIcon';
+import { LoginScreen } from './components/auth/LoginScreen';
 import { FormationPoster } from './components/graphics/FormationPoster';
 import { ResultPoster } from './components/graphics/ResultPoster';
 import { SubstitutionPoster } from './components/graphics/SubstitutionPoster';
@@ -34,12 +36,36 @@ import {
   loadStaff, upsertStaff, deleteStaff,
 } from './storage/db';
 import { exportAsPng, exportAsBase64, exportAsDistintaPdf, type FormationExportData } from './export/exportImage';
+import { supabase } from './storage/supabaseClient';
 
 type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta';
 type MainTab = 'matches' | 'roster' | 'match';
 type SubTab = 'match' | 'lineup' | 'distinta' | 'result' | 'substitution';
 
 export default function App() {
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthed(!!session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setAuthed(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (authed === null) return (
+    <div className="min-h-screen bg-app-canvas flex items-center justify-center">
+      <AppIcon name="spinner" size={24} className="animate-spin text-app-signal" />
+    </div>
+  );
+  if (!authed) return <LoginScreen />;
+
+  return <AppInner />;
+}
+
+function AppInner() {
   const previewRef = useRef<HTMLDivElement>(null);
   const resultPreviewRef = useRef<HTMLDivElement>(null);
   const substitutionPreviewRef = useRef<HTMLDivElement>(null);
@@ -579,31 +605,39 @@ export default function App() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950 overflow-hidden">
+    <div className="flex flex-col h-screen bg-app-canvas overflow-hidden">
 
-      {/* ── HEADER — sempre full width ───────────────────────────────────────── */}
-      <div className="bg-gray-900 border-b border-gray-800 shrink-0">
-        {/* Desktop */}
-        <div className="hidden md:flex items-center justify-between px-4 py-3">
+      {/* ── MOBILE BRAND HEADER ───────────────────────────────────────────── */}
+      <header className="md:hidden shrink-0 flex items-center justify-between border-b border-white/[0.08] bg-app-surface px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded border border-app-signal/50 text-app-signal font-condensed font-bold text-sm">S</div>
           <div>
-            <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">Sinagra Match</h1>
-            <p className="text-xs text-yellow-400 font-semibold mt-0.5">Graphics Generator</p>
+            <div className="font-condensed text-[14px] font-bold uppercase tracking-[0.08em] leading-none text-app-text">Sinagra Match</div>
+            <div className="text-[8px] uppercase tracking-[0.13em] text-app-dim mt-0.5">official workspace</div>
           </div>
-          <span className={`text-[11px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
-            {saved ? '✓ Salvato' : 'Salvataggio automatico attivo'}
-          </span>
         </div>
-        {/* Mobile */}
-        <div className="md:hidden flex items-center justify-between px-4" style={{ height: 48 }}>
-          <h1 className="text-sm font-black text-white uppercase tracking-widest leading-tight">Sinagra Match</h1>
-          <span className={`text-[11px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
-            {saved ? '✓ Salvato' : ''}
-          </span>
+        <div className={`flex items-center gap-1.5 text-[10px] font-semibold transition-colors ${saved ? 'text-app-signal' : 'text-app-dim'}`}>
+          {saved && <span className="h-1.5 w-1.5 rounded-full bg-app-signal animate-pulse" />}
+          {saved ? 'Salvato' : ''}
         </div>
+      </header>
+
+      {/* ── DESKTOP HEADER ──────────────────────────────────────────────────── */}
+      <div className="hidden md:flex items-center justify-between bg-app-surface border-b border-white/[0.08] px-5 py-3 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded border border-app-signal/50 text-app-signal font-condensed font-bold text-sm">S</div>
+          <div>
+            <div className="font-condensed text-[15px] font-bold uppercase tracking-[0.08em] text-app-text">Sinagra Match</div>
+            <div className="text-[8px] uppercase tracking-[0.12em] text-app-dim">Graphics Generator</div>
+          </div>
+        </div>
+        <span className={`text-[11px] font-semibold transition-colors ${saved ? 'text-app-signal' : 'text-app-dim'}`}>
+          {saved ? '✓ Salvato' : 'Salvataggio automatico attivo'}
+        </span>
       </div>
 
-      {/* ── MAIN TABS ── */}
-      <div className="hidden md:flex bg-gray-900 border-b border-gray-800 shrink-0">
+      {/* ── DESKTOP MAIN TABS ── */}
+      <div className="hidden md:flex bg-app-surface border-b border-white/[0.08] shrink-0">
         {MAIN_TABS.map((t) => {
           const isDisabled = t.id !== 'matches' && !hasMatch;
           return (
@@ -612,10 +646,10 @@ export default function App() {
               onClick={() => { if (isDisabled) return; setMainTab(t.id); }}
               className={`flex items-center gap-1.5 px-5 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors border-b-2 ${
                 mainTab === t.id
-                  ? 'text-yellow-400 border-yellow-400 bg-gray-800'
+                  ? 'text-app-signal border-app-signal bg-app-raised'
                   : isDisabled
-                  ? 'text-gray-700 cursor-not-allowed border-transparent'
-                  : 'text-gray-500 hover:text-gray-300 border-transparent'
+                  ? 'text-app-dim cursor-not-allowed border-transparent'
+                  : 'text-app-muted hover:text-app-text border-transparent'
               }`}
             >
               {t.icon}
@@ -625,17 +659,17 @@ export default function App() {
         })}
       </div>
 
-      {/* ── SUB TABS (only when mainTab === 'match') ── */}
+      {/* ── DESKTOP SUB TABS ── */}
       {mainTab === 'match' && hasMatch && (
-        <div className="hidden md:flex bg-gray-900 border-b border-gray-800 shrink-0 pl-2">
+        <div className="hidden md:flex bg-app-surface border-b border-white/[0.08] shrink-0 pl-2">
           {SUB_TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
               className={`flex items-center gap-1 px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors border-b-2 ${
                 subTab === t.id
-                  ? 'text-yellow-400 border-yellow-400'
-                  : 'text-gray-500 hover:text-gray-300 border-transparent'
+                  ? 'text-app-signal border-app-signal'
+                  : 'text-app-muted hover:text-app-text border-transparent'
               }`}
             >
               {t.icon}
@@ -645,291 +679,225 @@ export default function App() {
         </div>
       )}
 
+      {/* ── MOBILE MATCH SUB TABS (scrollable) ── */}
+      {mainTab === 'match' && hasMatch && (
+        <nav className="md:hidden flex gap-5 overflow-x-auto no-scrollbar border-b border-white/[0.08] bg-app-nav px-4 pt-1 shrink-0">
+          {SUB_TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`relative shrink-0 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors ${
+                subTab === t.id ? 'font-bold text-app-signal' : 'text-app-muted'
+              }`}
+            >
+              {t.label}
+              {subTab === t.id && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-app-signal" />}
+            </button>
+          ))}
+        </nav>
+      )}
+
       {/* ── CONTENT ROW ─────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
 
-      {/* ── LEFT PANEL ──────────────────────────────────────────────────────── */}
-      <div className={`flex w-full flex-col bg-gray-900 ${showPreview ? 'md:w-80 md:shrink-0 border-r border-gray-800' : ''}`}>
+        {/* ── LEFT PANEL ──────────────────────────────────────────────────────── */}
+        <div className={`flex w-full flex-col bg-app-surface ${showPreview ? 'md:w-80 md:shrink-0 border-r border-white/[0.08]' : ''}`}>
+          <div className={`flex-1 overflow-y-auto no-scrollbar pb-[80px] md:pb-4`}>
+            <div className={`p-4 ${!showPreview ? 'md:max-w-4xl md:mx-auto' : ''}`}>
+              {loading && <p className="text-xs text-app-muted text-center py-8">Caricamento...</p>}
 
-        {/* Tab content */}
-        <div className={`flex-1 overflow-y-auto no-scrollbar ${showPreview ? 'pb-[108px] md:pb-4' : 'pb-[56px] md:pb-0'}`}>
-        <div className={`p-4 ${!showPreview ? 'md:max-w-4xl md:mx-auto' : ''}`}>
-          {loading && <p className="text-xs text-gray-500 text-center py-8">Caricamento...</p>}
+              {!loading && tab === 'matches' && (
+                <MatchList
+                  matches={matches} teams={teams} competitions={competitions}
+                  currentMatchId={currentMatchId}
+                  onSelect={handleSelectMatch} onCreate={handleCreateMatch} onDelete={handleDeleteMatch}
+                />
+              )}
 
-          {!loading && tab === 'matches' && (
-            <MatchList
-              matches={matches} teams={teams} competitions={competitions}
-              currentMatchId={currentMatchId}
-              onSelect={handleSelectMatch} onCreate={handleCreateMatch} onDelete={handleDeleteMatch}
-            />
-          )}
+              {!loading && tab === 'match' && currentView && (
+                <MatchForm
+                  match={currentView.match} opponent={currentView.opponent}
+                  teams={teams} competitions={competitions}
+                  onChange={setMatch} onAddTeam={handleAddTeam}
+                  onAddCompetition={handleAddCompetition} onUploadLogo={handleUploadLogo}
+                />
+              )}
 
-          {!loading && tab === 'match' && currentView && (
-            <MatchForm
-              match={currentView.match} opponent={currentView.opponent}
-              teams={teams} competitions={competitions}
-              onChange={setMatch} onAddTeam={handleAddTeam}
-              onAddCompetition={handleAddCompetition} onUploadLogo={handleUploadLogo}
-            />
-          )}
+              {!loading && tab === 'lineup' && currentView && (
+                <LineupSelector
+                  roster={activeRoster} formation={currentView.match.formation}
+                  lineup={posterLineup} onChange={setLineup}
+                  onFormationChange={(f) => setMatch({ ...currentView.match, formation: f })}
+                  match={currentView.match}
+                  onMatchChange={setMatch}
+                />
+              )}
 
-          {!loading && tab === 'lineup' && currentView && (
-            <LineupSelector
-              roster={activeRoster} formation={currentView.match.formation}
-              lineup={posterLineup} onChange={setLineup}
-              onFormationChange={(f) => setMatch({ ...currentView.match, formation: f })}
-              match={currentView.match}
-              onMatchChange={setMatch}
-            />
-          )}
+              {!loading && tab === 'result' && currentView && (
+                <ResultForm
+                  match={currentView.match} goals={currentView.goals}
+                  phase={resultPhase} onPhaseChange={setResultPhase}
+                  onChange={setMatch} onGoalsChange={handleGoalsChange}
+                  players={activeRoster}
+                />
+              )}
 
-          {!loading && tab === 'result' && currentView && (
-            <ResultForm
-              match={currentView.match} goals={currentView.goals}
-              phase={resultPhase} onPhaseChange={setResultPhase}
-              onChange={setMatch} onGoalsChange={handleGoalsChange}
-              players={activeRoster}
-            />
-          )}
+              {!loading && tab === 'substitution' && currentView && (
+                <SubstitutionForm
+                  matchId={currentView.match.id}
+                  substitutions={currentView.substitutions}
+                  onAdd={handleSubAdd} onDelete={handleSubDelete}
+                  players={activeRoster}
+                />
+              )}
 
-          {!loading && tab === 'substitution' && currentView && (
-            <SubstitutionForm
-              matchId={currentView.match.id}
-              substitutions={currentView.substitutions}
-              onAdd={handleSubAdd} onDelete={handleSubDelete}
-              players={activeRoster}
-            />
-          )}
+              {!loading && tab === 'roster' && (
+                selectedPlayer ? (
+                  <PlayerPage player={selectedPlayer} onBack={() => setSelectedPlayer(null)} />
+                ) : (
+                  <RosterManager
+                    players={players} staff={staff}
+                    onUpsertPlayer={handleUpsertPlayer} onDeletePlayer={handleDeletePlayer}
+                    onUpsertStaff={handleUpsertStaff} onDeleteStaff={handleDeleteStaff}
+                    onSelectPlayer={setSelectedPlayer}
+                  />
+                )
+              )}
 
-          {!loading && tab === 'roster' && (
-            selectedPlayer ? (
-              <PlayerPage player={selectedPlayer} onBack={() => setSelectedPlayer(null)} />
-            ) : (
-              <RosterManager
-                players={players} staff={staff}
-                onUpsertPlayer={handleUpsertPlayer} onDeletePlayer={handleDeletePlayer}
-                onUpsertStaff={handleUpsertStaff} onDeleteStaff={handleDeleteStaff}
-                onSelectPlayer={setSelectedPlayer}
-              />
-            )
-          )}
+              {!loading && tab === 'distinta' && currentView && (
+                <DistintaForm
+                  match={currentView.match}
+                  view={currentView}
+                  players={activeRoster}
+                  staff={staff}
+                  clubConfig={clubConfig}
+                  onChange={setMatch}
+                  onClubConfigChange={setClubConfig}
+                  onPrint={async () => {
+                    const el = document.querySelector('.distinta-sheet') as HTMLElement | null;
+                    if (!el) return;
+                    const slug = currentView?.opponent?.name?.toLowerCase().replace(/\s+/g, '-') ?? 'distinta';
+                    await exportAsDistintaPdf(el, `distinta-vs-${slug}.pdf`);
+                  }}
+                />
+              )}
 
-          {!loading && tab === 'distinta' && currentView && (
-            <DistintaForm
-              match={currentView.match}
-              view={currentView}
-              players={activeRoster}
-              staff={staff}
-              clubConfig={clubConfig}
-              onChange={setMatch}
-              onClubConfigChange={setClubConfig}
-              onPrint={async () => {
-                const el = document.querySelector('.distinta-sheet') as HTMLElement | null;
-                if (!el) return;
-                const slug = currentView?.opponent?.name?.toLowerCase().replace(/\s+/g, '-') ?? 'distinta';
-                await exportAsDistintaPdf(el, `distinta-vs-${slug}.pdf`);
-              }}
-            />
-          )}
-
-          {!loading && tab !== 'matches' && !currentView && (
-            <div className="text-center py-8">
-              <p className="text-xs text-gray-500 mb-3">Nessuna partita selezionata</p>
-              <button onClick={() => setMainTab('matches')} className="text-xs text-yellow-400 hover:text-yellow-300 font-semibold">
-                Vai alle partite →
-              </button>
+              {!loading && tab !== 'matches' && !currentView && (
+                <div className="text-center py-8">
+                  <p className="text-xs text-app-muted mb-3">Nessuna partita selezionata</p>
+                  <button onClick={() => setMainTab('matches')} className="text-xs text-app-signal hover:opacity-80 font-semibold">
+                    Vai alle partite →
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>{/* /inner max-w wrapper */}
-        </div>{/* /scroll container */}
-
-        {/* ── Mobile action strip + bottom nav ──────────────────────────────── */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 z-40">
-          {showPreview ? (
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
-              <span className={`flex-1 text-[10px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
-                {saved ? '✓ Salvato' : 'Auto-save attivo'}
-              </span>
-              <button
-                onClick={handleExport} disabled={exporting}
-                className="flex items-center gap-1.5 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-xs font-black px-4 py-2.5 rounded transition-colors uppercase"
-              >
-                <Download size={14} />
-                {exporting ? 'Esport...' : 'Esporta JPG'}
-              </button>
-              <button
-                onClick={() => setShowPreviewModal(true)}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-2.5 rounded transition-colors"
-              >
-                <Eye size={18} />
-              </button>
-              <button
-                onClick={() => setShowFbModal(true)}
-                className="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded transition-colors"
-              >
-                {FacebookSVG}
-              </button>
-              <button
-                onClick={handlePublishInstagram} disabled={publishingIG}
-                className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white p-2.5 rounded transition-colors"
-              >
-                {InstagramSVG}
-              </button>
-            </div>
-          ) : null}
-
-          {mainTab === 'match' && hasMatch && (
-            <div className="flex border-b border-gray-800">
-              {SUB_TABS.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setSubTab(t.id)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-colors text-[8px] font-bold uppercase tracking-wide ${
-                    subTab === t.id ? 'text-yellow-400 bg-gray-800' : 'text-gray-500'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex">
-            {MAIN_TABS.map((t) => {
-              const isDisabled = t.id !== 'matches' && !hasMatch;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => { if (isDisabled) return; setMainTab(t.id); }}
-                  disabled={isDisabled}
-                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1 transition-colors ${
-                    mainTab === t.id ? 'text-yellow-400 bg-gray-800'
-                    : isDisabled ? 'text-gray-700 cursor-not-allowed'
-                    : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  {t.id === 'matches' ? <CalendarDays size={18} /> : t.id === 'roster' ? <Users size={18} /> : <Settings size={18} />}
-                  <span className="text-[8px] font-bold uppercase tracking-wide">{t.label}</span>
-                </button>
-              );
-            })}
           </div>
         </div>
-      </div>{/* /left panel */}
 
-      {/* ── RIGHT PANEL - Preview + Azioni (desktop only, solo tab con anteprima) ── */}
-      {showPreview && (
-        <div className="hidden md:flex flex-1 overflow-hidden bg-gray-950 flex-col">
-          <div className="p-4 border-b border-gray-800 flex items-center justify-between shrink-0">
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
-              {tab === 'result'       ? 'Anteprima Risultato — 1080×1350'
-             : tab === 'substitution' ? 'Anteprima Sostituzione — 1080×1350'
-             : 'Anteprima Formazione — 1080×1350'}
-            </span>
-            <span className="text-xs text-gray-600">
-              Scala ridotta · export a risoluzione piena
-            </span>
-          </div>
+        {/* ── RIGHT PANEL - Preview desktop ── */}
+        {showPreview && (
+          <div className="hidden md:flex flex-1 overflow-hidden bg-app-canvas flex-col">
+            <div className="p-4 border-b border-white/[0.08] flex items-center justify-between shrink-0">
+              <span className="text-xs text-app-muted font-semibold uppercase tracking-widest">
+                {tab === 'result' ? 'Anteprima Risultato — 1080×1350'
+                : tab === 'substitution' ? 'Anteprima Sostituzione — 1080×1350'
+                : 'Anteprima Formazione — 1080×1350'}
+              </span>
+              <span className="text-xs text-app-dim">Scala ridotta · export a risoluzione piena</span>
+            </div>
 
-          <div ref={previewContainerRef} className="flex-1 overflow-auto p-6 flex items-start justify-center min-h-0">
-            <div style={{
-              width: Math.round(1080 * previewScale),
-              height: Math.round(1350 * previewScale),
-              flexShrink: 0, position: 'relative',
-            }}>
-              <div style={{
-                position: 'absolute', top: 0, left: 0,
-                transformOrigin: 'top left',
-                transform: `scale(${previewScale})`,
-              }}>
-                {tab === 'result' ? (
-                  <ResultPoster ref={resultPreviewRef} config={posterResultConfig} />
-                ) : tab === 'substitution' ? (
-                  <SubstitutionPoster ref={substitutionPreviewRef} config={posterSubstitutionConfig} />
-                ) : (
-                  <FormationPoster ref={previewRef} roster={activeRoster} matchConfig={posterMatchConfig} lineup={posterLineup} />
-                )}
+            <div ref={previewContainerRef} className="flex-1 overflow-auto p-6 flex items-start justify-center min-h-0">
+              <div style={{ width: Math.round(1080 * previewScale), height: Math.round(1350 * previewScale), flexShrink: 0, position: 'relative' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: `scale(${previewScale})` }}>
+                  {tab === 'result' ? (
+                    <ResultPoster ref={resultPreviewRef} config={posterResultConfig} />
+                  ) : tab === 'substitution' ? (
+                    <SubstitutionPoster ref={substitutionPreviewRef} config={posterSubstitutionConfig} />
+                  ) : (
+                    <FormationPoster ref={previewRef} roster={activeRoster} matchConfig={posterMatchConfig} lineup={posterLineup} />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 p-4 border-t border-white/[0.08] space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-app-muted font-semibold uppercase tracking-widest">Pubblica</span>
+                <span className={`text-[11px] font-semibold transition-colors ${saved ? 'text-app-signal' : 'text-app-dim'}`}>
+                  {saved ? '✓ Salvato' : 'Auto-save attivo'}
+                </span>
+              </div>
+              <button onClick={handleExport} disabled={exporting}
+                className="w-full flex items-center justify-center gap-2 bg-app-signal hover:opacity-90 disabled:opacity-40 text-[#111710] text-sm font-black py-2.5 rounded transition-opacity uppercase tracking-wide">
+                <Download size={16} />{exporting ? 'Esportazione...' : 'Esporta JPG'}
+              </button>
+              <textarea value={fbCaption} onChange={(e) => setFbCaption(e.target.value)}
+                placeholder="Testo del post Facebook..." rows={2}
+                className="w-full bg-app-raised text-app-text text-xs rounded p-2 resize-none border border-white/10 focus:border-blue-500 focus:outline-none placeholder-app-dim" />
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={handlePublishFacebook} disabled={publishing}
+                  className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-black py-2.5 rounded transition-colors uppercase tracking-wide">
+                  {FacebookSVG}{publishing ? 'Pubbl...' : 'Facebook'}
+                </button>
+                <button onClick={handlePublishInstagram} disabled={publishingIG}
+                  className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white text-xs font-black py-2.5 rounded transition-colors uppercase tracking-wide">
+                  {InstagramSVG}{publishingIG ? 'Pubbl...' : 'Instagram'}
+                </button>
               </div>
             </div>
           </div>
-
-          {/* Azioni: export + social */}
-          <div className="shrink-0 p-4 border-t border-gray-800 space-y-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-500 font-semibold uppercase tracking-widest">Pubblica</span>
-              <span className={`text-[11px] font-semibold transition-opacity ${saved ? 'text-green-400' : 'text-gray-600'}`}>
-                {saved ? '✓ Salvato' : 'Salvataggio automatico attivo'}
-              </span>
-            </div>
-
-            <button
-              onClick={handleExport} disabled={exporting}
-              className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-sm font-black py-2.5 rounded transition-colors uppercase tracking-wide"
-            >
-              <Download size={16} />
-              {exporting ? 'Esportazione...' : 'Esporta JPG'}
-            </button>
-
-            <textarea
-              value={fbCaption}
-              onChange={(e) => setFbCaption(e.target.value)}
-              placeholder="Testo del post Facebook..."
-              rows={2}
-              className="w-full bg-gray-800 text-white text-xs rounded p-2 resize-none border border-gray-700 focus:border-blue-500 focus:outline-none placeholder-gray-500"
-            />
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={handlePublishFacebook} disabled={publishing}
-                className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-black py-2.5 rounded transition-colors uppercase tracking-wide"
-              >
-                {FacebookSVG}
-                {publishing ? 'Pubbl...' : 'Facebook'}
-              </button>
-
-              <button
-                onClick={handlePublishInstagram} disabled={publishingIG}
-                className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white text-xs font-black py-2.5 rounded transition-colors uppercase tracking-wide"
-              >
-                {InstagramSVG}
-                {publishingIG ? 'Pubbl...' : 'Instagram'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}{/* /right panel */}
+        )}
 
       </div>{/* /content row */}
 
-      {/* ── Preview modal (mobile only) ──────────────────────────────────────── */}
-      {showPreviewModal && (
-        <div className="md:hidden fixed inset-0 z-50 bg-gray-950 flex flex-col">
-          <header className="flex items-center justify-between px-4 border-b border-gray-800" style={{ height: 52 }}>
+      {/* ── MOBILE: Preview FAB ── */}
+      {showPreview && (
+        <button
+          onClick={() => setShowPreviewModal(true)}
+          className="md:hidden fixed bottom-[88px] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-app-signal text-[#111710] shadow-lg shadow-black/40 active:scale-95 transition-transform"
+        >
+          <Eye size={22} />
+        </button>
+      )}
+
+      {/* ── MOBILE BOTTOM NAV ── */}
+      <nav className="md:hidden fixed inset-x-0 bottom-0 z-40 grid h-[72px] grid-cols-3 border-t border-white/[0.08] bg-app-nav/95 px-3 pb-2 pt-2 backdrop-blur-sm">
+        {MAIN_TABS.map((t) => {
+          const isDisabled = t.id !== 'matches' && !hasMatch;
+          const isActive = mainTab === t.id;
+          return (
             <button
-              onClick={() => setShowPreviewModal(false)}
-              className="flex items-center gap-2 text-yellow-400 font-bold text-sm uppercase tracking-wide"
+              key={t.id}
+              onClick={() => { if (!isDisabled) setMainTab(t.id as MainTab); }}
+              disabled={isDisabled}
+              className={`relative flex flex-col items-center justify-center gap-1 transition-colors ${
+                isActive ? 'text-app-signal' : isDisabled ? 'text-app-dim' : 'text-app-muted'
+              }`}
             >
-              <X size={16} />
-              Chiudi
+              {t.id === 'matches' ? <CalendarDays size={18} /> : t.id === 'roster' ? <Users size={18} /> : <Settings size={18} />}
+              <span className="text-[9px] font-semibold uppercase tracking-wide">{t.label}</span>
+              {isActive && <span className="absolute bottom-0 h-1 w-1 rounded-full bg-app-signal" />}
             </button>
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
-              {tab === 'result'       ? 'Risultato 1080×1350'
-             : tab === 'substitution' ? 'Sostituzione 1080×1350'
-             : 'Formazione 1080×1350'}
+          );
+        })}
+      </nav>
+
+      {/* ── PREVIEW MODAL (mobile) ── */}
+      {showPreviewModal && (
+        <div className="md:hidden fixed inset-0 z-50 bg-app-canvas flex flex-col">
+          <header className="flex items-center justify-between px-4 border-b border-white/[0.08] bg-app-surface h-[52px] shrink-0">
+            <button onClick={() => setShowPreviewModal(false)}
+              className="flex items-center gap-2 text-app-signal font-bold text-sm uppercase tracking-wide">
+              <AppIcon name="close" size={16} /> Chiudi
+            </button>
+            <span className="text-[10px] text-app-muted font-semibold uppercase tracking-widest">
+              {tab === 'result' ? 'Risultato' : tab === 'substitution' ? 'Sostituzione' : 'Formazione'}
             </span>
           </header>
 
           <div ref={modalPreviewContainerRef} className="flex-1 overflow-auto flex items-start justify-center p-4">
-            <div style={{
-              width: Math.round(1080 * modalPreviewScale),
-              height: Math.round(1350 * modalPreviewScale),
-              flexShrink: 0, position: 'relative',
-            }}>
-              <div style={{
-                position: 'absolute', top: 0, left: 0,
-                transformOrigin: 'top left',
-                transform: `scale(${modalPreviewScale})`,
-              }}>
+            <div style={{ width: Math.round(1080 * modalPreviewScale), height: Math.round(1350 * modalPreviewScale), flexShrink: 0, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: `scale(${modalPreviewScale})` }}>
                 {tab === 'result' ? (
                   <ResultPoster ref={resultPreviewRef} config={posterResultConfig} />
                 ) : tab === 'substitution' ? (
@@ -941,62 +909,43 @@ export default function App() {
             </div>
           </div>
 
-          <footer className="flex gap-2 p-4 border-t border-gray-800">
-            <button
-              onClick={handleExport} disabled={exporting}
-              className="flex-1 flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-gray-900 text-sm font-black py-3 rounded transition-colors uppercase"
-            >
-              <Download size={16} />
-              {exporting ? 'Esport...' : 'Esporta JPG'}
+          <footer className="flex gap-2 p-4 border-t border-white/[0.08] bg-app-surface shrink-0">
+            <button onClick={handleExport} disabled={exporting}
+              className="flex-1 flex items-center justify-center gap-2 bg-app-signal disabled:opacity-40 text-[#111710] text-sm font-black py-3 rounded transition-opacity uppercase">
+              <Download size={16} />{exporting ? 'Esport...' : 'Esporta JPG'}
             </button>
-            <button
-              onClick={() => { setShowPreviewModal(false); setShowFbModal(true); }}
-              disabled={publishing}
-              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors uppercase"
-            >
+            <button onClick={() => { setShowPreviewModal(false); setShowFbModal(true); }} disabled={publishing}
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors">
               {FacebookSVG}
-              Facebook
             </button>
-            <button
-              onClick={handlePublishInstagram} disabled={publishingIG}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors uppercase"
-            >
+            <button onClick={handlePublishInstagram} disabled={publishingIG}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors">
               {InstagramSVG}
-              Instagram
             </button>
           </footer>
         </div>
       )}
 
-      {/* ── FB caption modal (mobile only) ──────────────────────────────────── */}
+      {/* ── FB CAPTION MODAL ── */}
       {showFbModal && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/70 flex items-end">
-          <div className="bg-gray-900 w-full rounded-t-2xl p-4 space-y-3">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-end">
+          <div className="bg-app-surface w-full rounded-t-2xl p-4 space-y-3 border-t border-white/[0.08]">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-white uppercase tracking-wide">Testo del post Facebook</h3>
-              <button onClick={() => setShowFbModal(false)} className="text-gray-400 hover:text-white p-1">
+              <h3 className="text-sm font-black text-app-text uppercase tracking-wide">Testo post Facebook</h3>
+              <button onClick={() => setShowFbModal(false)} className="text-app-muted hover:text-app-text p-1">
                 <X size={18} />
               </button>
             </div>
-            <textarea
-              value={fbCaption}
-              onChange={(e) => setFbCaption(e.target.value)}
-              placeholder="Testo del post Facebook..."
-              rows={4}
-              className="w-full bg-gray-800 text-white text-sm rounded p-3 resize-none border border-gray-700 focus:border-blue-500 focus:outline-none placeholder-gray-500"
-            />
+            <textarea value={fbCaption} onChange={(e) => setFbCaption(e.target.value)}
+              placeholder="Testo del post..." rows={4}
+              className="w-full bg-app-raised text-app-text text-sm rounded p-3 resize-none border border-white/10 focus:border-blue-500 focus:outline-none placeholder-app-dim" />
             <div className="flex gap-2">
-              <button
-                onClick={handlePublishFacebook} disabled={publishing}
-                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase"
-              >
-                {FacebookSVG}
-                {publishing ? 'Pubblicazione...' : 'Pubblica su Facebook'}
+              <button onClick={handlePublishFacebook} disabled={publishing}
+                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase">
+                {FacebookSVG}{publishing ? 'Pubblicazione...' : 'Pubblica'}
               </button>
-              <button
-                onClick={() => setShowFbModal(false)}
-                className="px-5 py-3 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold rounded transition-colors"
-              >
+              <button onClick={() => setShowFbModal(false)}
+                className="px-5 py-3 bg-app-raised hover:bg-app-raised/80 text-app-text text-sm font-bold rounded border border-white/10 transition-colors">
                 Annulla
               </button>
             </div>
@@ -1004,16 +953,12 @@ export default function App() {
         </div>
       )}
 
-      {/* ── Distinta Sheet (fuori schermo, visibile solo in stampa) ────────── */}
+      {/* ── Distinta Sheet (nascosta) ── */}
       {currentView && (
         <div aria-hidden="true" style={{ position: 'fixed', left: '-9999px', top: 0, visibility: 'hidden', pointerEvents: 'none' }}>
           <DistintaSheet
-            match={currentView.match}
-            view={currentView}
-            players={activeRoster}
-            competition={competition}
-            opponentName={currentView.opponent?.name ?? ''}
-            clubConfig={clubConfig}
+            match={currentView.match} view={currentView} players={activeRoster}
+            competition={competition} opponentName={currentView.opponent?.name ?? ''} clubConfig={clubConfig}
           />
         </div>
       )}
