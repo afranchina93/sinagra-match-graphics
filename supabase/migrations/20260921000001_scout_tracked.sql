@@ -1,0 +1,1 @@
+ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS tracked BOOLEAN NOT NULL DEFAULT false;

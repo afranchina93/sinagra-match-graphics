@@ -14,7 +14,7 @@ interface ScoutFormProps {
   onNotesChange: (notes: MatchScoutNotes) => void;
 }
 
-const STAT_COLS: { key: keyof Omit<PlayerMatchStat, 'playerId' | 'playerName' | 'playerNumber'>; label: string; title: string }[] = [
+const STAT_COLS: { key: keyof Omit<PlayerMatchStat, 'playerId' | 'playerName' | 'playerNumber' | 'tracked'>; label: string; title: string }[] = [
   { key: 'tiriF',      label: 'TF',  title: 'Tiri Fuori' },
   { key: 'tiriP',      label: 'TP',  title: 'Tiri in Porta' },
   { key: 'crossF',     label: 'CF',  title: 'Cross dal Fondo' },
@@ -29,11 +29,22 @@ function StatCell({
   value,
   onIncrement,
   onDecrement,
+  disabled,
 }: {
   value: number;
   onIncrement: () => void;
   onDecrement: () => void;
+  disabled?: boolean;
 }) {
+  if (disabled) {
+    return (
+      <td className="px-0 py-0">
+        <div className="flex flex-col w-[52px] h-[52px] items-center justify-center">
+          <span className="text-app-dim/15 text-[18px] leading-none">—</span>
+        </div>
+      </td>
+    );
+  }
   return (
     <td className="px-0 py-0">
       <div className="flex flex-col w-[52px]">
@@ -47,7 +58,7 @@ function StatCell({
             {value > 0 ? value : '·'}
           </span>
         </button>
-        {/* Tap inferiore → −1 (sempre visibile, grigio se 0) */}
+        {/* Tap inferiore → −1 */}
         <button
           onPointerDown={e => { e.preventDefault(); if (value > 0) onDecrement(); }}
           className={`h-[22px] w-full flex items-center justify-center border-t select-none touch-manipulation transition-colors ${
@@ -99,6 +110,7 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
           playerId: id,
           playerName: p.lastName.toUpperCase(),
           playerNumber: p.number,
+          tracked: false,
           tiriF: 0, tiriP: 0, crossF: 0, chiusure: 0,
           pallePerse: 0, palleRecup: 0, assist: 0, gol: 0,
         };
@@ -114,13 +126,25 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
     }, 600);
   }
 
+  const toggleTracked = useCallback((playerId: string) => {
+    const current = fullStats[playerId];
+    if (!current) return;
+    const updated = {
+      ...fullStats,
+      [playerId]: { ...current, tracked: !current.tracked },
+    };
+    onStatsChange(updated);
+    // Salva immediatamente il flag tracked
+    upsertPlayerMatchStat(matchId, updated[playerId]);
+  }, [fullStats, matchId]);
+
   const updateStat = useCallback((
     playerId: string,
     key: keyof PlayerMatchStat,
     delta: number,
   ) => {
     const current = fullStats[playerId];
-    if (!current) return;
+    if (!current || !current.tracked) return;
     const val = Math.max(0, ((current[key] as number) ?? 0) + delta);
     const updated = {
       ...fullStats,
@@ -267,6 +291,7 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
                       <PlayerStatRow
                         key={id}
                         stat={s}
+                        onToggleTracked={() => toggleTracked(id)}
                         onIncrement={key => updateStat(id, key, +1)}
                         onDecrement={key => updateStat(id, key, -1)}
                       />
@@ -290,6 +315,7 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
                       <PlayerStatRow
                         key={id}
                         stat={s}
+                        onToggleTracked={() => toggleTracked(id)}
                         onIncrement={key => updateStat(id, key, +1)}
                         onDecrement={key => updateStat(id, key, -1)}
                         dimmed
@@ -304,31 +330,40 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
       </div>
 
       <p className="text-[10px] text-app-dim text-center">
-        Tocca un valore per incrementare · il − sotto per decrementare
+        Tocca il nome per attivare/disattivare il tracciamento · tap valore per +1 · − per −1
       </p>
     </div>
   );
 }
 
 function PlayerStatRow({
-  stat, onIncrement, onDecrement, dimmed,
+  stat, onToggleTracked, onIncrement, onDecrement, dimmed,
 }: {
   stat: PlayerMatchStat;
+  onToggleTracked: () => void;
   onIncrement: (key: keyof PlayerMatchStat) => void;
   onDecrement: (key: keyof PlayerMatchStat) => void;
   dimmed?: boolean;
 }) {
+  const { tracked } = stat;
   return (
-    <tr className="border-b border-white/5">
-      <td className="sticky left-0 z-10 bg-app-canvas px-2 py-0 w-[96px]">
-        <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-bold tabular-nums w-5 shrink-0 ${dimmed ? 'text-app-dim' : 'text-app-signal'}`}>
+    <tr className={`border-b border-white/5 transition-opacity ${!tracked ? 'opacity-40' : ''}`}>
+      <td className="sticky left-0 z-10 bg-app-canvas px-1 py-0 w-[96px]">
+        <button
+          onPointerDown={e => { e.preventDefault(); onToggleTracked(); }}
+          className="flex items-center gap-1.5 w-full h-[52px] select-none touch-manipulation"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+          title={tracked ? 'Clicca per non tracciare' : 'Clicca per tracciare'}
+        >
+          {/* Indicatore tracked */}
+          <span className={`w-2 h-2 rounded-full shrink-0 transition-colors ${tracked ? 'bg-app-signal' : 'bg-app-dim/30 border border-white/15'}`} />
+          <span className={`text-[10px] font-bold tabular-nums w-4 shrink-0 ${dimmed ? 'text-app-dim' : 'text-app-muted'}`}>
             {stat.playerNumber}
           </span>
-          <span className={`text-[11px] font-semibold truncate ${dimmed ? 'text-app-muted' : 'text-app-text'}`}>
-            {stat.playerName.length > 7 ? stat.playerName.slice(0, 7) + '…' : stat.playerName}
+          <span className={`text-[11px] font-semibold truncate ${dimmed ? 'text-app-muted/70' : 'text-app-text'}`}>
+            {stat.playerName.length > 6 ? stat.playerName.slice(0, 6) + '…' : stat.playerName}
           </span>
-        </div>
+        </button>
       </td>
       {STAT_COLS.map(c => (
         <StatCell
@@ -336,6 +371,7 @@ function PlayerStatRow({
           value={(stat[c.key] as number) ?? 0}
           onIncrement={() => onIncrement(c.key)}
           onDecrement={() => onDecrement(c.key)}
+          disabled={!tracked}
         />
       ))}
     </tr>

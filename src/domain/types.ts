@@ -191,6 +191,7 @@ export interface PlayerMatchStat {
   playerId: string;
   playerName: string;
   playerNumber: number;
+  tracked: boolean;
   tiriF: number;
   tiriP: number;
   crossF: number;
