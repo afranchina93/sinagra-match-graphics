@@ -36,27 +36,29 @@ function StatCell({
 }) {
   return (
     <td className="px-0 py-0">
-      <div className="flex flex-col items-center justify-center w-[52px] h-[44px] gap-0">
+      <div className="flex flex-col w-[52px]">
+        {/* Tap superiore → +1 */}
         <button
           onPointerDown={e => { e.preventDefault(); onIncrement(); }}
-          className="flex-1 w-full flex items-center justify-center text-[14px] font-condensed font-bold text-app-text active:bg-app-signal/20 select-none touch-manipulation"
+          className="h-[30px] w-full flex items-center justify-center active:bg-app-signal/20 select-none touch-manipulation"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          {value > 0 ? (
-            <span className={value > 0 ? 'text-app-signal' : 'text-app-dim'}>{value}</span>
-          ) : (
-            <span className="text-app-dim/30">·</span>
-          )}
+          <span className={`text-[15px] font-condensed font-bold ${value > 0 ? 'text-app-signal' : 'text-app-dim/25'}`}>
+            {value > 0 ? value : '·'}
+          </span>
         </button>
-        {value > 0 && (
-          <button
-            onPointerDown={e => { e.preventDefault(); onDecrement(); }}
-            className="w-full flex items-center justify-center h-[14px] text-app-dim hover:text-red-400 active:text-red-400 select-none touch-manipulation"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <span className="text-[9px] leading-none">−</span>
-          </button>
-        )}
+        {/* Tap inferiore → −1 (sempre visibile, grigio se 0) */}
+        <button
+          onPointerDown={e => { e.preventDefault(); if (value > 0) onDecrement(); }}
+          className={`h-[22px] w-full flex items-center justify-center border-t select-none touch-manipulation transition-colors ${
+            value > 0
+              ? 'border-white/8 text-app-dim active:bg-red-400/20 active:text-red-400'
+              : 'border-white/5 text-app-dim/15 pointer-events-none'
+          }`}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <span className="text-[12px] font-bold leading-none">−</span>
+        </button>
       </div>
     </td>
   );
