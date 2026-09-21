@@ -42,6 +42,84 @@ export async function deletePlayer(id: string): Promise<void> {
   await supabase.from('players').delete().eq('id', id);
 }
 
+export async function loadAllPlayersStats(): Promise<Record<string, PlayerStats>> {
+  const [starterRes, goalRes, subInRes, subOutRes] = await Promise.all([
+    supabase
+      .from('match_starters')
+      .select('player_id, match_id, slot_id, matches(home_goals, away_goals, is_home)'),
+    supabase
+      .from('match_goals')
+      .select('player_id')
+      .not('player_id', 'is', null)
+      .or('note.is.null,note.neq.AG'),
+    supabase
+      .from('match_substitutions')
+      .select('player_in_id, match_id, minute')
+      .not('player_in_id', 'is', null),
+    supabase
+      .from('match_substitutions')
+      .select('player_out_id, match_id, minute')
+      .not('player_out_id', 'is', null),
+  ]);
+
+  const starterRows = (starterRes.data ?? [] as unknown[]) as Array<{
+    player_id: string;
+    match_id: string;
+    slot_id: string;
+    matches: { home_goals: number; away_goals: number; is_home: boolean } | null;
+  }>;
+  const goalRows = (goalRes.data ?? []) as Array<{ player_id: string }>;
+  const subInRows = (subInRes.data ?? []) as Array<{ player_in_id: string; match_id: string; minute: string }>;
+  const subOutRows = (subOutRes.data ?? []) as Array<{ player_out_id: string; match_id: string; minute: string }>;
+
+  const stats: Record<string, PlayerStats> = {};
+  const ensure = (id: string) => {
+    if (!stats[id]) stats[id] = { appearances: 0, starterAppearances: 0, minutesPlayed: 0, goals: 0, goalsConceded: 0 };
+    return stats[id];
+  };
+
+  // Starters
+  const starterMatchesByPlayer: Record<string, Set<string>> = {};
+  for (const r of starterRows) {
+    const s = ensure(r.player_id);
+    s.starterAppearances++;
+    const subOut = subOutRows.find(o => o.player_out_id === r.player_id && o.match_id === r.match_id);
+    s.minutesPlayed += subOut ? (parseInt(subOut.minute) || 90) : 90;
+    if (r.slot_id === 'gk' && r.matches) {
+      s.goalsConceded += r.matches.is_home ? (r.matches.away_goals ?? 0) : (r.matches.home_goals ?? 0);
+    }
+    if (!starterMatchesByPlayer[r.player_id]) starterMatchesByPlayer[r.player_id] = new Set();
+    starterMatchesByPlayer[r.player_id].add(r.match_id);
+  }
+
+  // Sub ins
+  for (const r of subInRows) {
+    const s = ensure(r.player_in_id);
+    const subOut = subOutRows.find(o => o.player_out_id === r.player_in_id && o.match_id === r.match_id);
+    const inMinute = parseInt(r.minute) || 0;
+    const outMinute = subOut ? (parseInt(subOut.minute) || 90) : 90;
+    s.minutesPlayed += outMinute - inMinute;
+  }
+
+  // Appearances = starter matches + sub-in only matches
+  for (const r of subInRows) {
+    const starterMatches = starterMatchesByPlayer[r.player_in_id];
+    if (!starterMatches?.has(r.match_id)) {
+      ensure(r.player_in_id).appearances++;
+    }
+  }
+  for (const id of Object.keys(stats)) {
+    stats[id].appearances += stats[id].starterAppearances;
+  }
+
+  // Goals
+  for (const r of goalRows) {
+    ensure(r.player_id).goals++;
+  }
+
+  return stats;
+}
+
 export async function loadPlayerStats(playerId: string): Promise<PlayerStats> {
   const [starterRes, goalRes, subInRes, subOutRes] = await Promise.all([
     supabase

@@ -15,6 +15,7 @@ import { SubstitutionForm } from './components/match/SubstitutionForm';
 import { DistintaForm } from './components/match/DistintaForm';
 import { DistintaSheet } from './components/distinta/DistintaSheet';
 import { PlayerPage } from './components/match/PlayerPage';
+import { StaffPage } from './components/match/StaffPage';
 import type {
   Player, Team, Competition, Match, MatchView,
   MatchConfig, Lineup, ResultConfig, ResultPhase, SubstitutionConfig,
@@ -94,6 +95,7 @@ function AppInner() {
   const [clubConfig, setClubConfig] = useState<ClubConfig>(DEFAULT_CLUB_CONFIG);
   const [staff, setStaff] = useState<StaffPerson[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<StaffPerson | null>(null);
   const isInitialLoad = useRef(true);
 
   // Mount: carica tutto
@@ -754,12 +756,23 @@ function AppInner() {
               {!loading && tab === 'roster' && (
                 selectedPlayer ? (
                   <PlayerPage player={selectedPlayer} onBack={() => setSelectedPlayer(null)} />
+                ) : selectedStaff ? (
+                  <StaffPage
+                    person={selectedStaff}
+                    onBack={() => setSelectedStaff(null)}
+                    onUpsert={async (p) => {
+                      const updated = await handleUpsertStaff(p);
+                      setSelectedStaff(updated);
+                      return updated;
+                    }}
+                  />
                 ) : (
                   <RosterManager
                     players={players} staff={staff}
                     onUpsertPlayer={handleUpsertPlayer} onDeletePlayer={handleDeletePlayer}
                     onUpsertStaff={handleUpsertStaff} onDeleteStaff={handleDeleteStaff}
                     onSelectPlayer={setSelectedPlayer}
+                    onSelectStaff={setSelectedStaff}
                   />
                 )
               )}

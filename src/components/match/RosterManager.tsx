@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import type { Player, PlayerRole, StaffPerson } from '../../domain/types';
+import { useState, useEffect } from 'react';
+import type { Player, PlayerRole, StaffPerson, PlayerStats } from '../../domain/types';
 import { AppIcon } from '../ui/AppIcon';
+import { loadAllPlayersStats } from '../../storage/db';
 
 interface RosterManagerProps {
   players: Player[];
@@ -10,6 +11,7 @@ interface RosterManagerProps {
   onUpsertStaff: (person: Omit<StaffPerson, 'id'> & { id?: string }) => Promise<StaffPerson>;
   onDeleteStaff: (id: string) => Promise<void>;
   onSelectPlayer: (player: Player) => void;
+  onSelectStaff: (person: StaffPerson) => void;
 }
 
 const ROLES: { value: PlayerRole; label: string }[] = [
@@ -26,12 +28,6 @@ const ROLE_COLORS: Record<PlayerRole, string> = {
   forward: 'text-red-400',
 };
 
-const ROLE_LABELS: Record<PlayerRole, string> = {
-  goalkeeper: 'POR',
-  defender: 'DIF',
-  midfielder: 'CEN',
-  forward: 'ATT',
-};
 
 const STAFF_ROLES: { value: string; label: string }[] = [
   { value: 'allenatore',     label: 'Allenatore' },
@@ -48,209 +44,91 @@ const staffRoleLabel = (role: string) =>
 const inputCls =
   'bg-app-surface border border-white/10 text-app-text text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors';
 
+type SortKey = 'role' | 'presenze' | 'minuti' | 'gol';
+
 // ── Player Row ────────────────────────────────────────────────────────────────
 
-function PlayerRow({ player, onUpsert, onDelete, onSelect }: {
+function PlayerRow({ player, stats, onDelete, onSelect }: {
   player: Player;
-  onUpsert: (p: Omit<Player, 'id'> & { id?: string }) => Promise<void>;
+  stats: PlayerStats | undefined;
   onDelete: (id: string) => Promise<void>;
   onSelect: (p: Player) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [dob, setDob] = useState(player.dateOfBirth ?? '');
-  const [matricola, setMatricola] = useState(player.matricola ?? '');
-  const [docIdentity, setDocIdentity] = useState(player.docIdentity ?? '');
-  const [saving, setSaving] = useState(false);
-
-  async function saveExtras() {
-    if (
-      dob === (player.dateOfBirth ?? '') &&
-      matricola === (player.matricola ?? '') &&
-      docIdentity === (player.docIdentity ?? '')
-    ) return;
-    setSaving(true);
-    try {
-      await onUpsert({
-        id: player.id,
-        number: player.number,
-        firstName: player.firstName,
-        lastName: player.lastName,
-        role: player.role,
-        active: player.active,
-        dateOfBirth: dob || undefined,
-        matricola: matricola || undefined,
-        docIdentity: docIdentity || undefined,
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const hasExtras = !!(player.dateOfBirth || player.matricola || player.docIdentity);
-
   return (
     <div className="rounded-md hover:bg-app-surface/60 group transition-colors">
       <div className="flex items-center gap-2.5 px-2.5 py-2">
         <button
           onClick={() => onSelect(player)}
-          className="flex items-center gap-2.5 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
         >
           <span className={`text-[12px] font-bold w-5 shrink-0 ${ROLE_COLORS[player.role]}`}>{player.number}</span>
           <span className="text-[13px] text-app-text flex-1 truncate">
             {player.lastName} {player.firstName.charAt(0)}.
           </span>
         </button>
-        {hasExtras && (
-          <span className="text-[11px] text-app-dim font-mono">{player.matricola ?? '—'}</span>
+
+        {/* Stats chips */}
+        {stats && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <StatChip value={stats.appearances} label="P" />
+            <StatChip value={stats.minutesPlayed} label="'" />
+            {player.role === 'goalkeeper' ? (
+              <StatChip value={stats.goalsConceded} label="GS" dim />
+            ) : (
+              <StatChip value={stats.goals} label="GF" accent={stats.goals > 0} />
+            )}
+          </div>
         )}
-        <button
-          onClick={() => setExpanded(e => !e)}
-          className={`text-app-dim hover:text-app-signal transition-colors ${expanded ? 'rotate-180' : ''}`}
-          title="Dati distinta"
-        >
-          <AppIcon name="chevron-down" size={13} />
-        </button>
+        {!stats && (
+          <div className="w-16 h-4 rounded bg-app-raised animate-pulse" />
+        )}
+
         <button
           onClick={() => onDelete(player.id)}
-          className="text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
         >
           <AppIcon name="trash" size={13} />
         </button>
       </div>
-
-      {expanded && (
-        <div className="px-2.5 pb-3 pt-2 space-y-2 border-t border-white/8 ml-7">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1">
-                Data nascita (GG/MM/AA)
-              </label>
-              <input className={inputCls + ' w-full'} type="text" placeholder="es. 06/07/01"
-                value={dob} onChange={e => setDob(e.target.value)} onBlur={saveExtras} />
-            </div>
-            <div>
-              <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1">
-                N° Matricola FIGC
-              </label>
-              <input className={inputCls + ' w-full'} type="text" placeholder="es. 2392563"
-                value={matricola} onChange={e => setMatricola(e.target.value)} onBlur={saveExtras} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1">
-              N° Carta d&apos;identità
-            </label>
-            <input className={inputCls + ' w-full'} type="text" placeholder="es. CA15790TF"
-              value={docIdentity} onChange={e => setDocIdentity(e.target.value)} onBlur={saveExtras} />
-          </div>
-          {saving && <p className="text-[10px] text-app-dim">Salvataggio...</p>}
-        </div>
-      )}
     </div>
+  );
+}
+
+function StatChip({ value, label, accent, dim }: { value: number; label: string; accent?: boolean; dim?: boolean }) {
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-mono tabular-nums ${
+      accent ? 'text-app-signal' : dim ? 'text-app-dim' : 'text-app-muted'
+    }`}>
+      <span className="font-bold">{value}</span>
+      <span className="text-app-dim">{label}</span>
+    </span>
   );
 }
 
 // ── Staff Row ─────────────────────────────────────────────────────────────────
 
-function StaffRow({ person, onUpsert, onDelete }: {
+function StaffRow({ person, onDelete, onSelect }: {
   person: StaffPerson;
-  onUpsert: (p: Omit<StaffPerson, 'id'> & { id?: string }) => Promise<StaffPerson>;
   onDelete: (id: string) => Promise<void>;
+  onSelect: (p: StaffPerson) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [fields, setFields] = useState({
-    role: person.role,
-    dob: person.dateOfBirth ?? '',
-    matricola: person.matricola ?? '',
-    docIdentity: person.docIdentity ?? '',
-    tesseraFIGC: person.tesseraFIGC ?? '',
-  });
-  const [saving, setSaving] = useState(false);
-
-  async function save(updated = fields) {
-    setSaving(true);
-    try {
-      await onUpsert({
-        id: person.id,
-        firstName: person.firstName,
-        lastName: person.lastName,
-        role: updated.role,
-        dateOfBirth: updated.dob || undefined,
-        matricola: updated.matricola || undefined,
-        docIdentity: updated.docIdentity || undefined,
-        tesseraFIGC: updated.tesseraFIGC || undefined,
-        active: person.active,
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function update(key: keyof typeof fields, value: string) {
-    const next = { ...fields, [key]: value };
-    setFields(next);
-    return next;
-  }
-
   return (
     <div className="rounded-md hover:bg-app-surface/60 group transition-colors">
       <div className="flex items-center gap-2.5 px-2.5 py-2">
-        <span className="text-[10px] text-purple-400 font-bold w-14 truncate">{staffRoleLabel(person.role)}</span>
-        <span className="text-[13px] text-app-text flex-1">
-          {person.lastName} {person.firstName}
-        </span>
         <button
-          onClick={() => setExpanded(e => !e)}
-          className={`text-app-dim hover:text-app-signal transition-colors ${expanded ? 'rotate-180' : ''}`}
+          onClick={() => onSelect(person)}
+          className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
         >
-          <AppIcon name="chevron-down" size={13} />
+          <span className="text-[10px] text-purple-400 font-bold w-14 shrink-0 truncate">{staffRoleLabel(person.role)}</span>
+          <span className="text-[13px] text-app-text flex-1 truncate">
+            {person.lastName} {person.firstName}
+          </span>
         </button>
         <button onClick={() => onDelete(person.id)}
           className="text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
           <AppIcon name="trash" size={13} />
         </button>
       </div>
-
-      {expanded && (
-        <div className="px-2.5 pb-3 pt-2 space-y-2 border-t border-white/8 ml-16">
-          <div>
-            <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1">Ruolo</label>
-            <select className={inputCls + ' w-full'} value={fields.role}
-              onChange={e => { const next = update('role', e.target.value); save(next); }}>
-              {STAFF_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1">Data nascita</label>
-              <input className={inputCls + ' w-full'} placeholder="GG/MM/AA"
-                value={fields.dob} onChange={e => setFields(f => ({ ...f, dob: e.target.value }))}
-                onBlur={() => save()} />
-            </div>
-            <div>
-              <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1">Matricola</label>
-              <input className={inputCls + ' w-full'} placeholder="es. 112403"
-                value={fields.matricola} onChange={e => setFields(f => ({ ...f, matricola: e.target.value }))}
-                onBlur={() => save()} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1">N° C.I.</label>
-              <input className={inputCls + ' w-full'} placeholder="es. CA15790TF"
-                value={fields.docIdentity} onChange={e => setFields(f => ({ ...f, docIdentity: e.target.value }))}
-                onBlur={() => save()} />
-            </div>
-            <div>
-              <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1">Tessera FIGC</label>
-              <input className={inputCls + ' w-full'} placeholder="n° tessera"
-                value={fields.tesseraFIGC} onChange={e => setFields(f => ({ ...f, tesseraFIGC: e.target.value }))}
-                onBlur={() => save()} />
-            </div>
-          </div>
-          {saving && <p className="text-[10px] text-app-dim">Salvataggio...</p>}
-        </div>
-      )}
     </div>
   );
 }
@@ -274,8 +152,19 @@ interface NewStaff {
 
 const EMPTY_STAFF: NewStaff = { firstName: '', lastName: '', role: 'allenatore' };
 
-export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, onUpsertStaff, onDeleteStaff, onSelectPlayer }: RosterManagerProps) {
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'role',    label: 'Ruolo' },
+  { key: 'presenze', label: 'Presenze' },
+  { key: 'minuti',  label: 'Minuti' },
+  { key: 'gol',     label: 'Gol' },
+];
+
+export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, onUpsertStaff, onDeleteStaff, onSelectPlayer, onSelectStaff }: RosterManagerProps) {
   const [section, setSection] = useState<'players' | 'staff'>('players');
+  const [statsMap, setStatsMap] = useState<Record<string, PlayerStats>>({});
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>('role');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [playerForm, setPlayerForm] = useState<NewPlayer>(EMPTY_PLAYER);
@@ -284,6 +173,40 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
   const [addingStaff, setAddingStaff] = useState(false);
   const [staffForm, setStaffForm] = useState<NewStaff>(EMPTY_STAFF);
   const [savingStaff, setSavingStaff] = useState(false);
+
+  useEffect(() => {
+    setStatsLoading(true);
+    loadAllPlayersStats()
+      .then(setStatsMap)
+      .catch(console.error)
+      .finally(() => setStatsLoading(false));
+  }, [players.length]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  }
+
+  function sortedPlayers(): Player[] {
+    return [...players].sort((a, b) => {
+      let diff = 0;
+      if (sortKey === 'role') {
+        const order = ['goalkeeper', 'defender', 'midfielder', 'forward'];
+        diff = order.indexOf(a.role) - order.indexOf(b.role) || a.number - b.number;
+        return diff; // role sort always asc
+      }
+      const sa = statsMap[a.id];
+      const sb = statsMap[b.id];
+      if (sortKey === 'presenze') diff = (sa?.appearances ?? 0) - (sb?.appearances ?? 0);
+      if (sortKey === 'minuti')   diff = (sa?.minutesPlayed ?? 0) - (sb?.minutesPlayed ?? 0);
+      if (sortKey === 'gol')      diff = (sa?.goals ?? 0) - (sb?.goals ?? 0);
+      return sortDir === 'asc' ? diff : -diff;
+    });
+  }
 
   async function addPlayer() {
     const num = parseInt(playerForm.number);
@@ -309,9 +232,6 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
       setSavingStaff(false);
     }
   }
-
-  const byRole: Record<PlayerRole, Player[]> = { goalkeeper: [], defender: [], midfielder: [], forward: [] };
-  players.forEach((p) => byRole[p.role]?.push(p));
 
   return (
     <div className="space-y-4">
@@ -368,20 +288,52 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
             </div>
           )}
 
-          {(Object.entries(byRole) as [PlayerRole, Player[]][]).map(([role, rolePlayers]) => (
-            <div key={role}>
-              <div className="flex items-center gap-2 mb-1.5 px-1">
-                <span className={`text-[11px] font-bold ${ROLE_COLORS[role]}`}>{ROLE_LABELS[role]}</span>
-                <span className="text-[11px] text-app-dim">({rolePlayers.length})</span>
-              </div>
-              <div className="space-y-0.5">
-                {rolePlayers.map(p => (
-                  <PlayerRow key={p.id} player={p} onUpsert={onUpsertPlayer} onDelete={onDeletePlayer} onSelect={onSelectPlayer} />
-                ))}
-                {rolePlayers.length === 0 && <p className="text-[12px] text-app-dim px-2">Nessun giocatore</p>}
-              </div>
-            </div>
-          ))}
+          {/* Sort controls */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[9px] uppercase tracking-[0.14em] text-app-dim mr-1">Ordina:</span>
+            {SORT_OPTIONS.map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => toggleSort(opt.key)}
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-[0.04em] transition-colors ${
+                  sortKey === opt.key
+                    ? 'bg-app-raised text-app-text border border-white/20'
+                    : 'text-app-dim hover:text-app-muted border border-transparent'
+                }`}
+              >
+                {opt.label}
+                {sortKey === opt.key && opt.key !== 'role' && (
+                  <AppIcon
+                    name="chevron-down"
+                    size={10}
+                    className={sortDir === 'asc' ? 'rotate-180' : ''}
+                  />
+                )}
+              </button>
+            ))}
+            {!statsLoading && (
+              <span className="ml-auto text-[9px] text-app-dim font-mono">P · ' · G</span>
+            )}
+            {statsLoading && (
+              <AppIcon name="spinner" size={12} className="ml-auto text-app-dim animate-spin" />
+            )}
+          </div>
+
+          {/* Player list */}
+          <div className="space-y-0.5">
+            {sortedPlayers().map(p => (
+              <PlayerRow
+                key={p.id}
+                player={p}
+                stats={statsMap[p.id]}
+                onDelete={onDeletePlayer}
+                onSelect={onSelectPlayer}
+              />
+            ))}
+            {players.length === 0 && (
+              <p className="text-[12px] text-app-dim px-2 py-4 text-center">Nessun giocatore</p>
+            )}
+          </div>
         </>
       )}
 
@@ -409,7 +361,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
 
           <div className="space-y-0.5">
             {staff.map(s => (
-              <StaffRow key={s.id} person={s} onUpsert={onUpsertStaff} onDelete={onDeleteStaff} />
+              <StaffRow key={s.id} person={s} onDelete={onDeleteStaff} onSelect={onSelectStaff} />
             ))}
             {staff.length === 0 && (
               <p className="text-[12px] text-app-dim px-2 py-6 text-center">
