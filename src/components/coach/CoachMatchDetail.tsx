@@ -58,7 +58,10 @@ export function CoachMatchDetail({ matchId, players, onBack }: CoachMatchDetailP
   const playerMap = new Map(players.map(p => [p.id, p]));
 
   const benchPlayers = bench.map(id => playerMap.get(id)).filter(Boolean) as Player[];
-  const trackedStats = Object.values(scoutStats).filter(s => s.tracked);
+  const trackedStats = Object.values(scoutStats).filter(s =>
+    s.tracked || s.tiriF > 0 || s.tiriP > 0 || s.crossF > 0 || s.chiusure > 0 ||
+    s.pallePerse > 0 || s.palleRecup > 0 || s.assist > 0 || s.gol > 0
+  );
 
   return (
     <div className="space-y-5">
