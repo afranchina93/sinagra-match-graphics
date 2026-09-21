@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Printer } from 'lucide-react';
+import { AppIcon } from '../ui/AppIcon';
 import type { Player, Match, MatchView, StaffPerson } from '../../domain/types';
 import type { ClubConfig } from '../../domain/distinta';
 
@@ -15,10 +15,10 @@ interface DistintaFormProps {
 }
 
 const inputCls =
-  'bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400 w-full';
-const labelCls = 'block text-[10px] text-gray-500 uppercase tracking-wider mb-0.5';
+  'bg-app-surface border border-white/10 text-app-text text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors w-full';
+const labelCls = 'block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1';
 const selectCls =
-  'bg-gray-800 border border-gray-600 text-gray-400 text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400 w-full';
+  'bg-app-surface border border-white/10 text-app-muted text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors w-full';
 
 type Marker = 'K' | 'VK';
 
@@ -36,8 +36,8 @@ function StaffField({
   onSelectStaff: (person: StaffPerson) => void;
 }) {
   return (
-    <div className="space-y-1">
-      <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{label}</span>
+    <div className="space-y-1.5">
+      <span className="text-[9px] uppercase tracking-[0.14em] text-app-muted font-semibold">{label}</span>
       {staff.length > 0 && (
         <select className={selectCls}
           value=""
@@ -77,7 +77,6 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
     onChange({ ...match, distintaMarkers: updated });
   }
 
-  // Ordine: titolari (dal layout di formazione) poi panchina
   const starterIds = Object.values(view.starters).filter(Boolean);
   const benchIds = view.bench.filter(Boolean);
   const allIds = [...new Set([...starterIds, ...benchIds])];
@@ -91,28 +90,27 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
 
   return (
     <div className="space-y-5">
-      <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2">
+      <h2 className="font-condensed text-[15px] font-bold uppercase text-app-text border-b border-white/10 pb-2">
         Distinta di Gara
       </h2>
 
       {/* Giocatori */}
       <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        <p className="text-[9px] uppercase tracking-[0.14em] text-app-muted mb-2">
           Giocatori ({allIds.length})
         </p>
 
         {allIds.length === 0 && (
-          <p className="text-xs text-gray-600 text-center py-4">
+          <p className="text-[12px] text-app-dim text-center py-4">
             Seleziona prima i giocatori nel tab Formazione
           </p>
         )}
 
         {allIds.length > 0 && (
           <div className="space-y-0.5">
-            {/* Titolari */}
             {starterIds.length > 0 && (
               <div className="mb-1">
-                <p className="text-[10px] text-gray-600 uppercase tracking-widest px-2 py-1">
+                <p className="text-[9px] text-app-dim uppercase tracking-widest px-2 py-1">
                   Titolari ({starterIds.length})
                 </p>
                 {starterIds.map(id => {
@@ -120,9 +118,9 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                   if (!p) return null;
                   const marker = markers[id];
                   return (
-                    <div key={id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-800">
-                      <span className="text-xs font-bold text-yellow-400 w-5">{p.number}</span>
-                      <span className="text-xs text-white flex-1 truncate">
+                    <div key={id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-app-surface transition-colors">
+                      <span className="text-[12px] font-bold text-app-signal w-5">{p.number}</span>
+                      <span className="text-[13px] text-app-text flex-1 truncate">
                         {p.lastName} {p.firstName.charAt(0)}.
                       </span>
                       <div className="flex gap-1">
@@ -130,10 +128,10 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                           <button
                             key={m}
                             onClick={() => toggleMarker(id, m)}
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors ${
                               marker === m
-                                ? 'bg-yellow-400 text-gray-900'
-                                : 'bg-gray-800 text-gray-500 border border-gray-700 hover:border-yellow-400'
+                                ? 'bg-app-signal text-[#111710]'
+                                : 'bg-app-surface text-app-muted border border-white/10 hover:border-app-signal/40'
                             }`}
                           >
                             {m}
@@ -146,10 +144,9 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
               </div>
             )}
 
-            {/* Panchina */}
             {benchIds.length > 0 && (
               <div>
-                <p className="text-[10px] text-gray-600 uppercase tracking-widest px-2 py-1 border-t border-gray-800">
+                <p className="text-[9px] text-app-dim uppercase tracking-widest px-2 py-1 border-t border-white/8">
                   Panchina ({benchIds.length})
                 </p>
                 {benchIds.map(id => {
@@ -157,9 +154,9 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                   if (!p) return null;
                   const marker = markers[id];
                   return (
-                    <div key={id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-800">
-                      <span className="text-xs font-bold text-gray-500 w-5">{p.number}</span>
-                      <span className="text-xs text-gray-300 flex-1 truncate">
+                    <div key={id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-app-surface transition-colors">
+                      <span className="text-[12px] font-bold text-app-muted w-5">{p.number}</span>
+                      <span className="text-[13px] text-app-text/70 flex-1 truncate">
                         {p.lastName} {p.firstName.charAt(0)}.
                       </span>
                       <div className="flex gap-1">
@@ -167,10 +164,10 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                           <button
                             key={m}
                             onClick={() => toggleMarker(id, m)}
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors ${
                               marker === m
-                                ? 'bg-yellow-400 text-gray-900'
-                                : 'bg-gray-800 text-gray-500 border border-gray-700 hover:border-yellow-400'
+                                ? 'bg-app-signal text-[#111710]'
+                                : 'bg-app-surface text-app-muted border border-white/10 hover:border-app-signal/40'
                             }`}
                           >
                             {m}
@@ -185,23 +182,27 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
           </div>
         )}
 
-        <p className="text-[10px] text-gray-600 mt-2 px-2">
+        <p className="text-[10px] text-app-dim mt-2 px-2">
           K = Capitano · VK = Vice Capitano
         </p>
       </div>
 
       {/* Dati Società (collassabile) */}
-      <div className="border border-gray-700 rounded-lg overflow-hidden">
+      <div className="border border-white/10 rounded-lg overflow-hidden">
         <button
           onClick={() => setShowStaff(s => !s)}
-          className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-gray-300 uppercase tracking-wide hover:bg-gray-800 transition-colors"
+          className="w-full flex items-center justify-between px-3 py-3 text-[12px] font-semibold text-app-muted uppercase tracking-[0.06em] hover:bg-app-surface transition-colors"
         >
           Dati Società / Staff
-          {showStaff ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          <AppIcon
+            name="chevron-down"
+            size={14}
+            className={`transition-transform ${showStaff ? 'rotate-180' : ''}`}
+          />
         </button>
 
         {showStaff && (
-          <div className="px-3 pb-3 space-y-3 border-t border-gray-700">
+          <div className="px-3 pb-3 space-y-3 border-t border-white/10">
             <div className="grid grid-cols-2 gap-2 pt-3">
               <div>
                 <label className={labelCls}>Denominazione società</label>
@@ -261,7 +262,7 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
             />
 
             <div>
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold block mb-2">
+              <span className="text-[9px] uppercase tracking-[0.14em] text-app-muted font-semibold block mb-2">
                 Dirigenti Forza Pubblica
               </span>
               {clubConfig.dirigentiForza.map((df, i) => (
@@ -290,13 +291,13 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
       {/* Print button */}
       <button
         onClick={onPrint}
-        className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-100 text-gray-900 text-sm font-black py-3 rounded transition-colors uppercase tracking-wide"
+        className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] bg-app-text text-app-canvas text-[13px] font-bold rounded-md transition-colors hover:bg-white uppercase tracking-[0.04em]"
       >
-        <Printer size={16} />
+        <AppIcon name="printer" size={16} />
         Stampa Distinta
       </button>
 
-      <p className="text-xs text-gray-600 text-center">
+      <p className="text-[11px] text-app-dim text-center">
         Assicurati di aver inserito DOB e matricola nella scheda Rosa prima di stampare
       </p>
     </div>

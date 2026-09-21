@@ -1,4 +1,4 @@
-import { Plus, Trash2, ChevronRight } from 'lucide-react';
+import { AppIcon } from '../ui/AppIcon';
 import type { Match, Team, Competition } from '../../domain/types';
 
 interface MatchListProps {
@@ -40,19 +40,19 @@ export function MatchList({
     <div className="space-y-3">
       <button
         onClick={onCreate}
-        className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 text-sm font-black py-2.5 rounded transition-colors uppercase tracking-wide"
+        className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] bg-app-signal text-[#111710] text-[13px] font-bold rounded-md transition-colors hover:bg-[#f0ff66] uppercase tracking-[0.04em]"
       >
-        <Plus size={14} />
+        <AppIcon name="plus" size={14} />
         Nuova partita
       </button>
 
       {matches.length === 0 && (
-        <p className="text-xs text-gray-500 text-center py-4">
+        <p className="text-[12px] text-app-dim text-center py-6">
           Nessuna partita ancora creata
         </p>
       )}
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {matches.map((m) => {
           const opponent = m.opponentId ? teamMap[m.opponentId] : null;
           const comp = m.competitionId ? compMap[m.competitionId] : null;
@@ -61,31 +61,32 @@ export function MatchList({
           return (
             <div
               key={m.id}
-              className={`group flex items-center gap-2 rounded px-2 py-2 cursor-pointer transition-colors ${
+              className={`group flex items-center gap-3 rounded-lg px-3 py-3 cursor-pointer transition-colors ${
                 isActive
-                  ? 'bg-yellow-400/10 border border-yellow-400/40'
-                  : 'hover:bg-gray-800 border border-transparent'
+                  ? 'bg-app-signal/10 border border-app-signal/30'
+                  : 'bg-app-surface border border-white/10 hover:border-white/20'
               }`}
               onClick={() => onSelect(m.id)}
             >
-              <ChevronRight
-                size={12}
-                className={isActive ? 'text-yellow-400' : 'text-gray-600'}
+              <AppIcon
+                name="chevron-right"
+                size={14}
+                className={isActive ? 'text-app-signal shrink-0' : 'text-app-dim shrink-0'}
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5">
+                <div className="flex items-baseline gap-2">
                   <span
-                    className={`text-xs font-bold truncate ${
-                      isActive ? 'text-yellow-400' : 'text-white'
+                    className={`text-[13px] font-bold truncate ${
+                      isActive ? 'text-app-signal' : 'text-app-text'
                     }`}
                   >
                     {opponent?.name ?? '— Avversario —'}
                   </span>
-                  <span className="text-xs text-gray-500 shrink-0">
+                  <span className="text-[11px] text-app-dim shrink-0">
                     {m.isHome ? 'Casa' : 'Trasferta'}
                   </span>
                 </div>
-                <div className="text-xs text-gray-500 truncate">
+                <div className="text-[11px] text-app-muted truncate mt-0.5">
                   {formatDate(m.matchDate)}
                   {comp ? ` · ${comp.name}` : ''}
                   {m.matchday ? ` · ${m.matchday}` : ''}
@@ -96,9 +97,9 @@ export function MatchList({
                   e.stopPropagation();
                   onDelete(m.id);
                 }}
-                className="shrink-0 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="shrink-0 text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <Trash2 size={12} />
+                <AppIcon name="trash" size={13} />
               </button>
             </div>
           );

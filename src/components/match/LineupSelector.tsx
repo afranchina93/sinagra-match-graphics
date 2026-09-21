@@ -19,30 +19,29 @@ const ROLE_LABELS: Record<string, string> = {
   forward: 'ATT',
 };
 
-/** Traduzione abbreviazioni tattiche inglesi → italiano */
 const SLOT_LABEL_IT: Record<string, string> = {
   GK:  'POR',
-  LB:  'TS',    // Terzino Sinistro
-  RB:  'TD',    // Terzino Destro
-  CB:  'DC',    // Difensore Centrale
+  LB:  'TS',
+  RB:  'TD',
+  CB:  'DC',
   LCB: 'DC-S',
   RCB: 'DC-D',
-  LWB: 'FS',    // Fluidificante Sinistro
-  RWB: 'FD',    // Fluidificante Destro
-  DM:  'MED',   // Mediano
-  CM:  'CC',    // Centrocampista Centrale
+  LWB: 'FS',
+  RWB: 'FD',
+  DM:  'MED',
+  CM:  'CC',
   LCM: 'CC-S',
   RCM: 'CC-D',
-  LM:  'CS',    // Centrocampista Sinistro
-  RM:  'CD',    // Centrocampista Destro
-  AM:  'TRQ',   // Trequartista
+  LM:  'CS',
+  RM:  'CD',
+  AM:  'TRQ',
   LAM: 'TRQ-S',
   RAM: 'TRQ-D',
   TRQ: 'TRQ',
-  LW:  'ALA-S', // Ala Sinistra
-  RW:  'ALA-D', // Ala Destra
-  CF:  'CA',    // Centravanti
-  ST:  'ATT',   // Attaccante
+  LW:  'ALA-S',
+  RW:  'ALA-D',
+  CF:  'CA',
+  ST:  'ATT',
   LS:  'ATT-S',
   RS:  'ATT-D',
 };
@@ -50,7 +49,7 @@ const SLOT_LABEL_IT: Record<string, string> = {
 const ROLE_COLORS: Record<string, string> = {
   goalkeeper: 'text-blue-400',
   defender: 'text-green-400',
-  midfielder: 'text-yellow-400',
+  midfielder: 'text-app-signal',
   forward: 'text-red-400',
 };
 
@@ -58,7 +57,6 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
   const layout = formationLayouts[formation] ?? formationLayouts['4-3-3'];
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
 
-  // playerIds already selected as starters in the *current* formation's slots
   const currentSlotIds = new Set(layout.slots.map((s) => s.id));
   const selectedStarterIds = new Set(
     Object.entries(lineup.starters)
@@ -67,7 +65,6 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
   );
 
   function setStarter(slotId: string, playerId: string) {
-    // If this player is already in another slot, remove them from that slot first
     const newStarters = { ...lineup.starters };
     if (playerId) {
       for (const [sid, pid] of Object.entries(newStarters)) {
@@ -75,7 +72,6 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
           delete newStarters[sid];
         }
       }
-      // Also remove from bench if present
       const newBench = lineup.bench.filter((id) => id !== playerId);
       newStarters[slotId] = playerId;
       onChange({ ...lineup, starters: newStarters, bench: newBench });
@@ -89,9 +85,7 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
     if (lineup.bench.includes(playerId)) {
       onChange({ ...lineup, bench: lineup.bench.filter((id) => id !== playerId) });
     } else {
-      // Max 9 on bench
       if (lineup.bench.length >= 9) return;
-      // Remove from starters if present
       const newStarters = { ...lineup.starters };
       for (const [sid, pid] of Object.entries(newStarters)) {
         if (pid === playerId) delete newStarters[sid];
@@ -100,13 +94,13 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
     }
   }
 
-  const inputCls = 'w-full bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400';
+  const inputCls = 'w-full bg-app-surface border border-white/10 text-app-text text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Modulo */}
       <div>
-        <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Modulo</label>
+        <label className="block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1.5">Modulo</label>
         <select
           className={inputCls}
           value={formation}
@@ -120,17 +114,17 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
 
       {/* Starters */}
       <div>
-        <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2 mb-3">
+        <h2 className="font-condensed text-[15px] font-bold uppercase text-app-text border-b border-white/10 pb-2 mb-3">
           Titolari ({layout.slots.length})
         </h2>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {layout.slots.map((slot) => {
             const selectedId = lineup.starters[slot.id] ?? '';
             const selectedPlayer = selectedId ? playerMap[selectedId] : null;
             return (
               <div key={slot.id} className="flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold w-8 shrink-0 ${ROLE_COLORS[slot.role] ?? 'text-gray-400'}`}
+                  className={`text-[11px] font-bold w-9 shrink-0 ${ROLE_COLORS[slot.role] ?? 'text-app-muted'}`}
                 >
                   {(slot.label ? (SLOT_LABEL_IT[slot.label] ?? slot.label) : ROLE_LABELS[slot.role])}
                 </span>
@@ -155,7 +149,7 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
                   })}
                 </select>
                 {selectedPlayer && (
-                  <span className={`text-xs shrink-0 ${ROLE_COLORS[selectedPlayer.role]}`}>
+                  <span className={`text-[11px] shrink-0 ${ROLE_COLORS[selectedPlayer.role]}`}>
                     {ROLE_LABELS[selectedPlayer.role]}
                   </span>
                 )}
@@ -173,7 +167,7 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
                         });
                       }
                     }}
-                    className="w-10 bg-gray-700 border border-gray-600 text-yellow-400 text-xs font-bold text-center rounded px-1 py-0.5 focus:outline-none focus:border-yellow-400"
+                    className="w-11 bg-app-raised border border-white/10 text-app-signal text-[12px] font-bold text-center rounded-md px-1 py-2 focus:outline-none focus:border-app-signal/60"
                     title="Numero per questa partita"
                   />
                 )}
@@ -185,7 +179,7 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
 
       {/* Bench */}
       <div>
-        <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2 mb-3">
+        <h2 className="font-condensed text-[15px] font-bold uppercase text-app-text border-b border-white/10 pb-2 mb-3">
           Panchina ({lineup.bench.length}/9)
         </h2>
         <div className="space-y-1">
@@ -196,21 +190,21 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
               return (
                 <label
                   key={p.id}
-                  className={`flex items-center gap-2 cursor-pointer rounded px-2 py-1 transition-colors ${
-                    isOnBench ? 'bg-gray-700' : 'hover:bg-gray-800'
+                  className={`flex items-center gap-2.5 cursor-pointer rounded-md px-2.5 py-2 transition-colors ${
+                    isOnBench ? 'bg-app-raised border border-white/10' : 'hover:bg-app-surface border border-transparent'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={isOnBench}
                     onChange={() => toggleBench(p.id)}
-                    className="accent-yellow-400"
+                    className="accent-app-signal"
                   />
-                  <span className={`text-xs font-bold w-6 ${ROLE_COLORS[p.role]}`}>{p.number}</span>
-                  <span className="text-xs text-white">
+                  <span className={`text-[12px] font-bold w-6 ${ROLE_COLORS[p.role]}`}>{p.number}</span>
+                  <span className="text-[13px] text-app-text flex-1">
                     {p.lastName} {p.firstName.charAt(0)}.
                   </span>
-                  <span className={`text-xs ml-auto ${ROLE_COLORS[p.role]}`}>
+                  <span className={`text-[11px] ml-auto ${ROLE_COLORS[p.role]}`}>
                     {ROLE_LABELS[p.role]}
                   </span>
                 </label>
@@ -221,11 +215,11 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
 
       {/* Coach */}
       <div>
-        <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2 mb-3">
+        <h2 className="font-condensed text-[15px] font-bold uppercase text-app-text border-b border-white/10 pb-2 mb-3">
           Allenatore
         </h2>
         <input
-          className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded px-3 py-2 focus:outline-none focus:border-yellow-400"
+          className="w-full bg-app-surface border border-white/10 text-app-text text-[13px] rounded-md px-3 py-2.5 focus:outline-none focus:border-app-signal/60 transition-colors"
           type="text"
           placeholder="Nome allenatore"
           value={lineup.coach}

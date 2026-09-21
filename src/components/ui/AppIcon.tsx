@@ -16,11 +16,14 @@ export type IconName =
   | "menu"
   | "pencil"
   | "plus"
+  | "printer"
   | "search"
   | "share"
   | "shield"
   | "spinner"
+  | "trash"
   | "trophy"
+  | "upload"
   | "user"
   | "users";
 
@@ -66,8 +69,11 @@ export function AppIcon({
       {name === "search" && <><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 5 5" /></>}
       {name === "share" && <><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5" /></>}
       {name === "shield" && <path d="M12 3 20 6v5c0 5.1-3.2 8.7-8 10-4.8-1.3-8-4.9-8-10V6z" />}
+      {name === "printer" && <><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z" /></>}
       {name === "spinner" && <path d="M12 3a9 9 0 1 0 9 9" />}
+      {name === "trash" && <><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></>}
       {name === "trophy" && <><path d="M8 4h8v5a4 4 0 0 1-8 0zM12 13v5M8 21h8M5 5H3v2a4 4 0 0 0 4 4M19 5h2v2a4 4 0 0 1-4 4" /></>}
+      {name === "upload" && <><path d="M12 15V3M7 8l5-5 5 5M5 21h14" /></>}
       {name === "user" && <><circle cx="12" cy="8" r="3.5" /><path d="M4.5 21a7.5 7.5 0 0 1 15 0" /></>}
       {name === "users" && <><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0M16 5.5a3 3 0 0 1 0 5.8M18 14a5 5 0 0 1 3 4.5" /></>}
     </svg>

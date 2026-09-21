@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { AppIcon } from '../ui/AppIcon';
 import type { Match, ScorerNote, ResultPhase, Player, MatchGoal } from '../../domain/types';
 
 interface ResultFormProps {
@@ -12,26 +12,26 @@ interface ResultFormProps {
   players?: Player[];
 }
 
-const labelCls = 'block text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1';
-const inputCls = 'bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400';
+const labelCls = 'block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1.5';
+const inputCls = 'bg-app-surface border border-white/10 text-app-text text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors';
 
 function GoalCounter({
   label, value, onChange,
 }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">{label}</span>
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center gap-2">
+      <span className="text-[9px] text-app-muted uppercase tracking-[0.14em]">{label}</span>
+      <div className="flex items-center gap-3">
         <button
           onClick={() => onChange(Math.max(0, value - 1))}
-          className="w-8 h-8 rounded bg-gray-700 hover:bg-gray-600 text-white font-bold text-lg flex items-center justify-center"
+          className="w-9 h-9 rounded-md bg-app-raised border border-white/10 hover:border-white/20 text-app-text font-bold text-lg flex items-center justify-center transition-colors"
         >−</button>
-        <span className="text-white font-black text-2xl w-8 text-center" style={{ fontFamily: 'Impact, sans-serif' }}>
+        <span className="text-app-text font-condensed font-black text-3xl w-10 text-center">
           {value}
         </span>
         <button
           onClick={() => onChange(value + 1)}
-          className="w-8 h-8 rounded bg-gray-700 hover:bg-gray-600 text-white font-bold text-lg flex items-center justify-center"
+          className="w-9 h-9 rounded-md bg-app-raised border border-white/10 hover:border-white/20 text-app-text font-bold text-lg flex items-center justify-center transition-colors"
         >+</button>
       </div>
     </div>
@@ -108,19 +108,19 @@ function GoalsList({
       {sideGoals.length > 0 && (
         <div className="space-y-1">
           {sideGoals.map((g) => (
-            <div key={g.id} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 group">
-              <span className="text-xs font-bold text-red-400 w-8 shrink-0" style={{ fontFamily: 'Impact, sans-serif' }}>
+            <div key={g.id} className="flex items-center gap-2 px-3 py-2 rounded-md bg-app-surface border border-white/10 group">
+              <span className="text-[13px] font-condensed font-bold text-red-400 w-9 shrink-0">
                 {g.minute}&apos;
               </span>
-              <span className="text-xs text-white flex-1 uppercase tracking-wide">{g.playerName}</span>
+              <span className="text-[13px] text-app-text flex-1 uppercase tracking-wide">{g.playerName}</span>
               {g.note && (
-                <span className="text-xs font-bold text-yellow-400 shrink-0">({g.note})</span>
+                <span className="text-[11px] font-bold text-app-signal shrink-0">({g.note})</span>
               )}
               <button
                 onClick={() => remove(g.id)}
-                className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <Trash2 size={12} />
+                <AppIcon name="trash" size={13} />
               </button>
             </div>
           ))}
@@ -167,18 +167,18 @@ function GoalsList({
               key={value}
               type="button"
               onClick={() => setNote((prev) => prev === value ? '' : value)}
-              className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wide transition-colors ${
+              className={`px-2 py-2 rounded-md text-[11px] font-bold uppercase tracking-wide transition-colors ${
                 note === value
-                  ? 'bg-yellow-400 text-gray-900'
-                  : 'bg-gray-800 text-gray-500 border border-gray-700 hover:border-yellow-400'
+                  ? 'bg-app-signal text-[#111710]'
+                  : 'bg-app-surface text-app-muted border border-white/10 hover:border-app-signal/40'
               }`}
             >
               {label}
             </button>
           ))}
         </div>
-        <button onClick={add} className="text-yellow-400 hover:text-yellow-300">
-          <Plus size={16} />
+        <button onClick={add} className="text-app-signal hover:text-[#f0ff66] transition-colors">
+          <AppIcon name="plus" size={16} />
         </button>
       </div>
     </div>
@@ -188,7 +188,7 @@ function GoalsList({
 export function ResultForm({ match, goals, phase, onPhaseChange, onChange, onGoalsChange, players }: ResultFormProps) {
   return (
     <div className="space-y-5">
-      <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2">
+      <h2 className="font-condensed text-[15px] font-bold uppercase text-app-text border-b border-white/10 pb-2">
         Risultato
       </h2>
 
@@ -200,10 +200,10 @@ export function ResultForm({ match, goals, phase, onPhaseChange, onChange, onGoa
               key={p}
               type="button"
               onClick={() => onPhaseChange(p)}
-              className={`flex-1 py-2 rounded text-xs font-bold uppercase tracking-wide transition-colors ${
+              className={`flex-1 py-2.5 rounded-md text-[11px] font-bold uppercase tracking-[0.04em] transition-colors ${
                 phase === p
-                  ? 'bg-yellow-400 text-gray-900'
-                  : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-yellow-400'
+                  ? 'bg-app-signal text-[#111710]'
+                  : 'bg-app-surface text-app-muted border border-white/10 hover:border-app-signal/40'
               }`}
             >
               {p}
@@ -214,13 +214,13 @@ export function ResultForm({ match, goals, phase, onPhaseChange, onChange, onGoa
 
       <div>
         <label className={labelCls}>Gol</label>
-        <div className="flex items-center justify-around bg-gray-800 rounded-lg p-4">
+        <div className="flex items-center justify-around bg-app-surface border border-white/10 rounded-lg p-5">
           <GoalCounter
             label="Casa"
             value={match.homeGoals}
             onChange={(v) => onChange({ ...match, homeGoals: v })}
           />
-          <span className="text-red-400 font-black text-3xl" style={{ fontFamily: 'Impact, sans-serif' }}>—</span>
+          <span className="text-app-dim font-condensed font-black text-3xl">—</span>
           <GoalCounter
             label="Ospiti"
             value={match.awayGoals}
@@ -246,7 +246,7 @@ export function ResultForm({ match, goals, phase, onPhaseChange, onChange, onGoa
         onGoalsChange={onGoalsChange}
       />
 
-      <p className="text-xs text-gray-600 text-center">
+      <p className="text-[11px] text-app-dim text-center">
         I dati vengono salvati automaticamente
       </p>
     </div>

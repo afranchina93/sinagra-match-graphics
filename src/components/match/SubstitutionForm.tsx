@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AppIcon } from '../ui/AppIcon';
 import type { MatchSubstitution, Player } from '../../domain/types';
 
 type SubDraft = {
@@ -29,9 +30,9 @@ interface SubstitutionFormProps {
   players?: Player[];
 }
 
-const labelCls = 'block text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1';
-const inputCls = 'bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400 w-full';
-const selectCls = 'bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-400 w-full';
+const labelCls = 'block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1.5';
+const inputCls = 'bg-app-surface border border-white/10 text-app-text text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors w-full';
+const selectCls = 'bg-app-surface border border-white/10 text-app-text text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors w-full';
 
 function PlayerInput({
   label,
@@ -105,23 +106,23 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
 
   return (
     <div className="space-y-5">
-      <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2">
+      <h2 className="font-condensed text-[15px] font-bold uppercase text-app-text border-b border-white/10 pb-2">
         Sostituzioni
       </h2>
 
       {substitutions.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {substitutions.map((s, i) => (
-            <div key={s.id} className="flex items-center gap-2 bg-gray-800/60 border border-gray-700 rounded px-3 py-2 text-xs">
-              <span className="text-yellow-400 font-bold w-10 shrink-0">{s.minute}'</span>
+            <div key={s.id} className="flex items-center gap-2 bg-app-surface border border-white/10 rounded-lg px-3 py-2.5 text-[12px]">
+              <span className="text-app-signal font-bold w-10 shrink-0">{s.minute}'</span>
               <span className="text-red-400 flex-1 truncate">↓ {s.playerOutNumber}. {s.playerOutName}</span>
               <span className="text-green-400 flex-1 truncate">↑ {s.playerInNumber}. {s.playerInName}</span>
               <button
                 onClick={() => onDelete(i)}
-                className="text-gray-600 hover:text-red-400 transition-colors ml-1 shrink-0"
+                className="text-app-dim hover:text-red-400 transition-colors ml-1 shrink-0"
                 title="Elimina"
               >
-                ✕
+                <AppIcon name="trash" size={13} />
               </button>
             </div>
           ))}
@@ -129,25 +130,25 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
       )}
 
       {substitutions.length === 0 && (
-        <p className="text-xs text-gray-600 text-center py-2">Nessuna sostituzione salvata</p>
+        <p className="text-[12px] text-app-dim text-center py-2">Nessuna sostituzione salvata</p>
       )}
 
-      <div className="border-t border-gray-700 pt-4 space-y-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nuova sostituzione</p>
+      <div className="border-t border-white/10 pt-4 space-y-4">
+        <p className="text-[9px] uppercase tracking-[0.14em] text-app-muted">Nuova sostituzione</p>
 
         <div>
           <label className={labelCls}>Minuto</label>
           <input
-            className={`${inputCls} w-28`}
+            className={`${inputCls} w-32`}
             type="text"
             placeholder="es. 62 oppure 90+4"
             value={draft.minute}
             onChange={e => setDraft(d => ({ ...d, minute: e.target.value }))}
           />
-          <p className="text-xs text-gray-600 mt-1">L&apos;apostrofo viene aggiunto automaticamente</p>
+          <p className="text-[11px] text-app-dim mt-1">L&apos;apostrofo viene aggiunto automaticamente</p>
         </div>
 
-        <div className="p-3 rounded bg-gray-800/50 border border-red-900/40">
+        <div className="p-3 rounded-lg bg-app-surface border border-red-900/30">
           <PlayerInput
             label="Esce"
             playerId={draft.playerOutId}
@@ -156,13 +157,13 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
             onChange={(id, number, name) => setDraft(d => ({ ...d, playerOutId: id, playerOutNumber: number, playerOutName: name }))}
             players={players}
           />
-          <div className="mt-1 flex items-center gap-1">
+          <div className="mt-2 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-            <span className="text-xs text-red-400 font-semibold">NUMERO ROSSO nel tabellone</span>
+            <span className="text-[10px] text-red-400 font-semibold uppercase tracking-wider">Numero rosso nel tabellone</span>
           </div>
         </div>
 
-        <div className="p-3 rounded bg-gray-800/50 border border-green-900/40">
+        <div className="p-3 rounded-lg bg-app-surface border border-green-900/30">
           <PlayerInput
             label="Entra"
             playerId={draft.playerInId}
@@ -171,18 +172,19 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
             onChange={(id, number, name) => setDraft(d => ({ ...d, playerInId: id, playerInNumber: number, playerInName: name }))}
             players={players}
           />
-          <div className="mt-1 flex items-center gap-1">
+          <div className="mt-2 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-            <span className="text-xs text-green-400 font-semibold">NUMERO VERDE nel tabellone</span>
+            <span className="text-[10px] text-green-400 font-semibold uppercase tracking-wider">Numero verde nel tabellone</span>
           </div>
         </div>
 
         <button
           onClick={handleAdd}
           disabled={!canAdd}
-          className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-900 text-xs font-black py-2.5 rounded transition-colors uppercase tracking-wide"
+          className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] bg-app-signal text-[#111710] text-[13px] font-bold rounded-md transition-colors hover:bg-[#f0ff66] disabled:opacity-40 disabled:cursor-not-allowed uppercase tracking-[0.04em]"
         >
-          + Aggiungi sostituzione
+          <AppIcon name="plus" size={14} />
+          Aggiungi sostituzione
         </button>
       </div>
     </div>

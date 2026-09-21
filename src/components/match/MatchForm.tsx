@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Upload, Plus, X } from 'lucide-react';
+import { AppIcon } from '../ui/AppIcon';
 import type { Match, Team, Competition } from '../../domain/types';
 
 interface MatchFormProps {
@@ -13,9 +13,9 @@ interface MatchFormProps {
   onUploadLogo: (teamId: string, file: File) => Promise<void>;
 }
 
-const labelCls = 'block text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1';
+const labelCls = 'block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1.5';
 const inputCls =
-  'w-full bg-gray-800 border border-gray-700 text-white text-sm rounded px-3 py-2 focus:outline-none focus:border-yellow-400 transition-colors';
+  'w-full bg-app-surface border border-white/10 text-app-text text-[13px] rounded-md px-3 py-2.5 focus:outline-none focus:border-app-signal/60 transition-colors';
 
 export function MatchForm({
   match,
@@ -68,20 +68,20 @@ export function MatchForm({
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2">
+    <div className="space-y-5">
+      <h2 className="font-condensed text-[15px] font-bold uppercase text-app-text border-b border-white/10 pb-2">
         Configurazione Partita
       </h2>
 
       {/* Avversario */}
       <div>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-1.5">
           <label className={labelCls} style={{ marginBottom: 0 }}>Avversario</label>
           <button
             onClick={() => setAddingTeam(!addingTeam)}
-            className="text-xs text-yellow-400 hover:text-yellow-300 flex items-center gap-1"
+            className="text-[11px] text-app-signal hover:text-[#f0ff66] flex items-center gap-1"
           >
-            {addingTeam ? <X size={12} /> : <Plus size={12} />}
+            {addingTeam ? <AppIcon name="close" size={12} /> : <AppIcon name="plus" size={12} />}
             {addingTeam ? 'Annulla' : 'Nuovo'}
           </button>
         </div>
@@ -98,7 +98,7 @@ export function MatchForm({
             />
             <button
               onClick={handleAddTeam}
-              className="shrink-0 bg-yellow-400 text-gray-900 text-xs font-bold px-3 rounded hover:bg-yellow-300"
+              className="shrink-0 bg-app-signal text-[#111710] text-[12px] font-bold px-3 rounded-md hover:bg-[#f0ff66]"
             >
               OK
             </button>
@@ -126,10 +126,10 @@ export function MatchForm({
               <img
                 src={opponent.logoUrl}
                 alt={opponent.name}
-                className="w-10 h-10 object-contain rounded bg-gray-800"
+                className="w-10 h-10 object-contain rounded bg-app-surface"
               />
             ) : (
-              <div className="w-10 h-10 rounded bg-gray-800 flex items-center justify-center text-gray-600 text-xs font-bold">
+              <div className="w-10 h-10 rounded-md bg-app-raised border border-white/10 flex items-center justify-center text-app-muted text-xs font-bold">
                 {opponent?.name?.[0]?.toUpperCase() ?? '?'}
               </div>
             )}
@@ -143,9 +143,9 @@ export function MatchForm({
             <button
               onClick={() => logoInputRef.current?.click()}
               disabled={uploadingLogo}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded px-2.5 py-1.5 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-[12px] text-app-muted hover:text-app-text border border-white/10 hover:border-white/25 rounded-md px-3 py-2 transition-colors disabled:opacity-50"
             >
-              <Upload size={12} />
+              <AppIcon name="upload" size={12} />
               {uploadingLogo ? 'Upload...' : opponent?.logoUrl ? 'Cambia logo' : 'Carica logo'}
             </button>
           </div>
@@ -155,13 +155,13 @@ export function MatchForm({
       <div className="grid grid-cols-2 gap-3">
         {/* Competizione */}
         <div className="col-span-2">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-1.5">
             <label className={labelCls} style={{ marginBottom: 0 }}>Competizione</label>
             <button
               onClick={() => setAddingComp(!addingComp)}
-              className="text-xs text-yellow-400 hover:text-yellow-300 flex items-center gap-1"
+              className="text-[11px] text-app-signal hover:text-[#f0ff66] flex items-center gap-1"
             >
-              {addingComp ? <X size={12} /> : <Plus size={12} />}
+              {addingComp ? <AppIcon name="close" size={12} /> : <AppIcon name="plus" size={12} />}
               {addingComp ? 'Annulla' : 'Nuova'}
             </button>
           </div>
@@ -178,7 +178,7 @@ export function MatchForm({
               />
               <button
                 onClick={handleAddComp}
-                className="shrink-0 bg-yellow-400 text-gray-900 text-xs font-bold px-3 rounded hover:bg-yellow-300"
+                className="shrink-0 bg-app-signal text-[#111710] text-[12px] font-bold px-3 rounded-md hover:bg-[#f0ff66]"
               >
                 OK
               </button>
@@ -218,7 +218,6 @@ export function MatchForm({
             value={match.matchDate ? match.matchDate.slice(0, 16) : ''}
             onChange={(e) => {
               const val = e.target.value;
-              // Salva la stringa locale così com'è (no conversione UTC) e aggiorna kickoffTime
               const time = val ? val.slice(11, 16).replace(':', '.') : '';
               onChange({ ...match, matchDate: val || null, kickoffTime: time });
             }}
@@ -252,7 +251,7 @@ export function MatchForm({
         {/* Casa / Trasferta */}
         <div className="col-span-2">
           <label className={labelCls}>Sede</label>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             {[
               { val: true, label: 'Casa' },
               { val: false, label: 'Trasferta' },
@@ -261,10 +260,10 @@ export function MatchForm({
                 key={label}
                 type="button"
                 onClick={() => set('isHome', val)}
-                className={`flex-1 py-2 rounded text-sm font-bold uppercase tracking-wide transition-colors ${
+                className={`flex-1 py-2.5 rounded-md text-[13px] font-bold uppercase tracking-[0.04em] transition-colors ${
                   match.isHome === val
-                    ? 'bg-yellow-400 text-gray-900'
-                    : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-yellow-400'
+                    ? 'bg-app-signal text-[#111710]'
+                    : 'bg-app-surface text-app-muted border border-white/10 hover:border-app-signal/40'
                 }`}
               >
                 {label}
