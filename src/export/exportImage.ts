@@ -60,14 +60,32 @@ export async function exportAsPng(
   triggerDownload(jpeg, filename);
 }
 
+async function inlineImages(element: HTMLElement): Promise<string> {
+  const clone = element.cloneNode(true) as HTMLElement;
+  const imgs = Array.from(clone.querySelectorAll('img'));
+  await Promise.all(imgs.map(async (img) => {
+    const src = img.getAttribute('src');
+    if (!src || src.startsWith('data:')) return;
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      img.setAttribute('src', await blobToDataUrl(blob));
+    } catch {
+      // lascia src originale se il fetch fallisce
+    }
+  }));
+  return clone.outerHTML;
+}
+
 export async function exportAsDistintaPdf(
   sheetElement: HTMLElement,
   filename = 'distinta.pdf',
 ): Promise<void> {
+  const html = await inlineImages(sheetElement);
   const res = await fetch('/api/generate-distinta', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ html: sheetElement.outerHTML }),
+    body: JSON.stringify({ html }),
   });
   if (!res.ok) throw new Error(`Server error: ${res.status}`);
   const blob = await res.blob();
