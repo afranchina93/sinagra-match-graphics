@@ -723,7 +723,7 @@ export async function loadPlayerMatchHistory(playerId: string): Promise<PlayerMa
       minutesPlayed,
       slotId,
       goals: goalCountMap.get(m.id) ?? 0,
-      scoutStats: scoutEntry?.tracked ? scoutEntry : null,
+      scoutStats: scoutEntry ?? null,
     };
   });
 }
