@@ -79,7 +79,7 @@ export function MatchForm({
           <label className={labelCls} style={{ marginBottom: 0 }}>Avversario</label>
           <button
             onClick={() => setAddingTeam(!addingTeam)}
-            className="text-[11px] text-app-signal hover:text-[#f0ff66] flex items-center gap-1"
+            className="text-[11px] text-app-signal hover:text-[#ffd740] flex items-center gap-1"
           >
             {addingTeam ? <AppIcon name="close" size={12} /> : <AppIcon name="plus" size={12} />}
             {addingTeam ? 'Annulla' : 'Nuovo'}
@@ -98,7 +98,7 @@ export function MatchForm({
             />
             <button
               onClick={handleAddTeam}
-              className="shrink-0 bg-app-signal text-[#111710] text-[12px] font-bold px-3 rounded-md hover:bg-[#f0ff66]"
+              className="shrink-0 bg-app-signal text-[#111111] text-[12px] font-bold px-3 rounded-md hover:bg-[#ffd740]"
             >
               OK
             </button>
@@ -159,7 +159,7 @@ export function MatchForm({
             <label className={labelCls} style={{ marginBottom: 0 }}>Competizione</label>
             <button
               onClick={() => setAddingComp(!addingComp)}
-              className="text-[11px] text-app-signal hover:text-[#f0ff66] flex items-center gap-1"
+              className="text-[11px] text-app-signal hover:text-[#ffd740] flex items-center gap-1"
             >
               {addingComp ? <AppIcon name="close" size={12} /> : <AppIcon name="plus" size={12} />}
               {addingComp ? 'Annulla' : 'Nuova'}
@@ -178,7 +178,7 @@ export function MatchForm({
               />
               <button
                 onClick={handleAddComp}
-                className="shrink-0 bg-app-signal text-[#111710] text-[12px] font-bold px-3 rounded-md hover:bg-[#f0ff66]"
+                className="shrink-0 bg-app-signal text-[#111111] text-[12px] font-bold px-3 rounded-md hover:bg-[#ffd740]"
               >
                 OK
               </button>
@@ -262,7 +262,7 @@ export function MatchForm({
                 onClick={() => set('isHome', val)}
                 className={`flex-1 py-2.5 rounded-md text-[13px] font-bold uppercase tracking-[0.04em] transition-colors ${
                   match.isHome === val
-                    ? 'bg-app-signal text-[#111710]'
+                    ? 'bg-app-signal text-[#111111]'
                     : 'bg-app-surface text-app-muted border border-white/10 hover:border-app-signal/40'
                 }`}
               >

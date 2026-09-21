@@ -61,13 +61,13 @@ export function CoachApp() {
       <div className="flex gap-1 border-b border-white/10 pb-3 mb-5">
         <button
           onClick={() => setMainTab('partite')}
-          className={`text-[12px] font-bold px-3 py-1.5 rounded-md uppercase tracking-[0.04em] transition-colors ${mainTab === 'partite' ? 'bg-app-signal text-[#111710]' : 'text-app-muted hover:text-app-text'}`}
+          className={`text-[12px] font-bold px-3 py-1.5 rounded-md uppercase tracking-[0.04em] transition-colors ${mainTab === 'partite' ? 'bg-app-signal text-[#111111]' : 'text-app-muted hover:text-app-text'}`}
         >
           Partite
         </button>
         <button
           onClick={() => setMainTab('rosa')}
-          className={`text-[12px] font-bold px-3 py-1.5 rounded-md uppercase tracking-[0.04em] transition-colors ${mainTab === 'rosa' ? 'bg-app-signal text-[#111710]' : 'text-app-muted hover:text-app-text'}`}
+          className={`text-[12px] font-bold px-3 py-1.5 rounded-md uppercase tracking-[0.04em] transition-colors ${mainTab === 'rosa' ? 'bg-app-signal text-[#111111]' : 'text-app-muted hover:text-app-text'}`}
         >
           Rosa
         </button>

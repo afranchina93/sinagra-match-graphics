@@ -99,7 +99,7 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="w-full inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md bg-app-signal text-[#111710] text-[13px] font-bold tracking-[-0.01em] transition-colors hover:bg-[#f0ff66] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md bg-app-signal text-[#111111] text-[13px] font-bold tracking-[-0.01em] transition-colors hover:bg-[#ffd740] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <AppIcon name="spinner" size={16} className="animate-spin" />

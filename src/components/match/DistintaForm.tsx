@@ -130,7 +130,7 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                             onClick={() => toggleMarker(id, m)}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors ${
                               marker === m
-                                ? 'bg-app-signal text-[#111710]'
+                                ? 'bg-app-signal text-[#111111]'
                                 : 'bg-app-surface text-app-muted border border-white/10 hover:border-app-signal/40'
                             }`}
                           >
@@ -166,7 +166,7 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                             onClick={() => toggleMarker(id, m)}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors ${
                               marker === m
-                                ? 'bg-app-signal text-[#111710]'
+                                ? 'bg-app-signal text-[#111111]'
                                 : 'bg-app-surface text-app-muted border border-white/10 hover:border-app-signal/40'
                             }`}
                           >

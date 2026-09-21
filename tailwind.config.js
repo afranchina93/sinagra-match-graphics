@@ -5,14 +5,15 @@ export default {
     extend: {
       colors: {
         app: {
-          canvas:  '#0c1210',
-          surface: '#18211d',
-          raised:  '#202b25',
-          nav:     '#101713',
-          signal:  '#e4f543',
-          text:    '#edf1e7',
-          muted:   '#7e8a82',
-          dim:     '#49574e',
+          canvas:  '#0f0f0f',
+          surface: '#1a1a1a',
+          raised:  '#222222',
+          nav:     '#0f0f0f',
+          signal:  '#F5C800',
+          accent:  '#C8102E',
+          text:    '#f0f0f0',
+          muted:   '#888888',
+          dim:     '#505050',
         },
         sinagra: {
           yellow: '#F5C800',

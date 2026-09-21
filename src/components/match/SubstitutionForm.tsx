@@ -181,7 +181,7 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
         <button
           onClick={handleAdd}
           disabled={!canAdd}
-          className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] bg-app-signal text-[#111710] text-[13px] font-bold rounded-md transition-colors hover:bg-[#f0ff66] disabled:opacity-40 disabled:cursor-not-allowed uppercase tracking-[0.04em]"
+          className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] bg-app-signal text-[#111111] text-[13px] font-bold rounded-md transition-colors hover:bg-[#ffd740] disabled:opacity-40 disabled:cursor-not-allowed uppercase tracking-[0.04em]"
         >
           <AppIcon name="plus" size={14} />
           Aggiungi sostituzione

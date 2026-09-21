@@ -123,7 +123,7 @@ function StaffRow({ person, onDelete, onSelect }: {
           onClick={() => onSelect(person)}
           className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
         >
-          <span className="text-[10px] text-purple-400 font-bold w-14 shrink-0 truncate">{staffRoleLabel(person.role)}</span>
+          <span className="text-[10px] text-app-accent font-bold w-14 shrink-0 truncate">{staffRoleLabel(person.role)}</span>
           <span className="text-[13px] text-app-text flex-1 truncate">
             {person.lastName} {person.firstName}
           </span>
@@ -244,13 +244,13 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
         <div className="flex gap-1">
           <button
             onClick={() => setSection('players')}
-            className={`text-[12px] font-bold px-3 py-1.5 rounded-md uppercase tracking-[0.04em] transition-colors ${section === 'players' ? 'bg-app-signal text-[#111710]' : 'text-app-muted hover:text-app-text'}`}
+            className={`text-[12px] font-bold px-3 py-1.5 rounded-md uppercase tracking-[0.04em] transition-colors ${section === 'players' ? 'bg-app-signal text-[#111111]' : 'text-app-muted hover:text-app-text'}`}
           >
             Giocatori ({players.length})
           </button>
           <button
             onClick={() => setSection('staff')}
-            className={`text-[12px] font-bold px-3 py-1.5 rounded-md uppercase tracking-[0.04em] transition-colors ${section === 'staff' ? 'bg-purple-400 text-[#111710]' : 'text-app-muted hover:text-app-text'}`}
+            className={`text-[12px] font-bold px-3 py-1.5 rounded-md uppercase tracking-[0.04em] transition-colors ${section === 'staff' ? 'bg-app-accent text-white' : 'text-app-muted hover:text-app-text'}`}
           >
             Staff ({staff.length})
           </button>
@@ -258,7 +258,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
         {!readOnly && (
           <button
             onClick={() => section === 'players' ? setAddingPlayer(a => !a) : setAddingStaff(a => !a)}
-            className="flex items-center gap-1 text-[12px] text-app-signal hover:text-[#f0ff66] font-semibold transition-colors"
+            className="flex items-center gap-1 text-[12px] text-app-signal hover:text-[#ffd740] font-semibold transition-colors"
           >
             {(section === 'players' ? addingPlayer : addingStaff)
               ? <AppIcon name="close" size={14} />
@@ -288,7 +288,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
                 </select>
               </div>
               <button onClick={addPlayer} disabled={savingPlayer}
-                className="w-full bg-app-signal text-[#111710] rounded-md py-2 text-[12px] font-bold uppercase tracking-[0.04em] hover:bg-[#f0ff66] transition-colors disabled:opacity-50">
+                className="w-full bg-app-signal text-[#111111] rounded-md py-2 text-[12px] font-bold uppercase tracking-[0.04em] hover:bg-[#ffd740] transition-colors disabled:opacity-50">
                 {savingPlayer ? 'Salvataggio...' : 'Aggiungi giocatore'}
               </button>
             </div>
@@ -360,7 +360,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
                 {STAFF_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
               <button onClick={addStaffMember} disabled={savingStaff}
-                className="w-full bg-purple-400 text-[#111710] rounded-md py-2 text-[12px] font-bold uppercase tracking-[0.04em] hover:bg-purple-300 transition-colors disabled:opacity-50">
+                className="w-full bg-app-accent text-white rounded-md py-2 text-[12px] font-bold uppercase tracking-[0.04em] hover:opacity-90 transition-colors disabled:opacity-50">
                 {savingStaff ? 'Salvataggio...' : 'Aggiungi membro staff'}
               </button>
             </div>

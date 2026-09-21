@@ -885,7 +885,7 @@ function AppInner() {
                 </span>
               </div>
               <button onClick={handleExport} disabled={exporting}
-                className="w-full flex items-center justify-center gap-2 bg-app-signal hover:opacity-90 disabled:opacity-40 text-[#111710] text-sm font-black py-2.5 rounded transition-opacity uppercase tracking-wide">
+                className="w-full flex items-center justify-center gap-2 bg-app-signal hover:opacity-90 disabled:opacity-40 text-[#111111] text-sm font-black py-2.5 rounded transition-opacity uppercase tracking-wide">
                 <Download size={16} />{exporting ? 'Esportazione...' : 'Esporta JPG'}
               </button>
               <textarea value={fbCaption} onChange={(e) => setFbCaption(e.target.value)}
@@ -911,7 +911,7 @@ function AppInner() {
       {showPreview && (
         <button
           onClick={() => setShowPreviewModal(true)}
-          className="md:hidden fixed bottom-[88px] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-app-signal text-[#111710] shadow-lg shadow-black/40 active:scale-95 transition-transform"
+          className="md:hidden fixed bottom-[88px] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-app-signal text-[#111111] shadow-lg shadow-black/40 active:scale-95 transition-transform"
         >
           <Eye size={22} />
         </button>
@@ -968,7 +968,7 @@ function AppInner() {
 
           <footer className="flex gap-2 p-4 border-t border-white/[0.08] bg-app-surface shrink-0">
             <button onClick={handleExport} disabled={exporting}
-              className="flex-1 flex items-center justify-center gap-2 bg-app-signal disabled:opacity-40 text-[#111710] text-sm font-black py-3 rounded transition-opacity uppercase">
+              className="flex-1 flex items-center justify-center gap-2 bg-app-signal disabled:opacity-40 text-[#111111] text-sm font-black py-3 rounded transition-opacity uppercase">
               <Download size={16} />{exporting ? 'Esport...' : 'Esporta JPG'}
             </button>
             <button onClick={() => { setShowPreviewModal(false); setShowFbModal(true); }} disabled={publishing}
