@@ -212,28 +212,28 @@ function MatchHistoryCard({ row, isGK }: { row: PlayerMatchHistoryRow; isGK: boo
 function ScoutStatsRow({ stats, isGK }: { stats: NonNullable<PlayerMatchHistoryRow['scoutStats']>; isGK: boolean }) {
   const cells = isGK
     ? [
-        { k: 'PP', v: stats.pallePerse },
-        { k: 'PR', v: stats.palleRecup },
-        { k: 'CD', v: stats.chiusure },
+        { label: 'Palle perse',      v: stats.pallePerse },
+        { label: 'Palle recuperate', v: stats.palleRecup },
+        { label: 'Chiusure',         v: stats.chiusure },
       ]
     : [
-        { k: 'TF', v: stats.tiriF },
-        { k: 'TP', v: stats.tiriP },
-        { k: 'CF', v: stats.crossF },
-        { k: 'CD', v: stats.chiusure },
-        { k: 'PP', v: stats.pallePerse },
-        { k: 'PR', v: stats.palleRecup },
-        { k: 'A', v: stats.assist },
-        { k: 'G', v: stats.gol },
+        { label: 'Tiri fuori',       v: stats.tiriF },
+        { label: 'Tiri in porta',    v: stats.tiriP },
+        { label: 'Cross dal fondo',  v: stats.crossF },
+        { label: 'Chiusure',         v: stats.chiusure },
+        { label: 'Palle perse',      v: stats.pallePerse },
+        { label: 'Palle recuperate', v: stats.palleRecup },
+        { label: 'Assist',           v: stats.assist },
+        { label: 'Gol',              v: stats.gol },
       ];
 
   return (
-    <div className="flex gap-3 flex-wrap">
-      {cells.map(({ k, v }) => (
-        <span key={k} className="text-[11px] text-app-muted">
-          <span className="text-app-dim">{k}:</span>
-          <span className="text-app-text font-semibold ml-0.5">{v}</span>
-        </span>
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1">
+      {cells.map(({ label, v }) => (
+        <div key={label} className="flex items-center justify-between gap-2">
+          <span className="text-[10px] text-app-dim">{label}</span>
+          <span className={`text-[12px] font-bold tabular-nums ${v > 0 ? 'text-app-signal' : 'text-app-muted'}`}>{v}</span>
+        </div>
       ))}
     </div>
   );
