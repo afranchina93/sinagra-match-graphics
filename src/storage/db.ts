@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote, StaffPerson, PlayerStats, PlayerMatchStat, MatchScoutNotes } from '../domain/types';
+import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote, StaffPerson, PlayerStats, PlayerMatchStat, MatchScoutNotes, PlayerMatchHistoryRow } from '../domain/types';
 import type { ClubConfig } from '../domain/distinta';
 import { DEFAULT_CLUB_CONFIG } from '../domain/distinta';
 
@@ -629,4 +629,101 @@ export async function saveScoutNotes(matchId: string, notes: MatchScoutNotes): P
     .update({ scout_notes: notes })
     .eq('id', matchId);
   if (error) console.error('saveScoutNotes:', error);
+}
+
+export async function loadPlayerMatchHistory(playerId: string): Promise<PlayerMatchHistoryRow[]> {
+  const [matchesRes, starterRes, benchRes, subInRes, subOutRes, goalsRes, scoutRes] = await Promise.all([
+    supabase.from('matches').select('id, match_date, formation, is_home, home_goals, away_goals, opponent_id').order('match_date', { ascending: false }),
+    supabase.from('match_starters').select('match_id, slot_id').eq('player_id', playerId),
+    supabase.from('match_bench').select('match_id').eq('player_id', playerId),
+    supabase.from('match_substitutions').select('match_id, minute').eq('player_in_id', playerId),
+    supabase.from('match_substitutions').select('match_id, minute').eq('player_out_id', playerId),
+    supabase.from('match_goals').select('match_id').eq('player_id', playerId).or('note.is.null,note.neq.AG'),
+    supabase.from('match_player_stats').select('*').eq('player_id', playerId),
+  ]);
+
+  type MatchRow = { id: string; match_date: string | null; formation: string; is_home: boolean; home_goals: number; away_goals: number; opponent_id: string | null };
+  const matches = (matchesRes.data ?? []) as MatchRow[];
+
+  const opponentIds = [...new Set(matches.map(m => m.opponent_id).filter(Boolean))] as string[];
+  const teamsMap = new Map<string, string>();
+  if (opponentIds.length > 0) {
+    const { data: teams } = await supabase.from('teams').select('id, name').in('id', opponentIds);
+    for (const t of (teams ?? []) as Array<{ id: string; name: string }>) teamsMap.set(t.id, t.name);
+  }
+
+  const starterMap = new Map<string, string>();
+  for (const r of (starterRes.data ?? []) as Array<{ match_id: string; slot_id: string }>) {
+    starterMap.set(r.match_id, r.slot_id);
+  }
+  const benchSet = new Set((benchRes.data ?? []).map((r: Record<string, unknown>) => r.match_id as string));
+  const subInMap = new Map<string, number>();
+  for (const r of (subInRes.data ?? []) as Array<{ match_id: string; minute: string }>) {
+    subInMap.set(r.match_id, parseInt(r.minute) || 0);
+  }
+  const subOutMap = new Map<string, number>();
+  for (const r of (subOutRes.data ?? []) as Array<{ match_id: string; minute: string }>) {
+    subOutMap.set(r.match_id, parseInt(r.minute) || 90);
+  }
+  const goalCountMap = new Map<string, number>();
+  for (const r of (goalsRes.data ?? []) as Array<{ match_id: string }>) {
+    goalCountMap.set(r.match_id, (goalCountMap.get(r.match_id) ?? 0) + 1);
+  }
+  const scoutMap = new Map<string, PlayerMatchStat>();
+  for (const r of (scoutRes.data ?? []) as Array<Record<string, unknown>>) {
+    scoutMap.set(r.match_id as string, {
+      playerId: r.player_id as string,
+      playerName: r.player_name as string,
+      playerNumber: r.player_number as number,
+      tracked: (r.tracked as boolean) ?? false,
+      tiriF: (r.tiri_fuori as number) ?? 0,
+      tiriP: (r.tiri_in_porta as number) ?? 0,
+      crossF: (r.cross_fondo as number) ?? 0,
+      chiusure: (r.chiusure as number) ?? 0,
+      pallePerse: (r.palle_perse as number) ?? 0,
+      palleRecup: (r.palle_recuperate as number) ?? 0,
+      assist: (r.assist as number) ?? 0,
+      gol: (r.gol as number) ?? 0,
+    });
+  }
+
+  return matches.map(m => {
+    const isStarter = starterMap.has(m.id);
+    const isSubIn = subInMap.has(m.id);
+    const isBench = benchSet.has(m.id);
+
+    let status: PlayerMatchHistoryRow['status'];
+    let minutesPlayed = 0;
+    let slotId: string | null = null;
+
+    if (isStarter) {
+      status = 'titolare';
+      slotId = starterMap.get(m.id) ?? null;
+      minutesPlayed = subOutMap.get(m.id) ?? 90;
+    } else if (isSubIn) {
+      status = 'subentrato';
+      const inMinute = subInMap.get(m.id) ?? 0;
+      minutesPlayed = (subOutMap.get(m.id) ?? 90) - inMinute;
+    } else if (isBench) {
+      status = 'panchina';
+    } else {
+      status = 'non_convocato';
+    }
+
+    const scoutEntry = scoutMap.get(m.id);
+    return {
+      matchId: m.id,
+      matchDate: m.match_date,
+      opponentName: m.opponent_id ? (teamsMap.get(m.opponent_id) ?? null) : null,
+      isHome: m.is_home,
+      formation: m.formation,
+      homeGoals: m.home_goals,
+      awayGoals: m.away_goals,
+      status,
+      minutesPlayed,
+      slotId,
+      goals: goalCountMap.get(m.id) ?? 0,
+      scoutStats: scoutEntry?.tracked ? scoutEntry : null,
+    };
+  });
 }

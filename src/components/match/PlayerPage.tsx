@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AppIcon } from '../ui/AppIcon';
-import type { Player } from '../../domain/types';
-import type { PlayerStats } from '../../domain/types';
-import { loadPlayerStats } from '../../storage/db';
+import type { Player, PlayerStats, PlayerMatchHistoryRow } from '../../domain/types';
+import { loadPlayerStats, loadPlayerMatchHistory } from '../../storage/db';
 
 interface PlayerPageProps {
   player: Player;
@@ -16,11 +15,42 @@ const ROLE_LABEL: Record<string, string> = {
   forward: 'Attaccante',
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  titolare: 'Titolare',
+  subentrato: 'Subentrato',
+  panchina: 'Panchina',
+  non_convocato: 'N/C',
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  titolare: 'bg-app-signal/20 text-app-signal',
+  subentrato: 'bg-blue-500/20 text-blue-300',
+  panchina: 'bg-white/10 text-app-muted',
+  non_convocato: 'bg-white/5 text-app-dim',
+};
+
+function slotRole(slotId: string | null): string {
+  if (!slotId) return '';
+  if (slotId === 'gk') return 'P';
+  if (slotId.startsWith('def')) return 'D';
+  if (slotId.startsWith('mid')) return 'C';
+  if (slotId.startsWith('fwd')) return 'A';
+  return slotId;
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+}
+
 export function PlayerPage({ player, onBack }: PlayerPageProps) {
   const [stats, setStats] = useState<PlayerStats | null>(null);
+  const [history, setHistory] = useState<PlayerMatchHistoryRow[] | null>(null);
 
   useEffect(() => {
     loadPlayerStats(player.id).then(setStats).catch(console.error);
+    loadPlayerMatchHistory(player.id).then(setHistory).catch(console.error);
   }, [player.id]);
 
   return (
@@ -75,7 +105,7 @@ export function PlayerPage({ player, onBack }: PlayerPageProps) {
         </div>
       )}
 
-      {/* Statistics */}
+      {/* Season statistics */}
       <div>
         <h3 className="font-condensed text-[13px] font-bold uppercase text-app-text border-b border-white/10 pb-2 mb-3">
           Statistiche stagione
@@ -94,6 +124,24 @@ export function PlayerPage({ player, onBack }: PlayerPageProps) {
           </div>
         )}
       </div>
+
+      {/* Per-match history */}
+      <div>
+        <h3 className="font-condensed text-[13px] font-bold uppercase text-app-text border-b border-white/10 pb-2 mb-3">
+          Per partita
+        </h3>
+        {history === null ? (
+          <p className="text-[12px] text-app-dim text-center py-4">Caricamento...</p>
+        ) : history.length === 0 ? (
+          <p className="text-[12px] text-app-dim text-center py-4">Nessuna partita registrata</p>
+        ) : (
+          <div className="space-y-2">
+            {history.map(row => (
+              <MatchHistoryCard key={row.matchId} row={row} isGK={player.role === 'goalkeeper'} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -103,6 +151,90 @@ function StatCard({ label, value }: { label: string; value: number }) {
     <div className="bg-app-surface border border-white/10 rounded-lg px-4 py-4 text-center">
       <div className="font-condensed text-3xl font-black text-app-text">{value}</div>
       <div className="text-[10px] text-app-muted uppercase tracking-[0.1em] mt-1">{label}</div>
+    </div>
+  );
+}
+
+function MatchHistoryCard({ row, isGK }: { row: PlayerMatchHistoryRow; isGK: boolean }) {
+  const homeTeam = row.isHome ? 'Sinagra' : (row.opponentName ?? '?');
+  const awayTeam = row.isHome ? (row.opponentName ?? '?') : 'Sinagra';
+  const score = `${row.homeGoals}–${row.awayGoals}`;
+  const roleLabel = slotRole(row.slotId);
+
+  return (
+    <div className="bg-app-surface border border-white/10 rounded-lg px-4 py-3 space-y-2">
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] text-app-muted shrink-0">{formatDate(row.matchDate)}</span>
+          <span className="text-[12px] text-app-text font-semibold truncate">
+            {homeTeam} vs {awayTeam}
+          </span>
+        </div>
+        <span className="font-condensed text-[14px] font-bold text-app-text shrink-0">{score}</span>
+      </div>
+
+      {/* Status + formation row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS_COLOR[row.status]}`}>
+          {STATUS_LABEL[row.status]}
+        </span>
+        {row.status !== 'non_convocato' && (
+          <>
+            <span className="text-[11px] text-app-muted">{row.formation}</span>
+            {roleLabel && (
+              <span className="text-[11px] text-app-signal font-bold">{roleLabel}</span>
+            )}
+            {row.minutesPlayed > 0 && (
+              <span className="text-[11px] text-app-muted">{row.minutesPlayed}'</span>
+            )}
+            {row.goals > 0 && (
+              <span className="text-[11px] font-bold text-app-signal">
+                {row.goals} {row.goals === 1 ? 'gol' : 'gol'}
+              </span>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Scout stats */}
+      {row.status !== 'non_convocato' && row.status !== 'panchina' && (
+        row.scoutStats ? (
+          <ScoutStatsRow stats={row.scoutStats} isGK={isGK} />
+        ) : (
+          <p className="text-[10px] text-app-dim italic">non analizzato</p>
+        )
+      )}
+    </div>
+  );
+}
+
+function ScoutStatsRow({ stats, isGK }: { stats: NonNullable<PlayerMatchHistoryRow['scoutStats']>; isGK: boolean }) {
+  const cells = isGK
+    ? [
+        { k: 'PP', v: stats.pallePerse },
+        { k: 'PR', v: stats.palleRecup },
+        { k: 'CD', v: stats.chiusure },
+      ]
+    : [
+        { k: 'TF', v: stats.tiriF },
+        { k: 'TP', v: stats.tiriP },
+        { k: 'CF', v: stats.crossF },
+        { k: 'CD', v: stats.chiusure },
+        { k: 'PP', v: stats.pallePerse },
+        { k: 'PR', v: stats.palleRecup },
+        { k: 'A', v: stats.assist },
+        { k: 'G', v: stats.gol },
+      ];
+
+  return (
+    <div className="flex gap-3 flex-wrap">
+      {cells.map(({ k, v }) => (
+        <span key={k} className="text-[11px] text-app-muted">
+          <span className="text-app-dim">{k}:</span>
+          <span className="text-app-text font-semibold ml-0.5">{v}</span>
+        </span>
+      ))}
     </div>
   );
 }

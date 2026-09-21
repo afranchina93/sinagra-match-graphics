@@ -210,6 +210,23 @@ export interface MatchScoutNotes {
   cornersAway: number;
 }
 
+export type PlayerMatchStatus = 'titolare' | 'subentrato' | 'panchina' | 'non_convocato';
+
+export interface PlayerMatchHistoryRow {
+  matchId: string;
+  matchDate: string | null;
+  opponentName: string | null;
+  isHome: boolean;
+  formation: string;
+  homeGoals: number;
+  awayGoals: number;
+  status: PlayerMatchStatus;
+  minutesPlayed: number;
+  slotId: string | null;
+  goals: number;
+  scoutStats: PlayerMatchStat | null; // null = non analizzato
+}
+
 // ── Formazioni disponibili ───────────────────────────────────
 
 export const FORMATIONS = [
