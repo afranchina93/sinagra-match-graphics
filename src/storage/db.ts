@@ -63,7 +63,7 @@ export async function loadPlayerStats(playerId: string): Promise<PlayerStats> {
       .eq('player_out_id', playerId),
   ]);
 
-  const starterRows = (starterRes.data ?? []) as Array<{
+  const starterRows = (starterRes.data ?? [] as unknown[]) as Array<{
     match_id: string;
     slot_id: string;
     matches: { home_goals: number; away_goals: number; is_home: boolean } | null;
