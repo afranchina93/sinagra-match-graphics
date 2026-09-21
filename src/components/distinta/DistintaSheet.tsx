@@ -190,8 +190,10 @@ export function DistintaSheet({ match, view, players, competition, opponentName,
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 5 }}>
         <tbody>
           <tr>
-            <td style={{ width: 72, textAlign: 'center', border: BORDER_DARK, padding: 6, backgroundColor: '#fafafa' }}>
-              <SinagraLogo size={46} />
+            <td style={{ width: 72, textAlign: 'center', border: BORDER_DARK, padding: 6, backgroundColor: '#fafafa', verticalAlign: 'middle' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <SinagraLogo size={46} />
+              </div>
             </td>
             <td style={{ textAlign: 'center', border: BORDER_DARK, padding: '6px 10px', backgroundColor: '#fafafa' }}>
               <div style={{ fontSize: 13, fontWeight: 'bold', letterSpacing: 1.5, textTransform: 'uppercase' }}>
