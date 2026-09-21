@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote, StaffPerson, PlayerStats } from '../domain/types';
+import type { Player, Team, Competition, Match, MatchView, MatchGoal, MatchSubstitution, ScorerNote, StaffPerson, PlayerStats, PlayerMatchStat, MatchScoutNotes } from '../domain/types';
 import type { ClubConfig } from '../domain/distinta';
 import { DEFAULT_CLUB_CONFIG } from '../domain/distinta';
 
@@ -558,4 +558,73 @@ export async function upsertStaff(
 
 export async function deleteStaff(id: string): Promise<void> {
   await supabase.from('staff_members').delete().eq('id', id);
+}
+
+// ── Match Scout ───────────────────────────────────────────────────────────────
+
+const DEFAULT_SCOUT_NOTES: MatchScoutNotes = {
+  opponentFormation: '',
+  sinagraNotes: '',
+  opponentNotes: '',
+  cornersHome: 0,
+  cornersAway: 0,
+};
+
+export async function loadMatchScout(matchId: string): Promise<{
+  stats: Record<string, PlayerMatchStat>;
+  notes: MatchScoutNotes;
+}> {
+  const [statsRes, matchRes] = await Promise.all([
+    supabase.from('match_player_stats').select('*').eq('match_id', matchId),
+    supabase.from('matches').select('scout_notes').eq('id', matchId).single(),
+  ]);
+
+  const stats: Record<string, PlayerMatchStat> = {};
+  for (const r of (statsRes.data ?? []) as Record<string, unknown>[]) {
+    const pid = r.player_id as string;
+    stats[pid] = {
+      playerId: pid,
+      playerName: r.player_name as string,
+      playerNumber: r.player_number as number,
+      tiriF: (r.tiri_fuori as number) ?? 0,
+      tiriP: (r.tiri_in_porta as number) ?? 0,
+      crossF: (r.cross_fondo as number) ?? 0,
+      chiusure: (r.chiusure as number) ?? 0,
+      pallePerse: (r.palle_perse as number) ?? 0,
+      palleRecup: (r.palle_recuperate as number) ?? 0,
+      assist: (r.assist as number) ?? 0,
+      gol: (r.gol as number) ?? 0,
+    };
+  }
+
+  const rawNotes = (matchRes.data?.scout_notes ?? {}) as Partial<MatchScoutNotes>;
+  const notes: MatchScoutNotes = { ...DEFAULT_SCOUT_NOTES, ...rawNotes };
+
+  return { stats, notes };
+}
+
+export async function upsertPlayerMatchStat(matchId: string, stat: PlayerMatchStat): Promise<void> {
+  const { error } = await supabase.from('match_player_stats').upsert({
+    match_id: matchId,
+    player_id: stat.playerId,
+    player_name: stat.playerName,
+    player_number: stat.playerNumber,
+    tiri_fuori: stat.tiriF,
+    tiri_in_porta: stat.tiriP,
+    cross_fondo: stat.crossF,
+    chiusure: stat.chiusure,
+    palle_perse: stat.pallePerse,
+    palle_recuperate: stat.palleRecup,
+    assist: stat.assist,
+    gol: stat.gol,
+  }, { onConflict: 'match_id,player_id' });
+  if (error) console.error('upsertPlayerMatchStat:', error);
+}
+
+export async function saveScoutNotes(matchId: string, notes: MatchScoutNotes): Promise<void> {
+  const { error } = await supabase
+    .from('matches')
+    .update({ scout_notes: notes })
+    .eq('id', matchId);
+  if (error) console.error('saveScoutNotes:', error);
 }

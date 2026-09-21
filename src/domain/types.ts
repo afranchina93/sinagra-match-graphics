@@ -185,6 +185,30 @@ export interface Lineup {
   coach: string;
 }
 
+// ── Scout partita ────────────────────────────────────────────
+
+export interface PlayerMatchStat {
+  playerId: string;
+  playerName: string;
+  playerNumber: number;
+  tiriF: number;
+  tiriP: number;
+  crossF: number;
+  chiusure: number;
+  pallePerse: number;
+  palleRecup: number;
+  assist: number;
+  gol: number;
+}
+
+export interface MatchScoutNotes {
+  opponentFormation: string;
+  sinagraNotes: string;
+  opponentNotes: string;
+  cornersHome: number;
+  cornersAway: number;
+}
+
 // ── Formazioni disponibili ───────────────────────────────────
 
 export const FORMATIONS = [

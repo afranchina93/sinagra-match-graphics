@@ -16,10 +16,11 @@ import { DistintaForm } from './components/match/DistintaForm';
 import { DistintaSheet } from './components/distinta/DistintaSheet';
 import { PlayerPage } from './components/match/PlayerPage';
 import { StaffPage } from './components/match/StaffPage';
+import { ScoutForm } from './components/match/ScoutForm';
 import type {
   Player, Team, Competition, Match, MatchView,
   MatchConfig, Lineup, ResultConfig, ResultPhase, SubstitutionConfig,
-  MatchGoal, MatchSubstitution, StaffPerson,
+  MatchGoal, MatchSubstitution, StaffPerson, PlayerMatchStat, MatchScoutNotes,
 } from './domain/types';
 import type { ClubConfig } from './domain/distinta';
 import { DEFAULT_CLUB_CONFIG } from './domain/distinta';
@@ -27,6 +28,7 @@ import {
   getCurrentMatchId, setCurrentMatchId, clearCurrentMatchId,
 } from './storage/localStorage';
 import { formationLayouts } from './domain/formations';
+import { loadMatchScout } from './storage/db';
 import {
   loadPlayers, upsertPlayer, deletePlayer,
   loadTeams, upsertTeam, uploadTeamLogo,
@@ -39,9 +41,9 @@ import {
 import { exportAsPng, exportAsBase64, exportAsDistintaPdf, type FormationExportData } from './export/exportImage';
 import { supabase } from './storage/supabaseClient';
 
-type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta';
+type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta' | 'scout';
 type MainTab = 'matches' | 'roster' | 'match';
-type SubTab = 'match' | 'lineup' | 'distinta' | 'result' | 'substitution';
+type SubTab = 'match' | 'lineup' | 'distinta' | 'result' | 'substitution' | 'scout';
 
 export default function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -96,6 +98,10 @@ function AppInner() {
   const [staff, setStaff] = useState<StaffPerson[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<StaffPerson | null>(null);
+  const [scoutStats, setScoutStats] = useState<Record<string, PlayerMatchStat>>({});
+  const [scoutNotes, setScoutNotes] = useState<MatchScoutNotes>({
+    opponentFormation: '', sinagraNotes: '', opponentNotes: '', cornersHome: 0, cornersAway: 0,
+  });
   const isInitialLoad = useRef(true);
 
   // Mount: carica tutto
@@ -113,7 +119,7 @@ function AppInner() {
     });
   }, []);
 
-  // Quando currentMatchId cambia, carica la view
+  // Quando currentMatchId cambia, carica la view e i dati scout
   useEffect(() => {
     if (!currentMatchId) return;
     isInitialLoad.current = true;
@@ -123,6 +129,10 @@ function AppInner() {
         setTimeout(() => { isInitialLoad.current = false; }, 0);
       }
     });
+    loadMatchScout(currentMatchId).then(({ stats, notes }) => {
+      setScoutStats(stats);
+      setScoutNotes(notes);
+    }).catch(console.error);
   }, [currentMatchId]);
 
   // Scale preview dinamico — desktop
@@ -585,6 +595,7 @@ function AppInner() {
   const SUB_TABS: { id: SubTab; label: string; icon: ReactNode }[] = [
     { id: 'match',        label: 'Info',         icon: <Settings size={12} /> },
     { id: 'lineup',       label: 'Formazione',   icon: <List size={12} /> },
+    { id: 'scout',        label: 'Scout',        icon: <Eye size={12} /> },
     { id: 'distinta',     label: 'Distinta',     icon: <FileText size={12} /> },
     { id: 'result',       label: 'Risultato',    icon: <Trophy size={12} /> },
     { id: 'substitution', label: 'Sostituzioni', icon: <ArrowRightLeft size={12} /> },
@@ -732,6 +743,18 @@ function AppInner() {
                   onFormationChange={(f) => setMatch({ ...currentView.match, formation: f })}
                   match={currentView.match}
                   onMatchChange={setMatch}
+                />
+              )}
+
+              {!loading && tab === 'scout' && currentView && (
+                <ScoutForm
+                  matchId={currentView.match.id}
+                  view={currentView}
+                  players={activeRoster}
+                  stats={scoutStats}
+                  notes={scoutNotes}
+                  onStatsChange={setScoutStats}
+                  onNotesChange={setScoutNotes}
                 />
               )}
 
