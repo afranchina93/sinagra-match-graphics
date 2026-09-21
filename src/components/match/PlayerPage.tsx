@@ -6,6 +6,7 @@ import { loadPlayerStats, loadPlayerMatchHistory } from '../../storage/db';
 interface PlayerPageProps {
   player: Player;
   onBack: () => void;
+  onMatchSelect?: (matchId: string) => void;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -44,7 +45,7 @@ function formatDate(dateStr: string | null): string {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
 }
 
-export function PlayerPage({ player, onBack }: PlayerPageProps) {
+export function PlayerPage({ player, onBack, onMatchSelect }: PlayerPageProps) {
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [history, setHistory] = useState<PlayerMatchHistoryRow[] | null>(null);
 
@@ -137,7 +138,7 @@ export function PlayerPage({ player, onBack }: PlayerPageProps) {
         ) : (
           <div className="space-y-2">
             {history.map(row => (
-              <MatchHistoryCard key={row.matchId} row={row} isGK={player.role === 'goalkeeper'} />
+              <MatchHistoryCard key={row.matchId} row={row} isGK={player.role === 'goalkeeper'} onSelect={onMatchSelect} />
             ))}
           </div>
         )}
@@ -155,14 +156,17 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function MatchHistoryCard({ row, isGK }: { row: PlayerMatchHistoryRow; isGK: boolean }) {
+function MatchHistoryCard({ row, isGK, onSelect }: { row: PlayerMatchHistoryRow; isGK: boolean; onSelect?: (matchId: string) => void }) {
   const homeTeam = row.isHome ? 'Sinagra' : (row.opponentName ?? '?');
   const awayTeam = row.isHome ? (row.opponentName ?? '?') : 'Sinagra';
   const score = `${row.homeGoals}–${row.awayGoals}`;
   const roleLabel = slotRole(row.slotId);
 
   return (
-    <div className="bg-app-surface border border-white/10 rounded-lg px-4 py-3 space-y-2">
+    <div
+      className={`bg-app-surface border border-white/10 rounded-lg px-4 py-3 space-y-2 ${onSelect ? 'cursor-pointer hover:border-white/20 transition-colors' : ''}`}
+      onClick={onSelect ? () => onSelect(row.matchId) : undefined}
+    >
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -171,7 +175,10 @@ function MatchHistoryCard({ row, isGK }: { row: PlayerMatchHistoryRow; isGK: boo
             {homeTeam} vs {awayTeam}
           </span>
         </div>
-        <span className="font-condensed text-[14px] font-bold text-app-text shrink-0">{score}</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="font-condensed text-[14px] font-bold text-app-text">{score}</span>
+          {onSelect && <span className="text-app-muted text-[14px]">›</span>}
+        </div>
       </div>
 
       {/* Status + formation row */}

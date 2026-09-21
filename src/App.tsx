@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { CoachApp } from './components/coach/CoachApp';
 import { Download, Users, Settings, List, CalendarDays, Trophy, ArrowRightLeft, Eye, X, FileText } from 'lucide-react';
 import { AppIcon } from './components/ui/AppIcon';
 import { LoginScreen } from './components/auth/LoginScreen';
@@ -47,13 +48,16 @@ type SubTab = 'match' | 'lineup' | 'distinta' | 'result' | 'substitution' | 'sco
 
 export default function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setAuthed(!!session);
+      setUserRole(session?.user.user_metadata?.role ?? '');
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setAuthed(!!session);
+      setUserRole(session?.user.user_metadata?.role ?? '');
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -64,6 +68,7 @@ export default function App() {
     </div>
   );
   if (!authed) return <LoginScreen />;
+  if (userRole === 'allenatore') return <CoachApp />;
 
   return <AppInner />;
 }
@@ -629,9 +634,17 @@ function AppInner() {
             <div className="text-[8px] uppercase tracking-[0.13em] text-app-dim mt-0.5">official workspace</div>
           </div>
         </div>
-        <div className={`flex items-center gap-1.5 text-[10px] font-semibold transition-colors ${saved ? 'text-app-signal' : 'text-app-dim'}`}>
-          {saved && <span className="h-1.5 w-1.5 rounded-full bg-app-signal animate-pulse" />}
-          {saved ? 'Salvato' : ''}
+        <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-1.5 text-[10px] font-semibold transition-colors ${saved ? 'text-app-signal' : 'text-app-dim'}`}>
+            {saved && <span className="h-1.5 w-1.5 rounded-full bg-app-signal animate-pulse" />}
+            {saved ? 'Salvato' : ''}
+          </div>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="text-[10px] text-app-dim hover:text-red-400 transition-colors uppercase tracking-[0.1em]"
+          >
+            Logout
+          </button>
         </div>
       </header>
 
@@ -644,9 +657,17 @@ function AppInner() {
             <div className="text-[8px] uppercase tracking-[0.12em] text-app-dim">Graphics Generator</div>
           </div>
         </div>
-        <span className={`text-[11px] font-semibold transition-colors ${saved ? 'text-app-signal' : 'text-app-dim'}`}>
-          {saved ? '✓ Salvato' : 'Salvataggio automatico attivo'}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className={`text-[11px] font-semibold transition-colors ${saved ? 'text-app-signal' : 'text-app-dim'}`}>
+            {saved ? '✓ Salvato' : 'Salvataggio automatico attivo'}
+          </span>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="text-[11px] text-app-dim hover:text-red-400 transition-colors uppercase tracking-[0.1em]"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* ── DESKTOP MAIN TABS ── */}

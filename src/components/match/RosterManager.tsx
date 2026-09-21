@@ -12,6 +12,7 @@ interface RosterManagerProps {
   onDeleteStaff: (id: string) => Promise<void>;
   onSelectPlayer: (player: Player) => void;
   onSelectStaff: (person: StaffPerson) => void;
+  readOnly?: boolean;
 }
 
 const ROLES: { value: PlayerRole; label: string }[] = [
@@ -48,11 +49,12 @@ type SortKey = 'role' | 'presenze' | 'minuti' | 'gol';
 
 // ── Player Row ────────────────────────────────────────────────────────────────
 
-function PlayerRow({ player, stats, onDelete, onSelect }: {
+function PlayerRow({ player, stats, onDelete, onSelect, readOnly }: {
   player: Player;
   stats: PlayerStats | undefined;
   onDelete: (id: string) => Promise<void>;
   onSelect: (p: Player) => void;
+  readOnly?: boolean;
 }) {
   return (
     <div className="rounded-md hover:bg-app-surface/60 group transition-colors">
@@ -83,12 +85,14 @@ function PlayerRow({ player, stats, onDelete, onSelect }: {
           <div className="w-16 h-4 rounded bg-app-raised animate-pulse" />
         )}
 
-        <button
-          onClick={() => onDelete(player.id)}
-          className="text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-        >
-          <AppIcon name="trash" size={13} />
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => onDelete(player.id)}
+            className="text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+          >
+            <AppIcon name="trash" size={13} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -159,7 +163,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'gol',     label: 'Gol' },
 ];
 
-export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, onUpsertStaff, onDeleteStaff, onSelectPlayer, onSelectStaff }: RosterManagerProps) {
+export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, onUpsertStaff, onDeleteStaff, onSelectPlayer, onSelectStaff, readOnly }: RosterManagerProps) {
   const [section, setSection] = useState<'players' | 'staff'>('players');
   const [statsMap, setStatsMap] = useState<Record<string, PlayerStats>>({});
   const [statsLoading, setStatsLoading] = useState(true);
@@ -251,15 +255,17 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
             Staff ({staff.length})
           </button>
         </div>
-        <button
-          onClick={() => section === 'players' ? setAddingPlayer(a => !a) : setAddingStaff(a => !a)}
-          className="flex items-center gap-1 text-[12px] text-app-signal hover:text-[#f0ff66] font-semibold transition-colors"
-        >
-          {(section === 'players' ? addingPlayer : addingStaff)
-            ? <AppIcon name="close" size={14} />
-            : <AppIcon name="plus" size={14} />}
-          {(section === 'players' ? addingPlayer : addingStaff) ? 'Annulla' : 'Aggiungi'}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => section === 'players' ? setAddingPlayer(a => !a) : setAddingStaff(a => !a)}
+            className="flex items-center gap-1 text-[12px] text-app-signal hover:text-[#f0ff66] font-semibold transition-colors"
+          >
+            {(section === 'players' ? addingPlayer : addingStaff)
+              ? <AppIcon name="close" size={14} />
+              : <AppIcon name="plus" size={14} />}
+            {(section === 'players' ? addingPlayer : addingStaff) ? 'Annulla' : 'Aggiungi'}
+          </button>
+        )}
       </div>
 
       {/* ── Giocatori ── */}
@@ -328,6 +334,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
                 stats={statsMap[p.id]}
                 onDelete={onDeletePlayer}
                 onSelect={onSelectPlayer}
+                readOnly={readOnly}
               />
             ))}
             {players.length === 0 && (
