@@ -112,7 +112,7 @@ export function CoachMatchDetail({ matchId, players, onBack }: CoachMatchDetailP
             {benchPlayers.map(p => (
               <span key={p.id} className="inline-flex items-center gap-1 bg-app-surface border border-white/10 rounded-md px-2.5 py-1.5 text-[12px]">
                 <span className="text-app-signal font-bold">{match.numberOverrides?.[p.id] ?? p.number}</span>
-                <span className="text-app-text">{p.lastName}</span>
+                <span className="text-app-text">{p.lastName} {p.firstName}</span>
               </span>
             ))}
           </div>

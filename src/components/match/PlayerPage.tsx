@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AppIcon } from '../ui/AppIcon';
 import type { Player, PlayerStats, PlayerMatchHistoryRow } from '../../domain/types';
 import { loadPlayerStats, loadPlayerMatchHistory } from '../../storage/db';
+import { formationLayouts } from '../../domain/formations';
 
 interface PlayerPageProps {
   player: Player;
@@ -30,12 +31,17 @@ const STATUS_COLOR: Record<string, string> = {
   non_convocato: 'bg-white/5 text-app-dim',
 };
 
-function slotRole(slotId: string | null): string {
+function slotRole(slotId: string | null, formation: string): string {
   if (!slotId) return '';
-  if (slotId === 'gk') return 'P';
-  if (slotId.startsWith('def')) return 'D';
-  if (slotId.startsWith('mid')) return 'C';
-  if (slotId.startsWith('fwd')) return 'A';
+  const layout = formationLayouts[formation];
+  if (layout) {
+    const slot = layout.slots.find(s => s.id === slotId);
+    if (slot?.label) return slot.label;
+  }
+  if (slotId === 'gk') return 'GK';
+  if (slotId.startsWith('def')) return 'DEF';
+  if (slotId.startsWith('mid')) return 'MID';
+  if (slotId.startsWith('fwd')) return 'FWD';
   return slotId;
 }
 
@@ -160,7 +166,7 @@ function MatchHistoryCard({ row, isGK, onSelect }: { row: PlayerMatchHistoryRow;
   const homeTeam = row.isHome ? 'Sinagra' : (row.opponentName ?? '?');
   const awayTeam = row.isHome ? (row.opponentName ?? '?') : 'Sinagra';
   const score = `${row.homeGoals}–${row.awayGoals}`;
-  const roleLabel = slotRole(row.slotId);
+  const roleLabel = slotRole(row.slotId, row.formation);
 
   return (
     <div

@@ -78,7 +78,7 @@ export function PitchView({ formation, starters, players, numberOverrides }: Pit
               {(playerId && numberOverrides?.[playerId]) ?? player?.number ?? '?'}
             </div>
             <span className="text-[8px] text-white font-semibold mt-0.5 text-center leading-tight drop-shadow max-w-full truncate px-0.5">
-              {player ? player.lastName.slice(0, 8).toUpperCase() : slot.label ?? slot.id}
+              {player ? `${player.lastName.split(' ')[0].slice(0, 7).toUpperCase()} ${player.firstName ? player.firstName[0].toUpperCase() + '.' : ''}`.trim() : slot.label ?? slot.id}
             </span>
           </div>
         );
