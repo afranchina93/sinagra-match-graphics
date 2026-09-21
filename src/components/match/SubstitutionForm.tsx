@@ -55,7 +55,7 @@ function PlayerInput({
     const id = e.target.value;
     if (!id) { onChange(undefined, 0, ''); return; }
     const p = players?.find(pl => pl.id === id);
-    if (p) onChange(p.id, p.number, p.lastName.toUpperCase());
+    if (p) onChange(p.id, p.number, p.lastName.split(' ')[0].toUpperCase());
   }
 
   return (
