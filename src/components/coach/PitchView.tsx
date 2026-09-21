@@ -71,8 +71,8 @@ export function PitchView({ formation, starters, players, numberOverrides }: Pit
             <div
               className={`w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-black border-2 border-white/40 shadow ${
                 isGK
-                  ? 'bg-yellow-400 text-black'
-                  : 'bg-[#c6ff00] text-black'
+                  ? 'bg-[#C8102E] text-white'
+                  : 'bg-[#F5C800] text-black'
               }`}
             >
               {(playerId && numberOverrides?.[playerId]) ?? player?.number ?? '?'}
