@@ -180,10 +180,12 @@ function PlayerModal({
 
 function PlayerRow({
   stat,
+  player,
   onOpen,
   dimmed,
 }: {
   stat: PlayerMatchStat;
+  player?: Player;
   onOpen: () => void;
   dimmed?: boolean;
 }) {
@@ -195,15 +197,22 @@ function PlayerRow({
       onClick={onOpen}
     >
       {/* Nome — sticky */}
-      <td className="sticky left-0 z-10 bg-app-canvas px-2 py-0 w-[100px]">
+      <td className="sticky left-0 z-10 bg-app-canvas px-2 py-0 w-[110px] border-r border-white/5">
         <div className="flex items-center gap-1.5 h-[44px]">
           <span className={`w-2 h-2 rounded-full shrink-0 ${stat.tracked ? 'bg-app-signal' : 'bg-app-dim/30 border border-white/15'}`} />
           <span className={`text-[10px] font-bold tabular-nums shrink-0 ${dimmed ? 'text-app-dim' : 'text-app-muted'}`}>
             {stat.playerNumber}
           </span>
-          <span className={`text-[11px] font-semibold truncate ${dimmed ? 'text-app-muted/70' : 'text-app-text'}`}>
-            {stat.playerName.length > 7 ? stat.playerName.slice(0, 7) + '…' : stat.playerName}
-          </span>
+          <div className="flex flex-col min-w-0">
+            <span className={`text-[11px] font-semibold truncate leading-tight ${dimmed ? 'text-app-muted/70' : 'text-app-text'}`}>
+              {player ? player.lastName : stat.playerName}
+            </span>
+            {player?.firstName && (
+              <span className={`text-[9px] truncate leading-tight ${dimmed ? 'text-app-dim/60' : 'text-app-muted'}`}>
+                {player.firstName}
+              </span>
+            )}
+          </div>
         </div>
       </td>
 
@@ -211,7 +220,7 @@ function PlayerRow({
       {STAT_COLS.map(c => {
         const v = (stat[c.key] as number) ?? 0;
         return (
-          <td key={c.key} className="px-1 py-0 w-[80px] text-center">
+          <td key={c.key} className="px-1 py-0 w-[46px] text-center border-r border-white/5">
             <span className={`text-[13px] font-condensed font-bold ${v > 0 ? 'text-app-signal' : 'text-app-dim/25'}`}>
               {v > 0 ? v : '·'}
             </span>
@@ -250,7 +259,7 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
       if (p) {
         fullStats[id] = {
           playerId: id,
-          playerName: p.lastName.toUpperCase(),
+          playerName: `${p.lastName} ${p.firstName}`.toUpperCase(),
           playerNumber: p.number,
           tracked: false,
           tiriF: 0, tiriP: 0, crossF: 0, chiusure: 0,
@@ -391,11 +400,11 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
             <table className="border-collapse" style={{ tableLayout: 'fixed' }}>
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="sticky left-0 z-10 bg-app-canvas text-left px-2 py-2 w-[100px]">
+                  <th className="sticky left-0 z-10 bg-app-canvas text-left px-2 py-2 w-[110px] border-r border-white/5">
                     <span className="text-[9px] uppercase tracking-[0.14em] text-app-dim">Giocatore</span>
                   </th>
                   {STAT_COLS.map(c => (
-                    <th key={c.key} className="px-1 py-2 w-[80px]">
+                    <th key={c.key} className="px-1 py-2 w-[46px] border-r border-white/5">
                       <span className="text-[9px] uppercase tracking-[0.08em] text-app-muted font-bold block text-center leading-tight">{c.title}</span>
                     </th>
                   ))}
@@ -418,6 +427,7 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
                         <PlayerRow
                           key={id}
                           stat={s}
+                          player={playerMap[id]}
                           onOpen={() => setOpenPlayerId(id)}
                         />
                       );
@@ -440,6 +450,7 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
                         <PlayerRow
                           key={id}
                           stat={s}
+                          player={playerMap[id]}
                           onOpen={() => setOpenPlayerId(id)}
                           dimmed
                         />

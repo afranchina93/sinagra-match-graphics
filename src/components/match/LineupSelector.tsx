@@ -142,7 +142,7 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
                         value={p.id}
                         disabled={isInOtherSlot}
                       >
-                        {p.number} {p.lastName} {p.firstName.charAt(0)}.
+                        {p.number} {p.lastName} {p.firstName}
                         {isInOtherSlot ? ' ✓' : ''}
                       </option>
                     );
@@ -202,7 +202,7 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
                   />
                   <span className={`text-[12px] font-bold w-6 ${ROLE_COLORS[p.role]}`}>{p.number}</span>
                   <span className="text-[13px] text-app-text flex-1">
-                    {p.lastName} {p.firstName.charAt(0)}.
+                    {p.lastName} {p.firstName}
                   </span>
                   <span className={`text-[11px] ml-auto ${ROLE_COLORS[p.role]}`}>
                     {ROLE_LABELS[p.role]}

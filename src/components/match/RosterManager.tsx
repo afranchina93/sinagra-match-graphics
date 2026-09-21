@@ -65,7 +65,7 @@ function PlayerRow({ player, stats, onDelete, onSelect, readOnly }: {
         >
           <span className={`text-[12px] font-bold w-5 shrink-0 ${ROLE_COLORS[player.role]}`}>{player.number}</span>
           <span className="text-[13px] text-app-text flex-1 truncate">
-            {player.lastName} {player.firstName.charAt(0)}.
+            {player.lastName} {player.firstName}
           </span>
         </button>
 
