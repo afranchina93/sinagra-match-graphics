@@ -237,7 +237,6 @@ function PlayerRow({
 export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange, onNotesChange }: ScoutFormProps) {
   const [showNotes, setShowNotes] = useState(false);
   const [openPlayerId, setOpenPlayerId] = useState<string | null>(null);
-  const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const playerMap = Object.fromEntries(players.map(p => [p.id, p]));
   const starterIds = Object.values(view.starters).filter(Boolean);
@@ -261,26 +260,12 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
     }
   }
 
-  function debouncedSave(updated: Record<string, PlayerMatchStat>, playerId: string) {
-    const existing = saveTimersRef.current.get(playerId);
-    if (existing) clearTimeout(existing);
-    const timer = setTimeout(() => {
-      const s = updated[playerId];
-      if (s) upsertPlayerMatchStat(matchId, s);
-      saveTimersRef.current.delete(playerId);
-    }, 600);
-    saveTimersRef.current.set(playerId, timer);
-  }
-
   const toggleTracked = useCallback((playerId: string) => {
     const current = fullStats[playerId];
     if (!current) return;
-    const updated = {
-      ...fullStats,
-      [playerId]: { ...current, tracked: !current.tracked },
-    };
-    onStatsChange(updated);
-    upsertPlayerMatchStat(matchId, updated[playerId]);
+    const next = { ...current, tracked: !current.tracked };
+    onStatsChange({ ...fullStats, [playerId]: next });
+    upsertPlayerMatchStat(matchId, next).catch(console.error);
   }, [fullStats, matchId]);
 
   const updateStat = useCallback((
@@ -291,12 +276,10 @@ export function ScoutForm({ matchId, view, players, stats, notes, onStatsChange,
     const current = fullStats[playerId];
     if (!current || !current.tracked) return;
     const val = Math.max(0, ((current[key] as number) ?? 0) + delta);
-    const updated = {
-      ...fullStats,
-      [playerId]: { ...current, [key]: val },
-    };
-    onStatsChange(updated);
-    debouncedSave(updated, playerId);
+    const next = { ...current, [key]: val };
+    onStatsChange({ ...fullStats, [playerId]: next });
+    // Salva immediatamente — nessun debounce per evitare perdita dati su refresh
+    upsertPlayerMatchStat(matchId, next).catch(console.error);
   }, [fullStats, matchId]);
 
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
