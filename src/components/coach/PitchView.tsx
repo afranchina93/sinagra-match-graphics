@@ -5,9 +5,10 @@ interface PitchViewProps {
   formation: string;
   starters: Record<string, string>; // slotId → playerId
   players: Player[];
+  numberOverrides?: Record<string, number>;
 }
 
-export function PitchView({ formation, starters, players }: PitchViewProps) {
+export function PitchView({ formation, starters, players, numberOverrides }: PitchViewProps) {
   const layout = formationLayouts[formation];
   if (!layout) return null;
 
@@ -74,7 +75,7 @@ export function PitchView({ formation, starters, players }: PitchViewProps) {
                   : 'bg-[#c6ff00] text-black'
               }`}
             >
-              {player?.number ?? '?'}
+              {(playerId && numberOverrides?.[playerId]) ?? player?.number ?? '?'}
             </div>
             <span className="text-[8px] text-white font-semibold mt-0.5 text-center leading-tight drop-shadow max-w-full truncate px-0.5">
               {player ? player.lastName.slice(0, 8).toUpperCase() : slot.label ?? slot.id}

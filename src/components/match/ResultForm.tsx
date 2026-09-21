@@ -44,7 +44,7 @@ const NOTE_LABELS: { value: ScorerNote; label: string }[] = [
 ];
 
 function GoalsList({
-  title, side, matchId, goals, onGoalsChange, players,
+  title, side, matchId, goals, onGoalsChange, players, numberOverrides,
 }: {
   title: string;
   side: 'home' | 'away';
@@ -52,6 +52,7 @@ function GoalsList({
   goals: MatchGoal[];
   onGoalsChange: (goals: MatchGoal[]) => void;
   players?: Player[];
+  numberOverrides?: Record<string, number>;
 }) {
   const [minute, setMinute] = useState('');
   const [name, setName] = useState('');
@@ -147,7 +148,7 @@ function GoalsList({
             <option value="">Scegli giocatore…</option>
             {sortedPlayers.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.number}. {p.lastName} {p.firstName}
+                {numberOverrides?.[p.id] ?? p.number}. {p.lastName} {p.firstName}
               </option>
             ))}
           </select>
@@ -236,6 +237,7 @@ export function ResultForm({ match, goals, phase, onPhaseChange, onChange, onGoa
         goals={goals}
         onGoalsChange={onGoalsChange}
         players={players}
+        numberOverrides={match.numberOverrides}
       />
 
       <GoalsList

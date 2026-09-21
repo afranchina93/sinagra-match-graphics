@@ -22,6 +22,7 @@ interface FormationPitchProps {
   starters: Record<string, string>; // slotId → playerId
   roster: Player[];
   duplicateLastNames: Set<string>;
+  numberOverrides?: Record<string, number>;
 }
 
 // ── Fallback SVG campo ──────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ function PitchFallbackSVG({ formationName }: { formationName: string }) {
 
 // ── FormationPitch ──────────────────────────────────────────────────────────
 
-export function FormationPitch({ layout, starters, roster, duplicateLastNames }: FormationPitchProps) {
+export function FormationPitch({ layout, starters, roster, duplicateLastNames, numberOverrides }: FormationPitchProps) {
   const [pitchAssetFailed, setPitchAssetFailed] = useState(false);
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
 
@@ -179,6 +180,7 @@ export function FormationPitch({ layout, starters, roster, duplicateLastNames }:
             y={abs.y}
             role={slot.role}
             showInitial={player ? duplicateLastNames.has(player.lastName) : false}
+            numberOverride={playerId ? numberOverrides?.[playerId] : undefined}
           />
         );
       })}

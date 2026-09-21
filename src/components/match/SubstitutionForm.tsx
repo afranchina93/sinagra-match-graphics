@@ -28,6 +28,7 @@ interface SubstitutionFormProps {
   onAdd: (entry: SubDraft) => void;
   onDelete: (index: number) => void;
   players?: Player[];
+  numberOverrides?: Record<string, number>;
 }
 
 const labelCls = 'block text-[9px] uppercase tracking-[0.14em] text-app-muted mb-1.5';
@@ -41,6 +42,7 @@ function PlayerInput({
   name,
   onChange,
   players,
+  numberOverrides,
 }: {
   label: string;
   playerId?: string;
@@ -48,6 +50,7 @@ function PlayerInput({
   name: string;
   onChange: (id: string | undefined, number: number, name: string) => void;
   players?: Player[];
+  numberOverrides?: Record<string, number>;
 }) {
   const sorted = players ? [...players].sort((a, b) => a.number - b.number) : [];
 
@@ -55,7 +58,7 @@ function PlayerInput({
     const id = e.target.value;
     if (!id) { onChange(undefined, 0, ''); return; }
     const p = players?.find(pl => pl.id === id);
-    if (p) onChange(p.id, p.number, p.lastName.split(' ')[0].toUpperCase());
+    if (p) onChange(p.id, numberOverrides?.[p.id] ?? p.number, p.lastName.split(' ')[0].toUpperCase());
   }
 
   return (
@@ -93,7 +96,7 @@ function PlayerInput({
   );
 }
 
-export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: SubstitutionFormProps) {
+export function SubstitutionForm({ substitutions, onAdd, onDelete, players, numberOverrides }: SubstitutionFormProps) {
   const [draft, setDraft] = useState<SubDraft>(EMPTY);
 
   const canAdd = !!draft.minute && !!draft.playerOutName && !!draft.playerInName;
@@ -156,6 +159,7 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
             name={draft.playerOutName}
             onChange={(id, number, name) => setDraft(d => ({ ...d, playerOutId: id, playerOutNumber: number, playerOutName: name }))}
             players={players}
+            numberOverrides={numberOverrides}
           />
           <div className="mt-2 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
@@ -171,6 +175,7 @@ export function SubstitutionForm({ substitutions, onAdd, onDelete, players }: Su
             name={draft.playerInName}
             onChange={(id, number, name) => setDraft(d => ({ ...d, playerInId: id, playerInNumber: number, playerInName: name }))}
             players={players}
+            numberOverrides={numberOverrides}
           />
           <div className="mt-2 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />

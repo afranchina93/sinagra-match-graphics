@@ -3,6 +3,7 @@ import type { Player, PlayerRole } from '../../domain/types';
 interface PlayerTokenProps {
   player: Player | null;
   role?: PlayerRole;
+  numberOverride?: number;
 }
 
 function JerseySvg({ role, number }: { role: PlayerRole; number: number }) {
@@ -52,7 +53,7 @@ function JerseySvg({ role, number }: { role: PlayerRole; number: number }) {
   );
 }
 
-export function PlayerToken({ player, role = 'midfielder' }: PlayerTokenProps) {
+export function PlayerToken({ player, role = 'midfielder', numberOverride }: PlayerTokenProps) {
   const effectiveRole = player?.role ?? role;
 
   if (!player) {
@@ -88,7 +89,7 @@ export function PlayerToken({ player, role = 'midfielder' }: PlayerTokenProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-      <JerseySvg role={effectiveRole} number={player.number} />
+      <JerseySvg role={effectiveRole} number={numberOverride ?? player.number} />
       <div
         style={{
           background: '#1A1A1A',

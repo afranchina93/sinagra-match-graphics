@@ -98,7 +98,7 @@ export function CoachMatchDetail({ matchId, players, onBack }: CoachMatchDetailP
           Campo
         </h3>
         <div className="max-w-[260px] mx-auto rounded-lg overflow-hidden">
-          <PitchView formation={match.formation} starters={starters} players={players} />
+          <PitchView formation={match.formation} starters={starters} players={players} numberOverrides={match.numberOverrides} />
         </div>
       </div>
 
@@ -111,7 +111,7 @@ export function CoachMatchDetail({ matchId, players, onBack }: CoachMatchDetailP
           <div className="flex flex-wrap gap-1.5">
             {benchPlayers.map(p => (
               <span key={p.id} className="inline-flex items-center gap-1 bg-app-surface border border-white/10 rounded-md px-2.5 py-1.5 text-[12px]">
-                <span className="text-app-signal font-bold">{p.number}</span>
+                <span className="text-app-signal font-bold">{match.numberOverrides?.[p.id] ?? p.number}</span>
                 <span className="text-app-text">{p.lastName}</span>
               </span>
             ))}

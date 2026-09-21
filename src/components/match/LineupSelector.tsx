@@ -142,7 +142,7 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
                         value={p.id}
                         disabled={isInOtherSlot}
                       >
-                        {p.number} {p.lastName} {p.firstName}
+                        {match.numberOverrides?.[p.id] ?? p.number} {p.lastName} {p.firstName}
                         {isInOtherSlot ? ' ✓' : ''}
                       </option>
                     );
@@ -200,7 +200,7 @@ export function LineupSelector({ roster, formation, lineup, onChange, onFormatio
                     onChange={() => toggleBench(p.id)}
                     className="accent-app-signal"
                   />
-                  <span className={`text-[12px] font-bold w-6 ${ROLE_COLORS[p.role]}`}>{p.number}</span>
+                  <span className={`text-[12px] font-bold w-6 ${ROLE_COLORS[p.role]}`}>{match.numberOverrides?.[p.id] ?? p.number}</span>
                   <span className="text-[13px] text-app-text flex-1">
                     {p.lastName} {p.firstName}
                   </span>

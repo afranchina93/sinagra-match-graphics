@@ -5,6 +5,7 @@ interface FootballFieldProps {
   layout: FormationLayout;
   starters: Record<string, string>;
   roster: Player[];
+  numberOverrides?: Record<string, number>;
 }
 
 // ── Trapezoid field geometry ──────────────────────────────────────────────
@@ -69,7 +70,7 @@ export function slotPct(rx: number, ry: number): { leftPct: number; topPct: numb
   };
 }
 
-export function FootballField({ layout, starters, roster }: FootballFieldProps) {
+export function FootballField({ layout, starters, roster, numberOverrides }: FootballFieldProps) {
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
 
   const poly = `${TL_X},${TOP_Y} ${TR_X},${TOP_Y} ${BR_X},${BOT_Y} ${BL_X},${BOT_Y}`;
@@ -234,7 +235,7 @@ export function FootballField({ layout, starters, roster }: FootballFieldProps) 
               pointerEvents: 'none',
             }}
           >
-            <PlayerToken player={player} role={slot.role} />
+            <PlayerToken player={player} role={slot.role} numberOverride={playerId ? numberOverrides?.[playerId] : undefined} />
           </div>
         );
       })}

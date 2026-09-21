@@ -26,6 +26,8 @@ export interface PlayerMarkerProps {
   role: PlayerRole;
   /** Se true, mostra anche l'iniziale del nome (es. "R. FRANCHINA") */
   showInitial?: boolean;
+  /** Numero override per questa partita */
+  numberOverride?: number;
 }
 
 // Dimensioni di visualizzazione maglia (px nel canvas 1080×1350)
@@ -40,7 +42,7 @@ const numberColor: Record<PlayerRole, string> = {
   forward:    '#FFFFFF',
 };
 
-export function PlayerMarker({ player, x, y, role, showInitial = false }: PlayerMarkerProps) {
+export function PlayerMarker({ player, x, y, role, showInitial = false, numberOverride }: PlayerMarkerProps) {
   const shirtSrc = role === 'goalkeeper'
     ? POSTER_ASSETS.goalkeeperShirt
     : POSTER_ASSETS.playerShirt;
@@ -98,7 +100,7 @@ export function PlayerMarker({ player, x, y, role, showInitial = false }: Player
                   '1px 1px 2px rgba(0,0,0,0.85), -1px -1px 2px rgba(0,0,0,0.85)',
               }}
             >
-              {player.number}
+              {numberOverride ?? player.number}
             </span>
           </div>
         </div>

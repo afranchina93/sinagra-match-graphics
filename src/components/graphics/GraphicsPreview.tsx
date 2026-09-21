@@ -8,6 +8,7 @@ interface GraphicsPreviewProps {
   roster: Player[];
   matchConfig: MatchConfig;
   lineup: Lineup;
+  numberOverrides?: Record<string, number>;
 }
 
 function formatDate(dateStr: string): string {
@@ -133,7 +134,7 @@ function TitleBrushstroke() {
 }
 
 export const GraphicsPreview = forwardRef<HTMLDivElement, GraphicsPreviewProps>(
-  ({ roster, matchConfig, lineup }, ref) => {
+  ({ roster, matchConfig, lineup, numberOverrides }, ref) => {
     const layout = formationLayouts[matchConfig.formation] ?? formationLayouts['4-3-3'];
     const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
 
@@ -393,7 +394,7 @@ export const GraphicsPreview = forwardRef<HTMLDivElement, GraphicsPreviewProps>(
               FIELD
           ═══════════════════════════════════════ */}
           <div style={{ flex: 1, padding: '8px 0 4px', minHeight: 0 }}>
-            <FootballField layout={layout} starters={lineup.starters} roster={roster} />
+            <FootballField layout={layout} starters={lineup.starters} roster={roster} numberOverrides={numberOverrides} />
           </div>
 
           {/* ═══════════════════════════════════════
@@ -448,7 +449,7 @@ export const GraphicsPreview = forwardRef<HTMLDivElement, GraphicsPreviewProps>(
                         letterSpacing: '0.04em',
                       }}
                     >
-                      {p.number}
+                      {numberOverrides?.[p.id] ?? p.number}
                     </span>
                     <span
                       style={{

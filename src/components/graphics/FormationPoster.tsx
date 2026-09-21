@@ -26,6 +26,7 @@ interface FormationPosterProps {
   roster: Player[];
   matchConfig: MatchConfig;
   lineup: Lineup;
+  numberOverrides?: Record<string, number>;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -317,7 +318,7 @@ function CoachIcon() {
   );
 }
 
-function BenchPanel({ bench, roster, coach, duplicateLastNames }: { bench: string[]; roster: Player[]; coach: string; duplicateLastNames: Set<string> }) {
+function BenchPanel({ bench, roster, coach, duplicateLastNames, numberOverrides }: { bench: string[]; roster: Player[]; coach: string; duplicateLastNames: Set<string>; numberOverrides?: Record<string, number> }) {
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
   const benchPlayers = bench.map((id) => playerMap[id]).filter(Boolean) as Player[];
 
@@ -391,7 +392,7 @@ function BenchPanel({ bench, roster, coach, duplicateLastNames }: { bench: strin
               {col1.map((p) => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={{ color: '#F5C500', fontSize: 19, fontWeight: 900, minWidth: 26, fontFamily: 'Impact, Arial Black, sans-serif', flexShrink: 0 }}>
-                    {p.number}
+                    {numberOverrides?.[p.id] ?? p.number}
                   </span>
                   <span style={{ color: '#FFFFFF', fontSize: 19, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
                     {duplicateLastNames.has(p.lastName) && p.firstName
@@ -408,7 +409,7 @@ function BenchPanel({ bench, roster, coach, duplicateLastNames }: { bench: strin
               {col2.map((p) => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={{ color: '#F5C500', fontSize: 19, fontWeight: 900, minWidth: 26, fontFamily: 'Impact, Arial Black, sans-serif', flexShrink: 0 }}>
-                    {p.number}
+                    {numberOverrides?.[p.id] ?? p.number}
                   </span>
                   <span style={{ color: '#FFFFFF', fontSize: 19, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
                     {duplicateLastNames.has(p.lastName) && p.firstName
@@ -425,7 +426,7 @@ function BenchPanel({ bench, roster, coach, duplicateLastNames }: { bench: strin
               {col3.map((p) => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={{ color: '#F5C500', fontSize: 19, fontWeight: 900, minWidth: 26, fontFamily: 'Impact, Arial Black, sans-serif', flexShrink: 0 }}>
-                    {p.number}
+                    {numberOverrides?.[p.id] ?? p.number}
                   </span>
                   <span style={{ color: '#FFFFFF', fontSize: 19, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
                     {duplicateLastNames.has(p.lastName) && p.firstName
@@ -488,7 +489,7 @@ function BenchPanel({ bench, roster, coach, duplicateLastNames }: { bench: strin
 // ── FormationPoster ─────────────────────────────────────────────────────────
 
 export const FormationPoster = forwardRef<HTMLDivElement, FormationPosterProps>(
-  ({ roster, matchConfig, lineup }, ref) => {
+  ({ roster, matchConfig, lineup, numberOverrides }, ref) => {
     const [bgLoaded, setBgLoaded] = useState(false);
     const layout = formationLayouts[matchConfig.formation] ?? formationLayouts['4-3-3'];
 
@@ -547,10 +548,11 @@ export const FormationPoster = forwardRef<HTMLDivElement, FormationPosterProps>(
           starters={lineup.starters}
           roster={roster}
           duplicateLastNames={duplicateLastNames}
+          numberOverrides={numberOverrides}
         />
 
         {/* Layer 4: BenchPanel */}
-        <BenchPanel bench={lineup.bench} roster={roster} coach={lineup.coach} duplicateLastNames={duplicateLastNames} />
+        <BenchPanel bench={lineup.bench} roster={roster} coach={lineup.coach} duplicateLastNames={duplicateLastNames} numberOverrides={numberOverrides} />
       </div>
     );
   }
