@@ -167,6 +167,15 @@ function ShieldPlaceholder({ initial }: { initial: string }) {
 
 // ── Layer 1 — Header NUOVO ──────────────────────────────────────────────────
 
+function teamFontSize(a: string, b: string): number {
+  const n = Math.max(a.length, b.length);
+  if (n <= 9) return 52;
+  if (n <= 12) return 44;
+  if (n <= 16) return 36;
+  if (n <= 20) return 30;
+  return 24;
+}
+
 function MatchHeader({ config, homeTeam, awayTeam, dateStr, timeStr }: {
   config: MatchConfig;
   homeTeam: string;
@@ -176,6 +185,7 @@ function MatchHeader({ config, homeTeam, awayTeam, dateStr, timeStr }: {
 }) {
   const r = REGIONS.header;
   const opponentInitial = (config.opponent || '?')[0].toUpperCase();
+  const nameFontSize = teamFontSize(homeTeam, awayTeam);
 
   return (
     <div style={{
@@ -213,26 +223,32 @@ function MatchHeader({ config, homeTeam, awayTeam, dateStr, timeStr }: {
           <div style={{ height: 1, background: 'rgba(26,26,26,0.22)', margin: '2px 0' }} />
 
           {/* Teams row: SINAGRA [logo] VS [opponent logo] AVVERSARIO */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
             <span style={{
-              color: '#1A1A1A', fontSize: 52, fontWeight: 900,
+              flex: 1, textAlign: 'right',
+              color: '#1A1A1A', fontSize: nameFontSize, fontWeight: 900,
               fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '0.02em',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{homeTeam}</span>
-            <SinagraLogo size={64} />
-            <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
-            {config.opponentLogo ? (
-              <img
-                src={config.opponentLogo?.startsWith('http') ? config.opponentLogo : `${LOGOS_BASE}/${config.opponentLogo}`}
-                alt={config.opponent}
-                crossOrigin="anonymous"
-                style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }}
-              />
-            ) : (
-              <ShieldPlaceholder initial={opponentInitial} />
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+              <SinagraLogo size={64} />
+              <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
+              {config.opponentLogo ? (
+                <img
+                  src={config.opponentLogo?.startsWith('http') ? config.opponentLogo : `${LOGOS_BASE}/${config.opponentLogo}`}
+                  alt={config.opponent}
+                  crossOrigin="anonymous"
+                  style={{ width: 64, height: 64, objectFit: 'contain' }}
+                />
+              ) : (
+                <ShieldPlaceholder initial={opponentInitial} />
+              )}
+            </div>
             <span style={{
-              color: '#1A1A1A', fontSize: 52, fontWeight: 900,
+              flex: 1, textAlign: 'left',
+              color: '#1A1A1A', fontSize: nameFontSize, fontWeight: 900,
               fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '0.02em',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{awayTeam}</span>
           </div>
 
@@ -395,9 +411,11 @@ function BenchPanel({ bench, roster, coach, duplicateLastNames, numberOverrides 
                     {numberOverrides?.[p.id] ?? p.number}
                   </span>
                   <span style={{ color: '#FFFFFF', fontSize: 19, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
-                    {duplicateLastNames.has(p.lastName) && p.firstName
-                      ? `${p.firstName[0].toUpperCase()}. ${p.lastName}`
-                      : p.lastName}
+                    {p.posterName
+                      ? p.posterName
+                      : duplicateLastNames.has(p.lastName) && p.firstName
+                        ? `${p.firstName[0].toUpperCase()}. ${p.lastName}`
+                        : p.lastName}
                   </span>
                 </div>
               ))}
@@ -412,9 +430,11 @@ function BenchPanel({ bench, roster, coach, duplicateLastNames, numberOverrides 
                     {numberOverrides?.[p.id] ?? p.number}
                   </span>
                   <span style={{ color: '#FFFFFF', fontSize: 19, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
-                    {duplicateLastNames.has(p.lastName) && p.firstName
-                      ? `${p.firstName[0].toUpperCase()}. ${p.lastName}`
-                      : p.lastName}
+                    {p.posterName
+                      ? p.posterName
+                      : duplicateLastNames.has(p.lastName) && p.firstName
+                        ? `${p.firstName[0].toUpperCase()}. ${p.lastName}`
+                        : p.lastName}
                   </span>
                 </div>
               ))}
@@ -429,9 +449,11 @@ function BenchPanel({ bench, roster, coach, duplicateLastNames, numberOverrides 
                     {numberOverrides?.[p.id] ?? p.number}
                   </span>
                   <span style={{ color: '#FFFFFF', fontSize: 19, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
-                    {duplicateLastNames.has(p.lastName) && p.firstName
-                      ? `${p.firstName[0].toUpperCase()}. ${p.lastName}`
-                      : p.lastName}
+                    {p.posterName
+                      ? p.posterName
+                      : duplicateLastNames.has(p.lastName) && p.firstName
+                        ? `${p.firstName[0].toUpperCase()}. ${p.lastName}`
+                        : p.lastName}
                   </span>
                 </div>
               ))}

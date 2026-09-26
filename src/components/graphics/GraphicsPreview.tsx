@@ -460,7 +460,7 @@ export const GraphicsPreview = forwardRef<HTMLDivElement, GraphicsPreviewProps>(
                         letterSpacing: '0.05em',
                       }}
                     >
-                      {p.lastName.split(' ')[0]}
+                      {p.posterName || p.lastName.split(' ')[0]}
                     </span>
                   </div>
                 ))}

@@ -96,12 +96,22 @@ function ShieldPlaceholder({ initial }: { initial: string }) {
   );
 }
 
+function teamFontSize(a: string, b: string): number {
+  const n = Math.max(a.length, b.length);
+  if (n <= 9) return 52;
+  if (n <= 12) return 44;
+  if (n <= 16) return 36;
+  if (n <= 20) return 30;
+  return 24;
+}
+
 // ── Layer 1 — Header (identico a MatchHeader di FormationPoster) ─────────────
 
 function ResultHeader({ config }: { config: ResultConfig }) {
   const r = REGIONS.header; // { x:0, y:0, width:1080, height:245 }
   const dateStr = formatDate(config.date);
   const timeStr = formatTime(config.date);
+  const nameFontSize = teamFontSize(config.homeTeam, config.awayTeam);
 
   return (
     <div style={{
@@ -138,23 +148,29 @@ function ResultHeader({ config }: { config: ResultConfig }) {
         <div style={{ height: 1, background: 'rgba(26,26,26,0.22)', margin: '2px 0', alignSelf: 'stretch' }} />
 
         {/* Teams row: HOME [logo] VS [logo] AWAY */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
           <span style={{
-            color: '#1A1A1A', fontSize: 52, fontWeight: 900,
+            flex: 1, textAlign: 'right',
+            color: '#1A1A1A', fontSize: nameFontSize, fontWeight: 900,
             fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '0.02em',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{config.homeTeam.toUpperCase()}</span>
-          {config.homeLogo
-            ? <img src={logoSrc(config.homeLogo)} alt={config.homeTeam} crossOrigin="anonymous" style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }} />
-            : <SinagraLogo size={64} />
-          }
-          <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
-          {config.awayLogo
-            ? <img src={logoSrc(config.awayLogo)} alt={config.awayTeam} crossOrigin="anonymous" style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }} />
-            : <ShieldPlaceholder initial={(config.awayTeam || '?')[0].toUpperCase()} />
-          }
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {config.homeLogo
+              ? <img src={logoSrc(config.homeLogo)} alt={config.homeTeam} crossOrigin="anonymous" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+              : <SinagraLogo size={64} />
+            }
+            <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
+            {config.awayLogo
+              ? <img src={logoSrc(config.awayLogo)} alt={config.awayTeam} crossOrigin="anonymous" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+              : <ShieldPlaceholder initial={(config.awayTeam || '?')[0].toUpperCase()} />
+            }
+          </div>
           <span style={{
-            color: '#1A1A1A', fontSize: 52, fontWeight: 900,
+            flex: 1, textAlign: 'left',
+            color: '#1A1A1A', fontSize: nameFontSize, fontWeight: 900,
             fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '0.02em',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{config.awayTeam.toUpperCase()}</span>
         </div>
 

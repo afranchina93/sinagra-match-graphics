@@ -139,9 +139,11 @@ export function PlayerMarker({ player, x, y, role, showInitial = false, numberOv
           }}
         >
           {player
-            ? (showInitial && player.firstName
-                ? `${player.firstName[0].toUpperCase()}. ${player.lastName.split(' ')[0]}`
-                : player.lastName.split(' ')[0])
+            ? (player.posterName
+                ? player.posterName
+                : showInitial && player.firstName
+                  ? `${player.firstName[0].toUpperCase()}. ${player.lastName.split(' ')[0]}`
+                  : player.lastName.split(' ')[0])
             : '—'}
         </span>
       </div>

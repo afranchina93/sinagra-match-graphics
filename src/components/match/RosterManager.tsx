@@ -59,6 +59,7 @@ interface PlayerForm {
   dateOfBirth: string;
   matricola: string;
   docIdentity: string;
+  posterName: string;
 }
 
 interface StaffForm {
@@ -74,7 +75,7 @@ interface StaffForm {
 
 const EMPTY_PLAYER: PlayerForm = {
   number: '', firstName: '', lastName: '', role: 'midfielder',
-  dateOfBirth: '', matricola: '', docIdentity: '',
+  dateOfBirth: '', matricola: '', docIdentity: '', posterName: '',
 };
 
 const EMPTY_STAFF: StaffForm = {
@@ -92,6 +93,7 @@ function playerToForm(p: Player): PlayerForm {
     dateOfBirth: p.dateOfBirth ?? '',
     matricola: p.matricola ?? '',
     docIdentity: p.docIdentity ?? '',
+    posterName: p.posterName ?? '',
   };
 }
 
@@ -165,6 +167,11 @@ function PlayerFormPanel({
         <label className={labelCls}>Doc. identità</label>
         <input className={inputCls + ' w-full'} type="text" placeholder="n° documento"
           value={form.docIdentity} onChange={e => set('docIdentity', e.target.value)} />
+      </div>
+      <div>
+        <label className={labelCls}>Nome poster (lascia vuoto per automatico)</label>
+        <input className={inputCls + ' w-full'} type="text" placeholder={`es. DI PANE`}
+          value={form.posterName} onChange={e => set('posterName', e.target.value.toUpperCase())} />
       </div>
       <div className="flex gap-2 pt-1">
         <button onClick={onSave} disabled={saving}
@@ -421,6 +428,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
         dateOfBirth: playerForm.dateOfBirth || undefined,
         matricola: playerForm.matricola || undefined,
         docIdentity: playerForm.docIdentity || undefined,
+        posterName: playerForm.posterName || undefined,
       });
       setPlayerForm(null);
     } finally {

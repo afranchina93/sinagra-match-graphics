@@ -27,6 +27,7 @@ export async function upsertPlayer(
     date_of_birth: player.dateOfBirth ?? null,
     matricola: player.matricola ?? null,
     doc_identity: player.docIdentity ?? null,
+    poster_name: player.posterName ?? null,
   };
   if (player.id) row.id = player.id;
   const { data, error } = await supabase
@@ -421,6 +422,7 @@ function dbToPlayer(r: Record<string, unknown>): Player {
     dateOfBirth: (r.date_of_birth as string) ?? undefined,
     matricola: (r.matricola as string) ?? undefined,
     docIdentity: (r.doc_identity as string) ?? undefined,
+    posterName: (r.poster_name as string) ?? undefined,
   };
 }
 

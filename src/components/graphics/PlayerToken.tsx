@@ -84,8 +84,8 @@ export function PlayerToken({ player, role = 'midfielder', numberOverride }: Pla
   }
 
   // Truncate long surnames: max ~9 chars displayed
-  const surname = player.lastName.split(' ')[0].toUpperCase();
-  const display = surname.length > 9 ? surname.slice(0, 9) + '.' : surname;
+  const raw = player.posterName || player.lastName.split(' ')[0].toUpperCase();
+  const display = raw.length > 9 ? raw.slice(0, 9) + '.' : raw;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>

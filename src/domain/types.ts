@@ -18,6 +18,7 @@ export interface Player {
   dateOfBirth?: string;   // "DD/MM/YY"
   matricola?: string;     // es. "2392563"
   docIdentity?: string;
+  posterName?: string;    // nome visualizzato nei poster (es. "DI PANE")
 }
 
 export type StaffRole = 'allenatore' | 'direttore_gara' | 'dirigente' | 'medico_sociale' | 'collaboratore' | 'forza_pubblica';
