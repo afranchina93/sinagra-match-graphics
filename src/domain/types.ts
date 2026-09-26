@@ -21,7 +21,7 @@ export interface Player {
   posterName?: string;    // nome visualizzato nei poster (es. "DI PANE")
 }
 
-export type StaffRole = 'allenatore' | 'direttore_gara' | 'dirigente' | 'medico_sociale' | 'collaboratore' | 'forza_pubblica';
+export type StaffRole = 'allenatore' | 'direttore_gara' | 'dirigente' | 'medico_sociale' | 'collaboratore' | 'forza_pubblica' | 'preparatore_portieri';
 
 export interface StaffPerson {
   id: string;

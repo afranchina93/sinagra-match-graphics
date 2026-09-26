@@ -34,8 +34,9 @@ const STAFF_ROLES: { value: string; label: string }[] = [
   { value: 'direttore_gara', label: 'Dir. addetto gara' },
   { value: 'dirigente',      label: 'Dirigente' },
   { value: 'medico_sociale', label: 'Medico Sociale' },
-  { value: 'collaboratore',  label: 'Collaboratore' },
-  { value: 'forza_pubblica', label: 'Forza Pubblica' },
+  { value: 'collaboratore',        label: 'Collaboratore' },
+  { value: 'preparatore_portieri', label: 'Preparatore dei portieri' },
+  { value: 'forza_pubblica',       label: 'Forza Pubblica' },
 ];
 
 const staffRoleLabel = (role: string) =>
