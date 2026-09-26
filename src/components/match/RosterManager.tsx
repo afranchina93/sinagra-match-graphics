@@ -29,7 +29,6 @@ const ROLE_COLORS: Record<PlayerRole, string> = {
   forward: 'text-red-400',
 };
 
-
 const STAFF_ROLES: { value: string; label: string }[] = [
   { value: 'allenatore',     label: 'Allenatore' },
   { value: 'direttore_gara', label: 'Dir. addetto gara' },
@@ -45,15 +44,220 @@ const staffRoleLabel = (role: string) =>
 const inputCls =
   'bg-app-surface border border-white/10 text-app-text text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors';
 
+const labelCls = 'block text-[9px] uppercase tracking-[0.12em] text-app-muted mb-1';
+
 type SortKey = 'role' | 'presenze' | 'minuti' | 'gol';
+
+// ── Form types ────────────────────────────────────────────────────────────────
+
+interface PlayerForm {
+  id?: string;
+  number: string;
+  firstName: string;
+  lastName: string;
+  role: PlayerRole;
+  dateOfBirth: string;
+  matricola: string;
+  docIdentity: string;
+}
+
+interface StaffForm {
+  id?: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  dateOfBirth: string;
+  matricola: string;
+  docIdentity: string;
+  tesseraFIGC: string;
+}
+
+const EMPTY_PLAYER: PlayerForm = {
+  number: '', firstName: '', lastName: '', role: 'midfielder',
+  dateOfBirth: '', matricola: '', docIdentity: '',
+};
+
+const EMPTY_STAFF: StaffForm = {
+  firstName: '', lastName: '', role: 'allenatore',
+  dateOfBirth: '', matricola: '', docIdentity: '', tesseraFIGC: '',
+};
+
+function playerToForm(p: Player): PlayerForm {
+  return {
+    id: p.id,
+    number: String(p.number),
+    firstName: p.firstName,
+    lastName: p.lastName,
+    role: p.role,
+    dateOfBirth: p.dateOfBirth ?? '',
+    matricola: p.matricola ?? '',
+    docIdentity: p.docIdentity ?? '',
+  };
+}
+
+function staffToForm(s: StaffPerson): StaffForm {
+  return {
+    id: s.id,
+    firstName: s.firstName,
+    lastName: s.lastName,
+    role: s.role,
+    dateOfBirth: s.dateOfBirth ?? '',
+    matricola: s.matricola ?? '',
+    docIdentity: s.docIdentity ?? '',
+    tesseraFIGC: s.tesseraFIGC ?? '',
+  };
+}
+
+// ── Inline form panels ────────────────────────────────────────────────────────
+
+function PlayerFormPanel({
+  form, setForm, onSave, onCancel, saving, isEdit,
+}: {
+  form: PlayerForm;
+  setForm: (f: PlayerForm) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  isEdit: boolean;
+}) {
+  const set = (k: keyof PlayerForm, v: string) => setForm({ ...form, [k]: v });
+  return (
+    <div className="bg-app-surface border border-white/10 rounded-lg p-3 space-y-2">
+      <div className="grid grid-cols-4 gap-2">
+        <div>
+          <label className={labelCls}>#</label>
+          <input className={inputCls + ' w-full'} type="number" placeholder="#"
+            value={form.number} onChange={e => set('number', e.target.value)} />
+        </div>
+        <div className="col-span-3">
+          <label className={labelCls}>Cognome</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="Cognome"
+            value={form.lastName} onChange={e => set('lastName', e.target.value)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelCls}>Nome</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="Nome"
+            value={form.firstName} onChange={e => set('firstName', e.target.value)} />
+        </div>
+        <div>
+          <label className={labelCls}>Ruolo</label>
+          <select className={inputCls + ' w-full'} value={form.role}
+            onChange={e => set('role', e.target.value)}>
+            {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelCls}>Data di nascita</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="GG/MM/AA"
+            value={form.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} />
+        </div>
+        <div>
+          <label className={labelCls}>Matricola</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="es. 2392563"
+            value={form.matricola} onChange={e => set('matricola', e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <label className={labelCls}>Doc. identità</label>
+        <input className={inputCls + ' w-full'} type="text" placeholder="n° documento"
+          value={form.docIdentity} onChange={e => set('docIdentity', e.target.value)} />
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button onClick={onSave} disabled={saving}
+          className="flex-1 bg-app-signal text-[#111111] rounded-md py-2 text-[12px] font-bold uppercase tracking-[0.04em] hover:bg-[#ffd740] transition-colors disabled:opacity-50">
+          {saving ? 'Salvataggio...' : isEdit ? 'Salva modifiche' : 'Aggiungi giocatore'}
+        </button>
+        <button onClick={onCancel}
+          className="px-3 py-2 rounded-md text-[12px] text-app-muted hover:text-app-text border border-white/10 transition-colors">
+          Annulla
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StaffFormPanel({
+  form, setForm, onSave, onCancel, saving, isEdit,
+}: {
+  form: StaffForm;
+  setForm: (f: StaffForm) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  isEdit: boolean;
+}) {
+  const set = (k: keyof StaffForm, v: string) => setForm({ ...form, [k]: v });
+  return (
+    <div className="bg-app-surface border border-white/10 rounded-lg p-3 space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelCls}>Cognome</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="Cognome"
+            value={form.lastName} onChange={e => set('lastName', e.target.value)} />
+        </div>
+        <div>
+          <label className={labelCls}>Nome</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="Nome"
+            value={form.firstName} onChange={e => set('firstName', e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <label className={labelCls}>Ruolo</label>
+        <select className={inputCls + ' w-full'} value={form.role}
+          onChange={e => set('role', e.target.value)}>
+          {STAFF_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelCls}>Data di nascita</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="GG/MM/AA"
+            value={form.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} />
+        </div>
+        <div>
+          <label className={labelCls}>Matricola</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="es. 2392563"
+            value={form.matricola} onChange={e => set('matricola', e.target.value)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelCls}>Doc. identità</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="n° documento"
+            value={form.docIdentity} onChange={e => set('docIdentity', e.target.value)} />
+        </div>
+        <div>
+          <label className={labelCls}>Tessera FIGC n°</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="n° tessera"
+            value={form.tesseraFIGC} onChange={e => set('tesseraFIGC', e.target.value)} />
+        </div>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button onClick={onSave} disabled={saving}
+          className="flex-1 bg-app-accent text-white rounded-md py-2 text-[12px] font-bold uppercase tracking-[0.04em] hover:opacity-90 transition-colors disabled:opacity-50">
+          {saving ? 'Salvataggio...' : isEdit ? 'Salva modifiche' : 'Aggiungi membro staff'}
+        </button>
+        <button onClick={onCancel}
+          className="px-3 py-2 rounded-md text-[12px] text-app-muted hover:text-app-text border border-white/10 transition-colors">
+          Annulla
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ── Player Row ────────────────────────────────────────────────────────────────
 
-function PlayerRow({ player, stats, onDelete, onSelect, readOnly }: {
+function PlayerRow({ player, stats, onDelete, onSelect, onEdit, readOnly }: {
   player: Player;
   stats: PlayerStats | undefined;
   onDelete: (id: string) => Promise<void>;
   onSelect: (p: Player) => void;
+  onEdit: (p: Player) => void;
   readOnly?: boolean;
 }) {
   return (
@@ -69,7 +273,6 @@ function PlayerRow({ player, stats, onDelete, onSelect, readOnly }: {
           </span>
         </button>
 
-        {/* Stats chips */}
         {stats && (
           <div className="flex items-center gap-1.5 shrink-0">
             <StatChip value={stats.appearances} label="P" />
@@ -86,12 +289,14 @@ function PlayerRow({ player, stats, onDelete, onSelect, readOnly }: {
         )}
 
         {!readOnly && (
-          <button
-            onClick={() => onDelete(player.id)}
-            className="text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-          >
-            <AppIcon name="trash" size={13} />
-          </button>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+            <button onClick={() => onEdit(player)} className="text-app-dim hover:text-app-signal transition-colors">
+              <AppIcon name="pencil" size={13} />
+            </button>
+            <button onClick={() => onDelete(player.id)} className="text-app-dim hover:text-red-400 transition-colors">
+              <AppIcon name="trash" size={13} />
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -111,10 +316,11 @@ function StatChip({ value, label, accent, dim }: { value: number; label: string;
 
 // ── Staff Row ─────────────────────────────────────────────────────────────────
 
-function StaffRow({ person, onDelete, onSelect }: {
+function StaffRow({ person, onDelete, onSelect, onEdit }: {
   person: StaffPerson;
   onDelete: (id: string) => Promise<void>;
   onSelect: (p: StaffPerson) => void;
+  onEdit: (p: StaffPerson) => void;
 }) {
   return (
     <div className="rounded-md hover:bg-app-surface/60 group transition-colors">
@@ -128,33 +334,20 @@ function StaffRow({ person, onDelete, onSelect }: {
             {person.lastName} {person.firstName}
           </span>
         </button>
-        <button onClick={() => onDelete(person.id)}
-          className="text-app-dim hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-          <AppIcon name="trash" size={13} />
-        </button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onEdit(person)} className="text-app-dim hover:text-app-signal transition-colors">
+            <AppIcon name="pencil" size={13} />
+          </button>
+          <button onClick={() => onDelete(person.id)} className="text-app-dim hover:text-red-400 transition-colors">
+            <AppIcon name="trash" size={13} />
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-
-interface NewPlayer {
-  number: string;
-  firstName: string;
-  lastName: string;
-  role: PlayerRole;
-}
-
-const EMPTY_PLAYER: NewPlayer = { number: '', firstName: '', lastName: '', role: 'midfielder' };
-
-interface NewStaff {
-  firstName: string;
-  lastName: string;
-  role: string;
-}
-
-const EMPTY_STAFF: NewStaff = { firstName: '', lastName: '', role: 'allenatore' };
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'role',    label: 'Ruolo' },
@@ -170,12 +363,12 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
   const [sortKey, setSortKey] = useState<SortKey>('role');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const [addingPlayer, setAddingPlayer] = useState(false);
-  const [playerForm, setPlayerForm] = useState<NewPlayer>(EMPTY_PLAYER);
+  // Player form state (null = closed, form without id = adding, form with id = editing)
+  const [playerForm, setPlayerForm] = useState<PlayerForm | null>(null);
   const [savingPlayer, setSavingPlayer] = useState(false);
 
-  const [addingStaff, setAddingStaff] = useState(false);
-  const [staffForm, setStaffForm] = useState<NewStaff>(EMPTY_STAFF);
+  // Staff form state
+  const [staffForm, setStaffForm] = useState<StaffForm | null>(null);
   const [savingStaff, setSavingStaff] = useState(false);
 
   useEffect(() => {
@@ -201,7 +394,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
       if (sortKey === 'role') {
         const order = ['goalkeeper', 'defender', 'midfielder', 'forward'];
         diff = order.indexOf(a.role) - order.indexOf(b.role) || a.number - b.number;
-        return diff; // role sort always asc
+        return diff;
       }
       const sa = statsMap[a.id];
       const sb = statsMap[b.id];
@@ -212,30 +405,55 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
     });
   }
 
-  async function addPlayer() {
+  async function savePlayer() {
+    if (!playerForm) return;
     const num = parseInt(playerForm.number);
     if (!playerForm.lastName || isNaN(num)) return;
     setSavingPlayer(true);
     try {
-      await onUpsertPlayer({ number: num, firstName: playerForm.firstName, lastName: playerForm.lastName, role: playerForm.role, active: true });
-      setPlayerForm(EMPTY_PLAYER);
-      setAddingPlayer(false);
+      await onUpsertPlayer({
+        id: playerForm.id,
+        number: num,
+        firstName: playerForm.firstName,
+        lastName: playerForm.lastName,
+        role: playerForm.role,
+        active: true,
+        dateOfBirth: playerForm.dateOfBirth || undefined,
+        matricola: playerForm.matricola || undefined,
+        docIdentity: playerForm.docIdentity || undefined,
+      });
+      setPlayerForm(null);
     } finally {
       setSavingPlayer(false);
     }
   }
 
-  async function addStaffMember() {
+  async function saveStaff() {
+    if (!staffForm) return;
     if (!staffForm.lastName) return;
     setSavingStaff(true);
     try {
-      await onUpsertStaff({ firstName: staffForm.firstName, lastName: staffForm.lastName, role: staffForm.role, active: true });
-      setStaffForm(EMPTY_STAFF);
-      setAddingStaff(false);
+      await onUpsertStaff({
+        id: staffForm.id,
+        firstName: staffForm.firstName,
+        lastName: staffForm.lastName,
+        role: staffForm.role,
+        active: true,
+        dateOfBirth: staffForm.dateOfBirth || undefined,
+        matricola: staffForm.matricola || undefined,
+        docIdentity: staffForm.docIdentity || undefined,
+        tesseraFIGC: staffForm.tesseraFIGC || undefined,
+      });
+      setStaffForm(null);
     } finally {
       setSavingStaff(false);
     }
   }
+
+  const addingPlayer = playerForm !== null && !playerForm.id;
+  const editingPlayerId = playerForm?.id;
+  const addingStaff = staffForm !== null && !staffForm.id;
+  const editingStaffId = staffForm?.id;
 
   return (
     <div className="space-y-4">
@@ -257,7 +475,13 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
         </div>
         {!readOnly && (
           <button
-            onClick={() => section === 'players' ? setAddingPlayer(a => !a) : setAddingStaff(a => !a)}
+            onClick={() => {
+              if (section === 'players') {
+                setPlayerForm(addingPlayer ? null : { ...EMPTY_PLAYER });
+              } else {
+                setStaffForm(addingStaff ? null : { ...EMPTY_STAFF });
+              }
+            }}
             className="flex items-center gap-1 text-[12px] text-app-signal hover:text-[#ffd740] font-semibold transition-colors"
           >
             {(section === 'players' ? addingPlayer : addingStaff)
@@ -271,27 +495,15 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
       {/* ── Giocatori ── */}
       {section === 'players' && (
         <>
-          {addingPlayer && (
-            <div className="bg-app-surface border border-white/10 rounded-lg p-3 space-y-2">
-              <div className="grid grid-cols-4 gap-2">
-                <input className={inputCls} type="number" placeholder="#"
-                  value={playerForm.number} onChange={e => setPlayerForm({ ...playerForm, number: e.target.value })} />
-                <input className={`${inputCls} col-span-3`} type="text" placeholder="Cognome"
-                  value={playerForm.lastName} onChange={e => setPlayerForm({ ...playerForm, lastName: e.target.value })} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <input className={inputCls} type="text" placeholder="Nome"
-                  value={playerForm.firstName} onChange={e => setPlayerForm({ ...playerForm, firstName: e.target.value })} />
-                <select className={inputCls} value={playerForm.role}
-                  onChange={e => setPlayerForm({ ...playerForm, role: e.target.value as PlayerRole })}>
-                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-              </div>
-              <button onClick={addPlayer} disabled={savingPlayer}
-                className="w-full bg-app-signal text-[#111111] rounded-md py-2 text-[12px] font-bold uppercase tracking-[0.04em] hover:bg-[#ffd740] transition-colors disabled:opacity-50">
-                {savingPlayer ? 'Salvataggio...' : 'Aggiungi giocatore'}
-              </button>
-            </div>
+          {addingPlayer && playerForm && (
+            <PlayerFormPanel
+              form={playerForm}
+              setForm={setPlayerForm}
+              onSave={savePlayer}
+              onCancel={() => setPlayerForm(null)}
+              saving={savingPlayer}
+              isEdit={false}
+            />
           )}
 
           {/* Sort controls */}
@@ -309,11 +521,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
               >
                 {opt.label}
                 {sortKey === opt.key && opt.key !== 'role' && (
-                  <AppIcon
-                    name="chevron-down"
-                    size={10}
-                    className={sortDir === 'asc' ? 'rotate-180' : ''}
-                  />
+                  <AppIcon name="chevron-down" size={10} className={sortDir === 'asc' ? 'rotate-180' : ''} />
                 )}
               </button>
             ))}
@@ -328,14 +536,28 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
           {/* Player list */}
           <div className="space-y-0.5">
             {sortedPlayers().map(p => (
-              <PlayerRow
-                key={p.id}
-                player={p}
-                stats={statsMap[p.id]}
-                onDelete={onDeletePlayer}
-                onSelect={onSelectPlayer}
-                readOnly={readOnly}
-              />
+              <div key={p.id}>
+                <PlayerRow
+                  player={p}
+                  stats={statsMap[p.id]}
+                  onDelete={onDeletePlayer}
+                  onSelect={onSelectPlayer}
+                  onEdit={player => setPlayerForm(editingPlayerId === player.id ? null : playerToForm(player))}
+                  readOnly={readOnly}
+                />
+                {editingPlayerId === p.id && playerForm && (
+                  <div className="mt-1 mb-2">
+                    <PlayerFormPanel
+                      form={playerForm}
+                      setForm={setPlayerForm}
+                      onSave={savePlayer}
+                      onCancel={() => setPlayerForm(null)}
+                      saving={savingPlayer}
+                      isEdit={true}
+                    />
+                  </div>
+                )}
+              </div>
             ))}
             {players.length === 0 && (
               <p className="text-[12px] text-app-dim px-2 py-4 text-center">Nessun giocatore</p>
@@ -347,28 +569,39 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
       {/* ── Staff ── */}
       {section === 'staff' && (
         <>
-          {addingStaff && (
-            <div className="bg-app-surface border border-white/10 rounded-lg p-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <input className={inputCls} type="text" placeholder="Cognome"
-                  value={staffForm.lastName} onChange={e => setStaffForm({ ...staffForm, lastName: e.target.value })} />
-                <input className={inputCls} type="text" placeholder="Nome"
-                  value={staffForm.firstName} onChange={e => setStaffForm({ ...staffForm, firstName: e.target.value })} />
-              </div>
-              <select className={inputCls + ' w-full'} value={staffForm.role}
-                onChange={e => setStaffForm({ ...staffForm, role: e.target.value })}>
-                {STAFF_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
-              <button onClick={addStaffMember} disabled={savingStaff}
-                className="w-full bg-app-accent text-white rounded-md py-2 text-[12px] font-bold uppercase tracking-[0.04em] hover:opacity-90 transition-colors disabled:opacity-50">
-                {savingStaff ? 'Salvataggio...' : 'Aggiungi membro staff'}
-              </button>
-            </div>
+          {addingStaff && staffForm && (
+            <StaffFormPanel
+              form={staffForm}
+              setForm={setStaffForm}
+              onSave={saveStaff}
+              onCancel={() => setStaffForm(null)}
+              saving={savingStaff}
+              isEdit={false}
+            />
           )}
 
           <div className="space-y-0.5">
             {staff.map(s => (
-              <StaffRow key={s.id} person={s} onDelete={onDeleteStaff} onSelect={onSelectStaff} />
+              <div key={s.id}>
+                <StaffRow
+                  person={s}
+                  onDelete={onDeleteStaff}
+                  onSelect={onSelectStaff}
+                  onEdit={person => setStaffForm(editingStaffId === person.id ? null : staffToForm(person))}
+                />
+                {editingStaffId === s.id && staffForm && (
+                  <div className="mt-1 mb-2">
+                    <StaffFormPanel
+                      form={staffForm}
+                      setForm={setStaffForm}
+                      onSave={saveStaff}
+                      onCancel={() => setStaffForm(null)}
+                      saving={savingStaff}
+                      isEdit={true}
+                    />
+                  </div>
+                )}
+              </div>
             ))}
             {staff.length === 0 && (
               <p className="text-[12px] text-app-dim px-2 py-6 text-center">
