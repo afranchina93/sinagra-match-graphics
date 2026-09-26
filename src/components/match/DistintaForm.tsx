@@ -233,10 +233,10 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
             <StaffField label="Dirigente addetto gara"
               staff={staff}
               name={clubConfig.direttoreGara.name ?? ''}
-              extra={clubConfig.direttoreGara.docIdentity} extraLabel="Doc. identità"
+              extra={clubConfig.direttoreGara.tesseraFIGC} extraLabel="Tessera Imp. FIGC n°"
               onName={v => setCC(c => ({ ...c, direttoreGara: { ...c.direttoreGara, name: v } }))}
-              onExtra={v => setCC(c => ({ ...c, direttoreGara: { ...c.direttoreGara, docIdentity: v } }))}
-              onSelectStaff={p => setCC(c => ({ ...c, direttoreGara: { name: `${p.lastName} ${p.firstName}`.trim(), docIdentity: p.docIdentity ?? c.direttoreGara.docIdentity } }))}
+              onExtra={v => setCC(c => ({ ...c, direttoreGara: { ...c.direttoreGara, tesseraFIGC: v } }))}
+              onSelectStaff={p => setCC(c => ({ ...c, direttoreGara: { name: `${p.lastName} ${p.firstName}`.trim(), tesseraFIGC: p.tesseraFIGC ?? c.direttoreGara.tesseraFIGC, docIdentity: p.docIdentity ?? c.direttoreGara.docIdentity } }))}
             />
 
             <StaffField label="Allenatore"

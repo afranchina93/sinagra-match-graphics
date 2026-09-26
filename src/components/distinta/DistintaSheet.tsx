@@ -310,17 +310,14 @@ export function DistintaSheet({ match, view, players, competition, opponentName,
             );
           })()}
           {(() => {
-            // Se ha doc identity la mostriamo, altrimenti il box tessera impersonale da compilare a mano
-            const showDoc = !!cc.direttoreGara.docIdentity;
+            const { label, value } = staffInfo('Tessera Imp. FIGC n°', cc.direttoreGara.tesseraFIGC, cc.direttoreGara.docIdentity);
             return (
               <tr>
                 <td style={labelCell()}>Dirigente Addetto Gara</td>
                 <td style={cell({ fontWeight: 'bold', textTransform: 'uppercase' })}>{cc.direttoreGara.name ?? ''}</td>
-                <td style={labelCell()}>{showDoc ? 'Doc. Identità' : 'Tessera Imp. FIGC n°'}</td>
+                <td style={labelCell()}>{label || 'Tessera Imp. FIGC n°'}</td>
                 <td style={cell()}>
-                  {showDoc
-                    ? cc.direttoreGara.docIdentity
-                    : <span style={{ display: 'inline-block', border: '1px solid #aaa', width: 90, height: 13 }} />}
+                  {value || <span style={{ display: 'inline-block', border: '1px solid #aaa', width: 90, height: 13 }} />}
                 </td>
               </tr>
             );
