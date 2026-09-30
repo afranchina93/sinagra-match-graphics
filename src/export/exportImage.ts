@@ -41,17 +41,6 @@ async function renderFormationViaServer(data: FormationExportData): Promise<stri
 }
 
 function triggerDownload(dataUrl: string, filename: string): void {
-  if (isIOS()) {
-    // iOS Safari non supporta il download tramite <a download>.
-    // Apriamo l'immagine in una nuova scheda: l'utente la salva con
-    // "Tieni premuto → Aggiungi alla Libreria foto" o condivisione.
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(`<html><body style="margin:0;background:#000"><img src="${dataUrl}" style="width:100%;display:block"></body></html>`);
-      win.document.title = filename;
-    }
-    return;
-  }
   const link = document.createElement('a');
   link.download = filename;
   link.href = dataUrl;
