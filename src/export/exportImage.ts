@@ -41,20 +41,6 @@ async function renderFormationViaServer(data: FormationExportData): Promise<stri
 }
 
 function triggerDownload(dataUrl: string, filename: string): void {
-  if (isIOS()) {
-    // iOS Safari non supporta <a download>: apriamo in nuova scheda
-    // per permettere salvataggio manuale (tieni premuto → salva immagine)
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(
-        `<html><head><title>${filename}</title></head>` +
-        `<body style="margin:0;background:#000">` +
-        `<img src="${dataUrl}" style="width:100%;display:block">` +
-        `</body></html>`
-      );
-    }
-    return;
-  }
   const link = document.createElement('a');
   link.download = filename;
   link.href = dataUrl;
@@ -64,8 +50,13 @@ function triggerDownload(dataUrl: string, filename: string): void {
 export async function exportAsPng(
   element: HTMLElement,
   filename = 'formazione.jpg',
-  _serverData?: FormationExportData, // non più usato: usiamo sempre html-to-image
+  serverData?: FormationExportData,
 ): Promise<void> {
+  if (isIOS() && serverData) {
+    const dataUrl = await renderFormationViaServer(serverData);
+    triggerDownload(dataUrl, filename);
+    return;
+  }
   const jpeg = await toJpeg(element, JPEG_OPTIONS);
   triggerDownload(jpeg, filename);
 }
@@ -108,9 +99,9 @@ export async function exportAsBase64(
   element: HTMLElement | null,
   serverData?: FormationExportData,
 ): Promise<string> {
-  // Se l'elemento è disponibile usa sempre html-to-image (output identico al PC)
-  if (element) return toJpeg(element, JPEG_OPTIONS);
-  // Fallback server solo quando il ref è null (es. Facebook su mobile con modal chiuso)
-  if (serverData) return renderFormationViaServer(serverData);
-  throw new Error('Elemento poster non disponibile');
+  if (isIOS() && serverData) {
+    return renderFormationViaServer(serverData);
+  }
+  if (!element) throw new Error('Elemento poster non disponibile');
+  return toJpeg(element, JPEG_OPTIONS);
 }
