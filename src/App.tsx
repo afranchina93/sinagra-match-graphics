@@ -383,7 +383,7 @@ function AppInner() {
   // ── Export ────────────────────────────────────────────────────────────────
 
   function formationServerData(): FormationExportData {
-    return { roster: activeRoster, matchConfig: posterMatchConfig, lineup: posterLineup };
+    return { roster: activeRoster, matchConfig: posterMatchConfig, lineup: posterLineup, numberOverrides: currentView?.match.numberOverrides };
   }
 
   async function handleExport() {

@@ -29,6 +29,7 @@ interface Player {
   lastName: string;
   role: PlayerRole;
   active: boolean;
+  posterName?: string;
 }
 
 interface MatchConfig {
@@ -46,6 +47,7 @@ interface Lineup {
   starters: Record<string, string>;
   bench: string[];
   coach: string;
+  numberOverrides?: Record<string, number>;
 }
 
 interface FormationSlot {
@@ -228,6 +230,7 @@ const formationLayouts: Record<string, FormationLayout> = {
   '3-5-1-1': { name: '3-5-1-1', slots: [gk(0.5,0.88),def('def1',0.2,0.72,'CB'),def('def2',0.5,0.72,'CB'),def('def3',0.8,0.72,'CB'),mid('mid1',0.1,0.54,'LWB'),mid('mid2',0.3,0.54,'LCM'),mid('mid3',0.5,0.54,'CM'),mid('mid4',0.7,0.54,'RCM'),mid('mid5',0.9,0.54,'RWB'),mid('mid6',0.5,0.35,'AM'),fwd('fwd1',0.5,0.18,'CF')] },
   '5-3-2': { name: '5-3-2', slots: [gk(0.5,0.88),def('def1',0.08,0.72,'LWB'),def('def2',0.27,0.72,'LCB'),def('def3',0.5,0.72,'CB'),def('def4',0.73,0.72,'RCB'),def('def5',0.92,0.72,'RWB'),mid('mid1',0.2,0.50,'LM'),mid('mid2',0.5,0.50,'CM'),mid('mid3',0.8,0.50,'RM'),fwd('fwd1',0.33,0.22,'LS'),fwd('fwd2',0.67,0.22,'RS')] },
   '5-4-1': { name: '5-4-1', slots: [gk(0.5,0.88),def('def1',0.08,0.72,'LWB'),def('def2',0.27,0.72,'LCB'),def('def3',0.5,0.72,'CB'),def('def4',0.73,0.72,'RCB'),def('def5',0.92,0.72,'RWB'),mid('mid1',0.1,0.50,'LM'),mid('mid2',0.37,0.50,'LCM'),mid('mid3',0.63,0.50,'RCM'),mid('mid4',0.9,0.50,'RM'),fwd('fwd1',0.5,0.22,'CF')] },
+  '4-1-4-1': { name: '4-1-4-1', slots: [gk(0.5,0.92),def('def1',0.10,0.75,'LB'),def('def2',0.35,0.75,'CB'),def('def3',0.65,0.75,'CB'),def('def4',0.90,0.75,'RB'),mid('mid1',0.50,0.60,'DM'),mid('mid2',0.10,0.42,'LM'),mid('mid3',0.37,0.42,'LCM'),mid('mid4',0.63,0.42,'RCM'),mid('mid5',0.90,0.42,'RM'),fwd('fwd1',0.50,0.18,'ST')] },
 };
 
 // ── Colors ────────────────────────────────────────────────────────────────────
@@ -454,6 +457,7 @@ function drawPlayerMarker(
   role: PlayerRole,
   shirtImg: Image,
   showInitial: boolean,
+  numberOverride?: number,
 ) {
   const TOTAL_H  = SHIRT_H + 2 + 22;
   const shirtLeft = Math.round(x - SHIRT_W / 2);
@@ -471,12 +475,14 @@ function drawPlayerMarker(
     ctx.shadowBlur = 3;
     ctx.shadowOffsetX = 1;
     ctx.shadowOffsetY = 1;
-    ctx.fillText(String(player.number), shirtLeft + SHIRT_W / 2, shirtTop + SHIRT_H / 2 + 6);
+    ctx.fillText(String(numberOverride ?? player.number), shirtLeft + SHIRT_W / 2, shirtTop + SHIRT_H / 2 + 6);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
-    const name = showInitial && player.firstName
-      ? `${player.firstName[0].toUpperCase()}. ${player.lastName}`
-      : player.lastName;
+    const name = player.posterName
+      ? player.posterName
+      : showInitial && player.firstName
+        ? `${player.firstName[0].toUpperCase()}. ${player.lastName}`
+        : player.lastName;
     const nameStr = name.toUpperCase();
     const labelTop = shirtTop + SHIRT_H + 2;
 
@@ -534,6 +540,7 @@ function drawBenchPanel(
   coach: string,
   footerPanelImg: Image,
   duplicateLastNames: Set<string>,
+  numberOverrides?: Record<string, number>,
 ) {
   const playerMap = Object.fromEntries(roster.map(p => [p.id, p]));
   const benchPlayers = bench.map(id => playerMap[id]).filter(Boolean) as Player[];
@@ -592,9 +599,11 @@ function drawBenchPanel(
       const rowY = PLAYERS_Y + i * ROW_H;
       ctx.font = '900 19px Impact, "DejaVu Sans", Arial, sans-serif';
       ctx.fillStyle = YELLOW; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      ctx.fillText(String(p.number), colX, rowY + 18);
-      const displayName = duplicateLastNames.has(p.lastName) && p.firstName
-        ? `${p.firstName[0].toUpperCase()}. ${p.lastName}` : p.lastName;
+      ctx.fillText(String(numberOverrides?.[p.id] ?? p.number), colX, rowY + 18);
+      const displayName = p.posterName
+        ? p.posterName
+        : duplicateLastNames.has(p.lastName) && p.firstName
+          ? `${p.firstName[0].toUpperCase()}. ${p.lastName}` : p.lastName;
       ctx.font = 'bold 19px Arial, sans-serif';
       ctx.fillStyle = WHITE;
       ctx.fillText(displayName.toUpperCase(), colX + 30, rowY + 18);
@@ -632,11 +641,13 @@ function drawBenchPanel(
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { roster, matchConfig, lineup } = req.body as {
+  const { roster, matchConfig, lineup, numberOverrides } = req.body as {
     roster: Player[];
     matchConfig: MatchConfig;
     lineup: Lineup;
+    numberOverrides?: Record<string, number>;
   };
+  if (numberOverrides) lineup.numberOverrides = numberOverrides;
 
   if (!roster || !matchConfig || !lineup) {
     return res.status(400).json({ error: 'missing fields' });
@@ -706,12 +717,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const player = playerId ? playerMap[playerId] : null;
     const abs = slotPositions[slot.id] ?? { x: 540, y: 700 };
     const shirtImg = slot.role === 'goalkeeper' ? gkShirtImage : playerShirtImage;
+    const numOverride = playerId ? lineup.numberOverrides?.[playerId] : undefined;
     drawPlayerMarker(ctx, player, abs.x, abs.y, slot.role, shirtImg,
-      player ? duplicateLastNames.has(player.lastName) : false);
+      player ? duplicateLastNames.has(player.lastName) : false, numOverride);
   }
 
   // Layer 4: Bench panel
-  drawBenchPanel(ctx, lineup.bench, roster, lineup.coach, footerPanelImage, duplicateLastNames);
+  drawBenchPanel(ctx, lineup.bench, roster, lineup.coach, footerPanelImage, duplicateLastNames, lineup.numberOverrides);
 
   const buffer = await canvas.encode('jpeg', 92);
   res.setHeader('Content-Type', 'image/jpeg');

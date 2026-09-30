@@ -13,6 +13,7 @@ export interface FormationExportData {
   roster: Player[];
   matchConfig: MatchConfig;
   lineup: Lineup;
+  numberOverrides?: Record<string, number>;
 }
 
 function isIOS(): boolean {
