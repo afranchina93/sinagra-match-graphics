@@ -39,7 +39,7 @@ import {
   loadClubConfig, saveClubConfig,
   loadStaff, upsertStaff, deleteStaff,
 } from './storage/db';
-import { exportAsPng, exportAsBase64, exportAsDistintaPdf, type FormationExportData } from './export/exportImage';
+import { exportAsPng, exportAsBase64, exportAsDistintaPdf, type FormationExportData, type PosterExportData } from './export/exportImage';
 import { supabase } from './storage/supabaseClient';
 
 type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta' | 'scout';
@@ -386,12 +386,19 @@ function AppInner() {
     return { roster: activeRoster, matchConfig: posterMatchConfig, lineup: posterLineup, numberOverrides: currentView?.match.numberOverrides };
   }
 
+  function posterServerData(): PosterExportData {
+    if (tab === 'result')       return { type: 'result',       resultConfig: posterResultConfig };
+    if (tab === 'substitution') return { type: 'substitution', substitutionConfig: posterSubstitutionConfig };
+    return formationServerData();
+  }
+
   async function handleExport() {
     const ref =
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
       previewRef;
-    if (!ref.current) return;
+    const serverData = posterServerData();
+    if (!ref.current && !serverData) return;
     setExporting(true);
     try {
       const opponent = currentView?.opponent?.name || 'avversario';
@@ -400,8 +407,7 @@ function AppInner() {
         tab === 'result'       ? `sinagra-risultato-vs-${slug}.jpg` :
         tab === 'substitution' ? `sinagra-sostituzione-vs-${slug}.jpg` :
         `sinagra-vs-${slug}.jpg`;
-      const isFormation = tab !== 'result' && tab !== 'substitution';
-      await exportAsPng(ref.current, suffix, isFormation ? formationServerData() : undefined);
+      await exportAsPng(ref.current, suffix, serverData);
     } catch (err) {
       console.error('Export failed:', err);
       alert("Errore durante l'esportazione. Riprova.");
@@ -418,8 +424,7 @@ function AppInner() {
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
       previewRef;
-    const isFormation = tab !== 'result' && tab !== 'substitution';
-    const serverData = isFormation ? formationServerData() : undefined;
+    const serverData = posterServerData();
     if (!ref.current && !serverData) return;
     setPublishingIG(true);
     try {
@@ -489,8 +494,7 @@ function AppInner() {
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
       previewRef;
-    const isFormationFb = tab !== 'result' && tab !== 'substitution';
-    const serverData = isFormationFb ? formationServerData() : undefined;
+    const serverData = posterServerData();
     // Su iOS la generazione avviene lato server: ref.current non è necessario
     if (!ref.current && !serverData) return;
     setPublishing(true);

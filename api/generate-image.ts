@@ -63,6 +63,49 @@ interface FormationLayout {
   slots: FormationSlot[];
 }
 
+// ── Result + Substitution types ───────────────────────────────────────────────
+
+interface ScorerEntry {
+  minute: number;
+  playerName: string;
+  note?: 'R' | 'AG';
+}
+
+interface ResultConfig {
+  phase: 'FULL TIME' | 'HALF TIME' | 'LIVE';
+  matchday: string;
+  competition: string;
+  date: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo?: string;
+  awayLogo?: string;
+  homeGoals: number;
+  awayGoals: number;
+  homeScorers: ScorerEntry[];
+  awayScorers: ScorerEntry[];
+}
+
+interface SubstitutionPlayerT {
+  number: number;
+  name: string;
+}
+
+interface SubstitutionConfig {
+  minute: string;
+  playerOut: SubstitutionPlayerT;
+  playerIn: SubstitutionPlayerT;
+  matchday: string;
+  competition: string;
+  date: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo?: string;
+  awayLogo?: string;
+}
+
 // ── poster-config constants ───────────────────────────────────────────────────
 
 const POSTER_W = 1080;
@@ -349,42 +392,33 @@ function teamFontSize(a: string, b: string): number {
   return 24;
 }
 
-function drawHeader(
+// Shared header logic used by all three poster types
+function drawGenericHeader(
   ctx: CanvasRenderingContext2D,
-  config: MatchConfig,
-  sinagraLogo: Image,
-  opponentLogo: Image | null,
+  data: { homeTeam: string; awayTeam: string; date: string; matchday: string; competition: string; stadium: string },
+  leftLogoImg: Image | null,
+  rightLogoImg: Image | null,
 ) {
-  const opponentName = config.opponent || 'AVVERSARIO';
-  const homeTeam = config.isHome ? 'SINAGRA' : opponentName.toUpperCase();
-  const awayTeam = config.isHome ? opponentName.toUpperCase() : 'SINAGRA';
-  const dateStr = formatDate(config.date);
-  const timeStr = formatTime(config.date);
-
+  const dateStr = formatDate(data.date);
+  const timeStr = formatTime(data.date);
   const CX = POSTER_W / 2;
-  const PAD_H = 28; // padding: '0 28px'
-
-  // ── Y positions matching React flex column with gap: 8, justified center ──
-  // MATCHDAY row height ≈ 58 (48px font × ~1.2 line-height)
-  // competition ≈ 17px, separator 5px (1+2margin×2), teams 64px (logo), date ~20px
-  // total ≈ 58+8+17+8+5+8+64+8+20 = 196px, centered in 245px → top ≈ 25
-  const MD_Y    = 25;   // MATCHDAY text top
-  const COMP_Y  = 91;   // competition text top  (25+58+8)
-  const SEP_Y   = 118;  // separator line y       (91+17+8+2margin)
+  const PAD_H = 28;
+  const MD_Y     = 25;
+  const COMP_Y   = 91;
+  const SEP_Y    = 118;
   const LOGO_SIZE = 64;
-  const TEAMS_CY = SEP_Y + 1 + 10 + LOGO_SIZE / 2; // teams vertical center
-  const DATE_Y  = Math.round(SEP_Y + 1 + 10 + LOGO_SIZE + 8); // date text top
+  const TEAMS_CY  = SEP_Y + 1 + 10 + LOGO_SIZE / 2;
+  const DATE_Y    = Math.round(SEP_Y + 1 + 10 + LOGO_SIZE + 8);
 
-  // Reset esplicito letter-spacing (evita eredità da context precedente)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (ctx as any).letterSpacing = '0px';
 
-  // ── Row 1: MATCHDAY (red) + matchday number (dark), baseline-aligned ───────
+  // Row 1: MATCHDAY (red) + matchday number (dark)
   ctx.font = '900 48px Impact, "DejaVu Sans", Arial, sans-serif';
   ctx.textBaseline = 'top';
   ctx.textAlign   = 'left';
-  const mdW = ctx.measureText('MATCHDAY').width;
-  const numStr = String(config.matchday || '');
+  const mdW   = ctx.measureText('MATCHDAY').width;
+  const numStr = String(data.matchday || '');
   const numW   = numStr ? ctx.measureText(numStr).width : 0;
   const GAP_MD = 14;
   const row1W  = mdW + (numStr ? GAP_MD + numW : 0);
@@ -392,20 +426,19 @@ function drawHeader(
 
   ctx.fillStyle = RED;
   ctx.fillText('MATCHDAY', row1X, MD_Y);
-
   if (numStr) {
     ctx.fillStyle = DARK;
     ctx.fillText(numStr, row1X + mdW + GAP_MD, MD_Y);
   }
 
-  // ── Row 2: Competition ────────────────────────────────────────────────────
+  // Row 2: Competition
   ctx.font = 'bold 14px Arial, sans-serif';
   ctx.fillStyle = '#2A2A2A';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText((config.competition || 'CAMPIONATO DI PROMOZIONE').toUpperCase(), CX, COMP_Y);
+  ctx.fillText((data.competition || 'CAMPIONATO DI PROMOZIONE').toUpperCase(), CX, COMP_Y);
 
-  // ── Separator line ────────────────────────────────────────────────────────
+  // Separator
   ctx.strokeStyle = 'rgba(26,26,26,0.22)';
   ctx.lineWidth   = 1;
   ctx.beginPath();
@@ -413,52 +446,42 @@ function drawHeader(
   ctx.lineTo(POSTER_W - PAD_H, SEP_Y);
   ctx.stroke();
 
-  // ── Row 3: teams ──────────────────────────────────────────────────────────
-  // Layout: [homeTeam flex:1 right] [SinagraLogo] [VS] [opponentLogo] [awayTeam flex:1 left]
-  // gap: 10 between outer teams and center block; inner block gap: 10
-
+  // Row 3: center block logos + VS + team names
   ctx.font = '900 28px Impact, "DejaVu Sans", Arial, sans-serif';
   const vsW = ctx.measureText('VS').width;
-  const INNER_GAP = 10;
-  // center block: logo + gap + VS + gap + logo
+  const INNER_GAP    = 10;
   const centerBlockW = LOGO_SIZE + INNER_GAP + vsW + INNER_GAP + LOGO_SIZE;
   const cbLeft       = CX - centerBlockW / 2;
 
-  // Sinagra logo (left of VS)
-  ctx.drawImage(sinagraLogo, cbLeft, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, LOGO_SIZE);
+  if (leftLogoImg) {
+    ctx.drawImage(leftLogoImg, cbLeft, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, LOGO_SIZE);
+  } else {
+    drawShieldPlaceholder(ctx, cbLeft, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, (data.homeTeam[0] || '?').toUpperCase());
+  }
 
-  // VS
   ctx.font = '900 28px Impact, "DejaVu Sans", Arial, sans-serif';
   ctx.fillStyle = RED;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('VS', CX, TEAMS_CY);
 
-  // Opponent logo (right of VS)
   const oppLogoX = cbLeft + LOGO_SIZE + INNER_GAP + vsW + INNER_GAP;
-  if (opponentLogo) {
-    ctx.drawImage(opponentLogo, oppLogoX, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, LOGO_SIZE);
+  if (rightLogoImg) {
+    ctx.drawImage(rightLogoImg, oppLogoX, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, LOGO_SIZE);
   } else {
-    drawShieldPlaceholder(ctx, oppLogoX, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE,
-      (opponentName[0] || '?').toUpperCase());
+    drawShieldPlaceholder(ctx, oppLogoX, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, (data.awayTeam[0] || '?').toUpperCase());
   }
 
-  // Team names — scaled font matching teamFontSize()
-  const namePx = teamFontSize(homeTeam, awayTeam);
+  const namePx = teamFontSize(data.homeTeam, data.awayTeam);
   ctx.font = `900 ${namePx}px Impact, "DejaVu Sans", Arial, sans-serif`;
   ctx.fillStyle = DARK;
   ctx.textBaseline = 'middle';
-
-  // Home — right-aligned, gap: 10 from center block left edge
   ctx.textAlign = 'right';
-  ctx.fillText(homeTeam, cbLeft - 10, TEAMS_CY);
-
-  // Away — left-aligned, gap: 10 from center block right edge
+  ctx.fillText(data.homeTeam.toUpperCase(), cbLeft - 10, TEAMS_CY);
   ctx.textAlign = 'left';
-  ctx.fillText(awayTeam, cbLeft + centerBlockW + 10, TEAMS_CY);
+  ctx.fillText(data.awayTeam.toUpperCase(), cbLeft + centerBlockW + 10, TEAMS_CY);
 
-  // ── Row 4: date + stadium with icons ─────────────────────────────────────
-  // Replica: [CalendarIcon 17px] [dateText]  [gap 24]  [LocationIcon 16px] [stadiumText]
+  // Row 4: date + stadium with icons
   const ICON_SIZE = 17;
   const ICON_GAP  = 7;
   const ITEM_GAP  = 24;
@@ -468,7 +491,7 @@ function drawHeader(
   ctx.textAlign = 'left';
 
   const dateText    = (dateStr || 'DATA DA DEFINIRE') + (timeStr ? ` · ${timeStr}` : '');
-  const stadiumText = config.stadium || 'STADIO COMUNALE DI SINAGRA';
+  const stadiumText = data.stadium || 'STADIO COMUNALE DI SINAGRA';
   const dateTextW    = ctx.measureText(dateText).width;
   const stadiumTextW = ctx.measureText(stadiumText).width;
 
@@ -476,20 +499,34 @@ function drawHeader(
   let ix = CX - totalW / 2;
   const textMidY = DATE_Y + ICON_SIZE / 2;
 
-  // Calendar icon
   drawCalendarIcon(ctx, ix, DATE_Y, ICON_SIZE);
   ix += ICON_SIZE + ICON_GAP;
-
   ctx.fillStyle = '#333333';
   ctx.fillText(dateText, ix, textMidY);
   ix += dateTextW + ITEM_GAP;
-
-  // Location icon
   drawLocationIcon(ctx, ix, DATE_Y, ICON_SIZE);
   ix += ICON_SIZE + ICON_GAP;
-
   ctx.fillStyle = '#333333';
   ctx.fillText(stadiumText, ix, textMidY);
+}
+
+function drawHeader(
+  ctx: CanvasRenderingContext2D,
+  config: MatchConfig,
+  sinagraLogo: Image,
+  opponentLogo: Image | null,
+) {
+  const opponentName = (config.opponent || 'AVVERSARIO').toUpperCase();
+  const homeTeam = config.isHome ? 'SINAGRA' : opponentName;
+  const awayTeam = config.isHome ? opponentName : 'SINAGRA';
+  // Formation: Sinagra logo always left, opponent always right
+  drawGenericHeader(ctx, {
+    homeTeam, awayTeam,
+    date: config.date,
+    matchday: config.matchday,
+    competition: config.competition,
+    stadium: config.stadium,
+  }, sinagraLogo, opponentLogo);
 }
 
 function drawShieldPlaceholder(
@@ -737,12 +774,396 @@ function drawBenchPanel(
   ctx.fillText('sinagra calcio', FP_LEFT + 54, socialY + 10);
 }
 
+// ── Result poster drawing functions ──────────────────────────────────────────
+
+function drawPhaseSection(ctx: CanvasRenderingContext2D, phase: string) {
+  const y = 258;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).letterSpacing = '0px';
+  ctx.font = '900 80px Impact, "DejaVu Sans", Arial, sans-serif';
+  ctx.textBaseline = 'top';
+
+  if (phase === 'LIVE') {
+    ctx.fillStyle = RED;
+    ctx.textAlign = 'center';
+    ctx.fillText('● LIVE', POSTER_W / 2, y);
+  } else {
+    const parts = phase.split(' ');
+    const word1 = parts[0] + ' ';
+    const word2 = parts[1] || '';
+    const w1 = ctx.measureText(word1).width;
+    const w2 = ctx.measureText(word2).width;
+    const startX = Math.round((POSTER_W - w1 - w2) / 2);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = DARK;
+    ctx.fillText(word1, startX, y);
+    ctx.fillStyle = RED;
+    ctx.fillText(word2, startX + w1, y);
+  }
+}
+
+function drawScoreSection(ctx: CanvasRenderingContext2D, homeGoals: number, awayGoals: number) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).letterSpacing = '0px';
+  const DASH_MARGIN = 16;
+
+  ctx.font = '900 260px Impact, "DejaVu Sans", Arial, sans-serif';
+  const homeW = ctx.measureText(String(homeGoals)).width;
+  const awayW = ctx.measureText(String(awayGoals)).width;
+
+  ctx.font = '900 130px Impact, "DejaVu Sans", Arial, sans-serif';
+  const dashW = ctx.measureText('—').width;
+
+  const totalW = homeW + DASH_MARGIN + dashW + DASH_MARGIN + awayW;
+  const startX = Math.round((POSTER_W - totalW) / 2);
+
+  // Numbers at y=375 top-aligned; dash offset to vertically center with 260px nums
+  const numY  = 375;
+  const dashY = 375 + 65; // (260 - 130) / 2 ≈ 65px vertical offset to center
+
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+
+  ctx.font = '900 260px Impact, "DejaVu Sans", Arial, sans-serif';
+  ctx.fillStyle = DARK;
+  ctx.fillText(String(homeGoals), startX, numY);
+
+  ctx.font = '900 130px Impact, "DejaVu Sans", Arial, sans-serif';
+  ctx.fillStyle = RED;
+  ctx.fillText('—', startX + homeW + DASH_MARGIN, dashY);
+
+  ctx.font = '900 260px Impact, "DejaVu Sans", Arial, sans-serif';
+  ctx.fillStyle = DARK;
+  ctx.fillText(String(awayGoals), startX + homeW + DASH_MARGIN + dashW + DASH_MARGIN, numY);
+}
+
+function drawScorersSection(
+  ctx: CanvasRenderingContext2D,
+  homeScorers: ScorerEntry[],
+  awayScorers: ScorerEntry[],
+) {
+  const TOP      = 650;
+  const ROW_H    = 34;
+  const GAP      = 4;
+  const MAX      = 7;
+  const HOME_RIGHT = 480;
+  const AWAY_LEFT  = 600;
+  const ITEM_GAP   = 10;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).letterSpacing = '0px';
+
+  // Divider
+  ctx.strokeStyle = 'rgba(26,26,26,0.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(POSTER_W / 2, TOP + 4);
+  ctx.lineTo(POSTER_W / 2, TOP + MAX * (ROW_H + GAP) - 4);
+  ctx.stroke();
+
+  const sorted = (arr: ScorerEntry[]) => [...arr].sort((a, b) => a.minute - b.minute).slice(0, MAX);
+
+  // Home scorers — right-aligned at HOME_RIGHT (minute closest to center)
+  sorted(homeScorers).forEach((s, i) => {
+    const centerY = TOP + i * (ROW_H + GAP) + ROW_H / 2;
+    const minStr  = `${s.minute}'`;
+    const noteStr = s.note ? `(${s.note})` : '';
+    const nameStr = s.playerName.toUpperCase();
+
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+
+    ctx.font = '900 26px Impact, "DejaVu Sans", Arial, sans-serif';
+    const minW = ctx.measureText(minStr).width;
+    ctx.fillStyle = '#FF4444';
+    ctx.fillText(minStr, HOME_RIGHT, centerY);
+
+    let rx = HOME_RIGHT - minW - ITEM_GAP;
+
+    if (noteStr) {
+      ctx.font = 'bold 18px Arial, sans-serif';
+      const noteW = ctx.measureText(noteStr).width;
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillText(noteStr, rx, centerY);
+      rx -= noteW + ITEM_GAP;
+    }
+
+    ctx.font = 'bold 26px Arial, sans-serif';
+    ctx.fillStyle = WHITE;
+    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 1;
+    ctx.fillText(nameStr, rx, centerY);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  });
+
+  // Away scorers — left-aligned at AWAY_LEFT (name closest to center)
+  sorted(awayScorers).forEach((s, i) => {
+    const centerY = TOP + i * (ROW_H + GAP) + ROW_H / 2;
+    const minStr  = `${s.minute}'`;
+    const noteStr = s.note ? `(${s.note})` : '';
+    const nameStr = s.playerName.toUpperCase();
+
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    ctx.font = 'bold 26px Arial, sans-serif';
+    ctx.fillStyle = WHITE;
+    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 1;
+    ctx.fillText(nameStr, AWAY_LEFT, centerY);
+    const nameW = ctx.measureText(nameStr).width;
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+    let lx = AWAY_LEFT + nameW + ITEM_GAP;
+
+    if (noteStr) {
+      ctx.font = 'bold 18px Arial, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillText(noteStr, lx, centerY);
+      lx += ctx.measureText(noteStr).width + ITEM_GAP;
+    }
+
+    ctx.font = '900 26px Impact, "DejaVu Sans", Arial, sans-serif';
+    ctx.fillStyle = '#FF4444';
+    ctx.fillText(minStr, lx, centerY);
+  });
+}
+
+function drawSocialFooter(ctx: CanvasRenderingContext2D) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).letterSpacing = '0px';
+  ctx.font = 'bold 13px Arial, sans-serif';
+  ctx.fillStyle = DARK;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('sinagra calcio', 36 + 50, POSTER_H - 56 + 10);
+}
+
+// ── Substitution poster drawing functions ─────────────────────────────────────
+
+function drawSubstitutionTitle(ctx: CanvasRenderingContext2D) {
+  const y = 258;
+  const FONT_SIZE = 116;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).letterSpacing = '0px';
+  ctx.textBaseline = 'top';
+  ctx.font = `900 ${FONT_SIZE}px Impact, "DejaVu Sans", Arial, sans-serif`;
+
+  const sostiW    = ctx.measureText('SOSTI').width;
+  const tuzioneW  = ctx.measureText('TUZIONE').width;
+  const startX    = Math.round((POSTER_W - sostiW - tuzioneW) / 2);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = DARK;
+  ctx.fillText('SOSTI', startX, y);
+  ctx.fillStyle = RED;
+  ctx.fillText('TUZIONE', startX + sostiW, y);
+
+  // Red bar below title
+  const BAR_W = 680;
+  const barY  = y + FONT_SIZE + 6;
+  ctx.fillStyle = RED;
+  ctx.globalAlpha = 0.85;
+  roundedRect(ctx, Math.round((POSTER_W - BAR_W) / 2), barY, BAR_W, 6, 3);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawScoreboard(ctx: CanvasRenderingContext2D, config: SubstitutionConfig, boardImg: Image) {
+  const BOARD_LEFT = 80;
+  const BOARD_TOP  = 430;
+  const BOARD_W    = POSTER_W - 160; // 920
+  const BOARD_H    = Math.round(BOARD_W / 2); // 460
+
+  ctx.drawImage(boardImg, BOARD_LEFT, BOARD_TOP, BOARD_W, BOARD_H);
+
+  const numOut  = config.playerOut.number || 0;
+  const numIn   = config.playerIn.number  || 0;
+  const nameOut = (config.playerOut.name || '').toUpperCase();
+  const nameIn  = (config.playerIn.name  || '').toUpperCase();
+
+  const minuteFs = Math.round(BOARD_H * 0.155);
+  const numFsOut = Math.round(BOARD_H * (String(numOut).length === 1 ? 0.36 : 0.28));
+  const numFsIn  = Math.round(BOARD_H * (String(numIn).length  === 1 ? 0.36 : 0.28));
+
+  const nameFs = (name: string) => {
+    if (name.length > 11) return Math.round(BOARD_H * 0.068);
+    if (name.length > 8)  return Math.round(BOARD_H * 0.082);
+    return Math.round(BOARD_H * 0.094);
+  };
+  const sharedNameFs = Math.min(nameFs(nameOut), nameFs(nameIn));
+
+  const box = (l: string, t: string, w: string, h: string) => ({
+    x: BOARD_LEFT + parseFloat(l) / 100 * BOARD_W,
+    y: BOARD_TOP  + parseFloat(t) / 100 * BOARD_H,
+    w: parseFloat(w) / 100 * BOARD_W,
+    h: parseFloat(h) / 100 * BOARD_H,
+  });
+
+  const MIN_BOX  = box('0',    '0',    '100',  '22'   );
+  const OUT_NUM  = box('8',    '22',   '33',   '34'   );
+  const OUT_NAME = box('8',    '56.5', '33',   '11.5' );
+  const IN_NUM   = box('59.5', '22',   '33',   '34'   );
+  const IN_NAME  = box('59.5', '56.5', '33',   '11.5' );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).letterSpacing = '0px';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Minute
+  ctx.font = `900 ${minuteFs}px Impact, "DejaVu Sans", Arial, sans-serif`;
+  ctx.fillStyle = '#FFB800';
+  ctx.shadowColor = '#FFB800'; ctx.shadowBlur = 10;
+  ctx.fillText((config.minute || '–') + '\u2032', MIN_BOX.x + MIN_BOX.w / 2, MIN_BOX.y + MIN_BOX.h / 2);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+
+  // Out number
+  ctx.font = `900 ${numFsOut}px Impact, "DejaVu Sans", Arial, sans-serif`;
+  ctx.fillStyle = '#FF3B30';
+  ctx.shadowColor = '#FF3B30'; ctx.shadowBlur = 8;
+  ctx.fillText(String(numOut), OUT_NUM.x + OUT_NUM.w / 2, OUT_NUM.y + OUT_NUM.h / 2);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+
+  // Out name
+  ctx.font = `900 ${sharedNameFs}px Impact, "DejaVu Sans", Arial, sans-serif`;
+  ctx.fillStyle = WHITE;
+  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 4;
+  ctx.fillText(nameOut, OUT_NAME.x + OUT_NAME.w / 2, OUT_NAME.y + OUT_NAME.h / 2);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+
+  // In number
+  ctx.font = `900 ${numFsIn}px Impact, "DejaVu Sans", Arial, sans-serif`;
+  ctx.fillStyle = '#34C759';
+  ctx.shadowColor = '#34C759'; ctx.shadowBlur = 8;
+  ctx.fillText(String(numIn), IN_NUM.x + IN_NUM.w / 2, IN_NUM.y + IN_NUM.h / 2);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+
+  // In name
+  ctx.font = `900 ${sharedNameFs}px Impact, "DejaVu Sans", Arial, sans-serif`;
+  ctx.fillStyle = WHITE;
+  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 4;
+  ctx.fillText(nameIn, IN_NAME.x + IN_NAME.w / 2, IN_NAME.y + IN_NAME.h / 2);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+}
+
+// ── Logo loader helper ────────────────────────────────────────────────────────
+
+async function loadLogoFromUrl(url: string | undefined, fallback: Image): Promise<Image>;
+async function loadLogoFromUrl(url: string | undefined, fallback: null): Promise<Image | null>;
+async function loadLogoFromUrl(url: string | undefined, fallback: Image | null): Promise<Image | null> {
+  if (!url) return fallback;
+  try {
+    if (url.startsWith('http')) {
+      const buf = await fetch(url).then(r => r.arrayBuffer());
+      return loadImage(Buffer.from(buf));
+    }
+    return await loadAsset(`assets/logos/${url}`);
+  } catch {
+    return fallback;
+  }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { roster, matchConfig, lineup, numberOverrides } = req.body as {
+  const body = req.body as {
+    type?: 'formation' | 'result' | 'substitution';
+    // formation
+    roster?: Player[];
+    matchConfig?: MatchConfig;
+    lineup?: Lineup;
+    numberOverrides?: Record<string, number>;
+    // result
+    resultConfig?: ResultConfig;
+    // substitution
+    substitutionConfig?: SubstitutionConfig;
+  };
+
+  // ── Result poster ─────────────────────────────────────────────────────────
+  if (body.type === 'result') {
+    const cfg = body.resultConfig;
+    if (!cfg) return res.status(400).json({ error: 'missing resultConfig' });
+
+    let sinagraLogo: Image;
+    let resultBg: Image;
+    try {
+      [sinagraLogo, resultBg] = await Promise.all([
+        loadAsset('assets/poster/sinagra-logo.png'),
+        loadAsset('assets/poster/result-background.png'),
+      ]);
+    } catch (err) {
+      console.error('Asset load error:', err);
+      return res.status(500).json({ error: 'failed to load assets' });
+    }
+
+    const leftLogoImg  = await loadLogoFromUrl(cfg.homeLogo, sinagraLogo);
+    const rightLogoImg = await loadLogoFromUrl(cfg.awayLogo, null);
+
+    const canvas: Canvas = createCanvas(POSTER_W, POSTER_H);
+    const ctx = canvas.getContext('2d');
+
+    ctx.drawImage(resultBg, 0, 0, POSTER_W, POSTER_H);
+    drawGenericHeader(ctx, {
+      homeTeam: cfg.homeTeam, awayTeam: cfg.awayTeam,
+      date: cfg.date, matchday: cfg.matchday,
+      competition: cfg.competition, stadium: cfg.stadium,
+    }, leftLogoImg, rightLogoImg);
+    drawPhaseSection(ctx, cfg.phase);
+    drawScoreSection(ctx, cfg.homeGoals, cfg.awayGoals);
+    drawScorersSection(ctx, cfg.homeScorers, cfg.awayScorers);
+    drawSocialFooter(ctx);
+
+    const buffer = await canvas.encode('jpeg', 92);
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Disposition', 'attachment; filename="risultato.jpg"');
+    return res.send(buffer);
+  }
+
+  // ── Substitution poster ───────────────────────────────────────────────────
+  if (body.type === 'substitution') {
+    const cfg = body.substitutionConfig;
+    if (!cfg) return res.status(400).json({ error: 'missing substitutionConfig' });
+
+    let sinagraLogo: Image;
+    let resultBg: Image;
+    let boardImg: Image;
+    try {
+      [sinagraLogo, resultBg, boardImg] = await Promise.all([
+        loadAsset('assets/poster/sinagra-logo.png'),
+        loadAsset('assets/poster/result-background.png'),
+        loadAsset('assets/poster/substitution-board.png'),
+      ]);
+    } catch (err) {
+      console.error('Asset load error:', err);
+      return res.status(500).json({ error: 'failed to load assets' });
+    }
+
+    const leftLogoImg  = await loadLogoFromUrl(cfg.homeLogo, sinagraLogo);
+    const rightLogoImg = await loadLogoFromUrl(cfg.awayLogo, null);
+
+    const canvas: Canvas = createCanvas(POSTER_W, POSTER_H);
+    const ctx = canvas.getContext('2d');
+
+    ctx.drawImage(resultBg, 0, 0, POSTER_W, POSTER_H);
+    drawGenericHeader(ctx, {
+      homeTeam: cfg.homeTeam, awayTeam: cfg.awayTeam,
+      date: cfg.date, matchday: cfg.matchday,
+      competition: cfg.competition, stadium: cfg.stadium,
+    }, leftLogoImg, rightLogoImg);
+    drawSubstitutionTitle(ctx);
+    drawScoreboard(ctx, cfg, boardImg);
+    drawSocialFooter(ctx);
+
+    const buffer = await canvas.encode('jpeg', 92);
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Disposition', 'attachment; filename="sostituzione.jpg"');
+    return res.send(buffer);
+  }
+
+  // ── Formation poster (default) ────────────────────────────────────────────
+
+  const { roster, matchConfig, lineup, numberOverrides } = body as {
     roster: Player[];
     matchConfig: MatchConfig;
     lineup: Lineup;

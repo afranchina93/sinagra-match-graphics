@@ -1,5 +1,5 @@
 import { toJpeg } from 'html-to-image';
-import type { Player, MatchConfig, Lineup } from '../domain/types';
+import type { Player, MatchConfig, Lineup, ResultConfig, SubstitutionConfig } from '../domain/types';
 
 const JPEG_OPTIONS = {
   width: 1080,
@@ -16,6 +16,18 @@ export interface FormationExportData {
   numberOverrides?: Record<string, number>;
 }
 
+export interface ResultExportData {
+  type: 'result';
+  resultConfig: ResultConfig;
+}
+
+export interface SubstitutionExportData {
+  type: 'substitution';
+  substitutionConfig: SubstitutionConfig;
+}
+
+export type PosterExportData = FormationExportData | ResultExportData | SubstitutionExportData;
+
 function isIOS(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
@@ -29,7 +41,7 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-async function renderFormationViaServer(data: FormationExportData): Promise<string> {
+async function renderViaServer(data: PosterExportData): Promise<string> {
   const res = await fetch('/api/generate-image', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -40,6 +52,7 @@ async function renderFormationViaServer(data: FormationExportData): Promise<stri
   return blobToDataUrl(blob);
 }
 
+
 function triggerDownload(dataUrl: string, filename: string): void {
   const link = document.createElement('a');
   link.download = filename;
@@ -48,15 +61,16 @@ function triggerDownload(dataUrl: string, filename: string): void {
 }
 
 export async function exportAsPng(
-  element: HTMLElement,
+  element: HTMLElement | null,
   filename = 'formazione.jpg',
-  serverData?: FormationExportData,
+  serverData?: PosterExportData,
 ): Promise<void> {
   if (isIOS() && serverData) {
-    const dataUrl = await renderFormationViaServer(serverData);
+    const dataUrl = await renderViaServer(serverData);
     triggerDownload(dataUrl, filename);
     return;
   }
+  if (!element) throw new Error('Elemento poster non disponibile');
   const jpeg = await toJpeg(element, JPEG_OPTIONS);
   triggerDownload(jpeg, filename);
 }
@@ -97,11 +111,12 @@ export async function exportAsDistintaPdf(
 
 export async function exportAsBase64(
   element: HTMLElement | null,
-  serverData?: FormationExportData,
+  serverData?: PosterExportData,
 ): Promise<string> {
   if (isIOS() && serverData) {
-    return renderFormationViaServer(serverData);
+    return renderViaServer(serverData);
   }
   if (!element) throw new Error('Elemento poster non disponibile');
   return toJpeg(element, JPEG_OPTIONS);
 }
+
