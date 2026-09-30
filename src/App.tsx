@@ -418,11 +418,12 @@ function AppInner() {
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
       previewRef;
-    if (!ref.current) return;
+    const isFormation = tab !== 'result' && tab !== 'substitution';
+    const serverData = isFormation ? formationServerData() : undefined;
+    if (!ref.current && !serverData) return;
     setPublishingIG(true);
     try {
-      const isFormation = tab !== 'result' && tab !== 'substitution';
-      const base64 = await exportAsBase64(ref.current, isFormation ? formationServerData() : undefined);
+      const base64 = await exportAsBase64(ref.current, serverData);
       const res = await fetch('/api/publish-instagram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -488,11 +489,13 @@ function AppInner() {
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
       previewRef;
-    if (!ref.current) return;
+    const isFormationFb = tab !== 'result' && tab !== 'substitution';
+    const serverData = isFormationFb ? formationServerData() : undefined;
+    // Su iOS la generazione avviene lato server: ref.current non è necessario
+    if (!ref.current && !serverData) return;
     setPublishing(true);
     try {
-      const isFormationFb = tab !== 'result' && tab !== 'substitution';
-      const base64 = await exportAsBase64(ref.current, isFormationFb ? formationServerData() : undefined);
+      const base64 = await exportAsBase64(ref.current, serverData);
       const res = await fetch('/api/publish-facebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

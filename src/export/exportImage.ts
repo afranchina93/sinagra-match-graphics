@@ -96,11 +96,12 @@ export async function exportAsDistintaPdf(
 }
 
 export async function exportAsBase64(
-  element: HTMLElement,
+  element: HTMLElement | null,
   serverData?: FormationExportData,
 ): Promise<string> {
   if (isIOS() && serverData) {
     return renderFormationViaServer(serverData);
   }
+  if (!element) throw new Error('Elemento poster non disponibile');
   return toJpeg(element, JPEG_OPTIONS);
 }
