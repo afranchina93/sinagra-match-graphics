@@ -287,12 +287,24 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
 }
 
 // ── Layer 1: Header ───────────────────────────────────────────────────────────
+// Replica esatta di MatchHeader in FormationPoster.tsx:
+// tutto centrato, flex column, gap: 8.
+// Layout: MATCHDAY + num | competition | separator | [home VS away + loghi] | data + stadio
+
+function teamFontSize(a: string, b: string): number {
+  const n = Math.max(a.length, b.length);
+  if (n <= 9)  return 52;
+  if (n <= 12) return 44;
+  if (n <= 16) return 36;
+  if (n <= 20) return 30;
+  return 24;
+}
 
 function drawHeader(
   ctx: CanvasRenderingContext2D,
   config: MatchConfig,
   sinagraLogo: Image,
-  _opponentLogo: Image | null,
+  opponentLogo: Image | null,
 ) {
   const opponentName = config.opponent || 'AVVERSARIO';
   const homeTeam = config.isHome ? 'SINAGRA' : opponentName.toUpperCase();
@@ -300,136 +312,111 @@ function drawHeader(
   const dateStr = formatDate(config.date);
   const timeStr = formatTime(config.date);
 
-  // ── LEFT: logo + divider + club text ────────────────────────────────────────
+  const CX = POSTER_W / 2;
+  const PAD_H = 28; // padding: '0 28px'
 
-  // Sinagra logo 88×88, vertically centered (header inner height = 245-22-18=205, center=124)
-  ctx.drawImage(sinagraLogo, 30, 80, 88, 88);
+  // ── Y positions matching React flex column with gap: 8, justified center ──
+  // MATCHDAY row height ≈ 58 (48px font × ~1.2 line-height)
+  // competition ≈ 17px, separator 5px (1+2margin×2), teams 64px (logo), date ~20px
+  // total ≈ 58+8+17+8+5+8+64+8+20 = 196px, centered in 245px → top ≈ 25
+  const MD_Y    = 25;   // MATCHDAY text top
+  const COMP_Y  = 91;   // competition text top  (25+58+8)
+  const SEP_Y   = 118;  // separator line y       (91+17+8+2margin)
+  const LOGO_SIZE = 64;
+  const TEAMS_CY = SEP_Y + 1 + 10 + LOGO_SIZE / 2; // teams vertical center
+  const DATE_Y  = Math.round(SEP_Y + 1 + 10 + LOGO_SIZE + 8); // date text top
 
-  // Vertical divider with gradient (red, fades at edges)
-  const divGrad = ctx.createLinearGradient(136, 88, 136, 160);
-  divGrad.addColorStop(0, 'rgba(200,16,46,0)');
-  divGrad.addColorStop(0.15, RED);
-  divGrad.addColorStop(0.85, RED);
-  divGrad.addColorStop(1, 'rgba(200,16,46,0)');
-  ctx.fillStyle = divGrad;
-  ctx.fillRect(136, 88, 2, 72);
-
-  // Club text block
-  ctx.textAlign = 'left';
+  // ── Row 1: MATCHDAY (red) + matchday number (dark), baseline-aligned ───────
+  ctx.font = '800 48px Impact, "DejaVu Sans", Arial, sans-serif';
   ctx.textBaseline = 'top';
+  ctx.textAlign   = 'left';
+  const mdW = ctx.measureText('MATCHDAY').width;
+  ctx.font = '900 48px Impact, "DejaVu Sans", Arial, sans-serif';
+  const numStr = String(config.matchday || '');
+  const numW   = numStr ? ctx.measureText(numStr).width : 0;
+  const GAP_MD = 14;
+  const row1W  = mdW + (numStr ? GAP_MD + numW : 0);
+  const row1X  = CX - row1W / 2;
 
-  ctx.font = 'bold 13px Arial, sans-serif';
+  ctx.font = '800 48px Impact, "DejaVu Sans", Arial, sans-serif';
   ctx.fillStyle = RED;
-  ctx.fillText('A.D.P.', 158, 97);
+  ctx.fillText('MATCHDAY', row1X, MD_Y);
 
-  ctx.font = '900 24px Impact, "DejaVu Sans", Arial, sans-serif';
+  if (numStr) {
+    ctx.font = '900 48px Impact, "DejaVu Sans", Arial, sans-serif';
+    ctx.fillStyle = DARK;
+    ctx.fillText(numStr, row1X + mdW + GAP_MD, MD_Y);
+  }
+
+  // ── Row 2: Competition ────────────────────────────────────────────────────
+  ctx.font = 'bold 14px Arial, sans-serif';
+  ctx.fillStyle = '#2A2A2A';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText((config.competition || 'CAMPIONATO DI PROMOZIONE').toUpperCase(), CX, COMP_Y);
+
+  // ── Separator line ────────────────────────────────────────────────────────
+  ctx.strokeStyle = 'rgba(26,26,26,0.22)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD_H, SEP_Y);
+  ctx.lineTo(POSTER_W - PAD_H, SEP_Y);
+  ctx.stroke();
+
+  // ── Row 3: teams ──────────────────────────────────────────────────────────
+  // Layout: [homeTeam flex:1 right] [SinagraLogo] [VS] [opponentLogo] [awayTeam flex:1 left]
+  // gap: 10 between outer teams and center block; inner block gap: 10
+
+  ctx.font = '900 28px Impact, "DejaVu Sans", Arial, sans-serif';
+  const vsW = ctx.measureText('VS').width;
+  const INNER_GAP = 10;
+  // center block: logo + gap + VS + gap + logo
+  const centerBlockW = LOGO_SIZE + INNER_GAP + vsW + INNER_GAP + LOGO_SIZE;
+  const cbLeft       = CX - centerBlockW / 2;
+
+  // Sinagra logo (left of VS)
+  ctx.drawImage(sinagraLogo, cbLeft, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, LOGO_SIZE);
+
+  // VS
+  ctx.font = '900 28px Impact, "DejaVu Sans", Arial, sans-serif';
+  ctx.fillStyle = RED;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('VS', CX, TEAMS_CY);
+
+  // Opponent logo (right of VS)
+  const oppLogoX = cbLeft + LOGO_SIZE + INNER_GAP + vsW + INNER_GAP;
+  if (opponentLogo) {
+    ctx.drawImage(opponentLogo, oppLogoX, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, LOGO_SIZE);
+  } else {
+    drawShieldPlaceholder(ctx, oppLogoX, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE,
+      (opponentName[0] || '?').toUpperCase());
+  }
+
+  // Team names — scaled font matching teamFontSize()
+  const namePx = teamFontSize(homeTeam, awayTeam);
+  ctx.font = `900 ${namePx}px Impact, "DejaVu Sans", Arial, sans-serif`;
   ctx.fillStyle = DARK;
-  ctx.fillText('SINAGRA CALCIO 1974', 158, 113);
+  ctx.textBaseline = 'middle';
 
-  ctx.font = '12px Arial, sans-serif';
+  // Home — right-aligned, gap: 10 from center block left edge
+  ctx.textAlign = 'right';
+  ctx.fillText(homeTeam, cbLeft - 10, TEAMS_CY);
+
+  // Away — left-aligned, gap: 10 from center block right edge
+  ctx.textAlign = 'left';
+  ctx.fillText(awayTeam, cbLeft + centerBlockW + 10, TEAMS_CY);
+
+  // ── Row 4: date + stadium ─────────────────────────────────────────────────
+  const parts: string[] = [];
+  if (dateStr) parts.push(dateStr + (timeStr ? ` · ${timeStr}` : ''));
+  if (config.stadium) parts.push(config.stadium);
+
+  ctx.font = 'bold 14px Arial, sans-serif';
   ctx.fillStyle = '#333333';
-  ctx.fillText('STAGIONE SPORTIVA 2026/27', 158, 142);
-
-  // ── RIGHT: MATCHDAY card ────────────────────────────────────────────────────
-
-  const CARD_W = 290;
-  const CARD_H = 178;
-  const CARD_X = POSTER_W - 30 - CARD_W; // 760
-  const CARD_Y = 58;
-
-  // Card shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.13)';
-  roundedRect(ctx, CARD_X + 3, CARD_Y + 4, CARD_W, CARD_H, 10);
-  ctx.fill();
-
-  // Card white background
-  ctx.fillStyle = WHITE;
-  roundedRect(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, 10);
-  ctx.fill();
-
-  // MATCHDAY badge (overhangs top of card: top: -12, left: 16)
-  const BADGE_Y = CARD_Y - 12;
-  const BADGE_X = CARD_X + 16;
-  ctx.font = 'bold 10px Arial, sans-serif';
-  const badgeTextW = ctx.measureText('MATCHDAY').width;
-  const BADGE_W = badgeTextW + 24;
-  const BADGE_H = 20;
-  ctx.fillStyle = RED;
-  roundedRect(ctx, BADGE_X, BADGE_Y, BADGE_W, BADGE_H, 4);
-  ctx.fill();
-  ctx.fillStyle = WHITE;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('MATCHDAY', BADGE_X + 12, BADGE_Y + BADGE_H / 2);
-
-  // Card content (padding: 14px 20px, inner marginTop: 4)
-  const CX = CARD_X + 20;
-  let CY = CARD_Y + 18; // padding-top(14) + marginTop(4)
-
-  // Competition text
-  ctx.font = 'bold 10px Arial, sans-serif';
-  ctx.fillStyle = DARK;
-  ctx.textAlign = 'left';
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText((config.competition || 'CAMPIONATO DI PROMOZIONE').toUpperCase(), CX, CY);
-  CY += 13;
-
-  // Matchday number
-  if (config.matchday) {
-    ctx.font = 'bold 9px Arial, sans-serif';
-    ctx.fillStyle = RED;
-    ctx.fillText(String(config.matchday), CX, CY);
-    CY += 12;
-  }
-
-  // Teams row (marginTop: 10)
-  CY += 8;
-  const LOGO_S = 24;
-  ctx.drawImage(sinagraLogo, CX, CY, LOGO_S, LOGO_S);
-
-  ctx.textBaseline = 'middle';
-  const teamY = CY + LOGO_S / 2;
-  let teamX = CX + LOGO_S + 6;
-
-  ctx.font = '900 14px Impact, "DejaVu Sans", Arial, sans-serif';
-  ctx.fillStyle = DARK;
-  ctx.textAlign = 'left';
-  ctx.fillText(homeTeam, teamX, teamY);
-  teamX += ctx.measureText(homeTeam).width + 8;
-
-  ctx.font = '900 13px Impact, "DejaVu Sans", Arial, sans-serif';
-  ctx.fillStyle = RED;
-  ctx.fillText('VS', teamX, teamY);
-  teamX += ctx.measureText('VS').width + 8;
-
-  ctx.font = '900 14px Impact, "DejaVu Sans", Arial, sans-serif';
-  ctx.fillStyle = DARK;
-  ctx.fillText(awayTeam, teamX, teamY);
-
-  CY += LOGO_S;
-
-  // Date/time section (marginTop: 8, borderTop, paddingTop: 6)
-  if (config.date) {
-    CY += 8;
-    ctx.strokeStyle = '#eeeeee';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(CX, CY);
-    ctx.lineTo(CARD_X + CARD_W - 20, CY);
-    ctx.stroke();
-    CY += 7;
-
-    ctx.font = 'bold 9px Arial, sans-serif';
-    ctx.fillStyle = '#444444';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(dateStr + (timeStr ? ` · ORE ${timeStr}` : ''), CX, CY);
-    CY += 12;
-
-    ctx.font = '9px Arial, sans-serif';
-    ctx.fillStyle = '#666666';
-    ctx.fillText('STADIO COMUNALE DI SINAGRA', CX, CY);
-  }
+  ctx.fillText(parts.join('    |    '), CX, DATE_Y);
 }
 
 function drawShieldPlaceholder(
