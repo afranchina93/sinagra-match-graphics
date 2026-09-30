@@ -286,6 +286,55 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.closePath();
 }
 
+// ── Header icon helpers ───────────────────────────────────────────────────────
+// Replicano CalendarIcon e LocationIcon di FormationPoster.tsx (SVG 24×24 → size px)
+
+function drawCalendarIcon(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  const s = size / 24;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+  ctx.strokeStyle = '#444444';
+  ctx.lineWidth   = 2;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.fillStyle   = 'none';
+  // Rounded rect body
+  roundedRect(ctx, 3, 4, 18, 18, 2);
+  ctx.stroke();
+  // Tick marks on top
+  ctx.beginPath();
+  ctx.moveTo(16, 2); ctx.lineTo(16, 6);
+  ctx.moveTo(8,  2); ctx.lineTo(8,  6);
+  // Horizontal rule
+  ctx.moveTo(3, 10); ctx.lineTo(21, 10);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawLocationIcon(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  const s = size / 24;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+  ctx.strokeStyle = '#444444';
+  ctx.lineWidth   = 2;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  // Teardrop pin: semi-circle top + two bezier sides to bottom point
+  ctx.beginPath();
+  ctx.arc(12, 10, 9, Math.PI, 0); // upper half
+  ctx.bezierCurveTo(21, 14, 14, 22, 12, 23); // right side to tip
+  ctx.bezierCurveTo(10, 22,  3, 14,  3, 10); // left side back
+  ctx.closePath();
+  ctx.stroke();
+  // Inner circle
+  ctx.beginPath();
+  ctx.arc(12, 10, 3, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // ── Layer 1: Header ───────────────────────────────────────────────────────────
 // Replica esatta di MatchHeader in FormationPoster.tsx:
 // tutto centrato, flex column, gap: 8.
@@ -326,24 +375,25 @@ function drawHeader(
   const TEAMS_CY = SEP_Y + 1 + 10 + LOGO_SIZE / 2; // teams vertical center
   const DATE_Y  = Math.round(SEP_Y + 1 + 10 + LOGO_SIZE + 8); // date text top
 
+  // Reset esplicito letter-spacing (evita eredità da context precedente)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).letterSpacing = '0px';
+
   // ── Row 1: MATCHDAY (red) + matchday number (dark), baseline-aligned ───────
-  ctx.font = '800 48px Impact, "DejaVu Sans", Arial, sans-serif';
+  ctx.font = '900 48px Impact, "DejaVu Sans", Arial, sans-serif';
   ctx.textBaseline = 'top';
   ctx.textAlign   = 'left';
   const mdW = ctx.measureText('MATCHDAY').width;
-  ctx.font = '900 48px Impact, "DejaVu Sans", Arial, sans-serif';
   const numStr = String(config.matchday || '');
   const numW   = numStr ? ctx.measureText(numStr).width : 0;
   const GAP_MD = 14;
   const row1W  = mdW + (numStr ? GAP_MD + numW : 0);
   const row1X  = CX - row1W / 2;
 
-  ctx.font = '800 48px Impact, "DejaVu Sans", Arial, sans-serif';
   ctx.fillStyle = RED;
   ctx.fillText('MATCHDAY', row1X, MD_Y);
 
   if (numStr) {
-    ctx.font = '900 48px Impact, "DejaVu Sans", Arial, sans-serif';
     ctx.fillStyle = DARK;
     ctx.fillText(numStr, row1X + mdW + GAP_MD, MD_Y);
   }
@@ -407,16 +457,39 @@ function drawHeader(
   ctx.textAlign = 'left';
   ctx.fillText(awayTeam, cbLeft + centerBlockW + 10, TEAMS_CY);
 
-  // ── Row 4: date + stadium ─────────────────────────────────────────────────
-  const parts: string[] = [];
-  if (dateStr) parts.push(dateStr + (timeStr ? ` · ${timeStr}` : ''));
-  if (config.stadium) parts.push(config.stadium);
+  // ── Row 4: date + stadium with icons ─────────────────────────────────────
+  // Replica: [CalendarIcon 17px] [dateText]  [gap 24]  [LocationIcon 16px] [stadiumText]
+  const ICON_SIZE = 17;
+  const ICON_GAP  = 7;
+  const ITEM_GAP  = 24;
 
   ctx.font = 'bold 14px Arial, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+
+  const dateText    = (dateStr || 'DATA DA DEFINIRE') + (timeStr ? ` · ${timeStr}` : '');
+  const stadiumText = config.stadium || 'STADIO COMUNALE DI SINAGRA';
+  const dateTextW    = ctx.measureText(dateText).width;
+  const stadiumTextW = ctx.measureText(stadiumText).width;
+
+  const totalW = ICON_SIZE + ICON_GAP + dateTextW + ITEM_GAP + ICON_SIZE + ICON_GAP + stadiumTextW;
+  let ix = CX - totalW / 2;
+  const textMidY = DATE_Y + ICON_SIZE / 2;
+
+  // Calendar icon
+  drawCalendarIcon(ctx, ix, DATE_Y, ICON_SIZE);
+  ix += ICON_SIZE + ICON_GAP;
+
   ctx.fillStyle = '#333333';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(parts.join('    |    '), CX, DATE_Y);
+  ctx.fillText(dateText, ix, textMidY);
+  ix += dateTextW + ITEM_GAP;
+
+  // Location icon
+  drawLocationIcon(ctx, ix, DATE_Y, ICON_SIZE);
+  ix += ICON_SIZE + ICON_GAP;
+
+  ctx.fillStyle = '#333333';
+  ctx.fillText(stadiumText, ix, textMidY);
 }
 
 function drawShieldPlaceholder(
