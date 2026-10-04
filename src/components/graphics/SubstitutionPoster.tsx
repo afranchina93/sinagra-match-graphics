@@ -113,7 +113,7 @@ function teamFontSize(a: string, b: string): number {
 function SubstitutionHeader({ config }: { config: SubstitutionConfig }) {
   const dateStr = formatDate(config.date);
   const timeStr = formatTime(config.date);
-  const opponentInitial = (config.awayTeam || '?')[0].toUpperCase();
+
   const nameFontSize = teamFontSize(config.homeTeam, config.awayTeam);
 
   return (
@@ -161,17 +161,23 @@ function SubstitutionHeader({ config }: { config: SubstitutionConfig }) {
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{config.homeTeam.toUpperCase()}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            {config.homeLogo
-              ? <img src={logoSrc(config.homeLogo)} alt={config.homeTeam} crossOrigin="anonymous"
-                  style={{ width: 64, height: 64, objectFit: 'contain' }} />
-              : <SinagraLogo size={64} />
-            }
+            {config.homeTeam.toUpperCase() === 'SINAGRA' ? (
+              <SinagraLogo size={64} />
+            ) : config.homeLogo ? (
+              <img src={logoSrc(config.homeLogo)} alt={config.homeTeam} crossOrigin="anonymous"
+                style={{ width: 64, height: 64, objectFit: 'contain' }} />
+            ) : (
+              <ShieldPlaceholder initial={(config.homeTeam || '?')[0].toUpperCase()} />
+            )}
             <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
-            {config.awayLogo
-              ? <img src={logoSrc(config.awayLogo)} alt={config.awayTeam} crossOrigin="anonymous"
-                  style={{ width: 64, height: 64, objectFit: 'contain' }} />
-              : <ShieldPlaceholder initial={opponentInitial} />
-            }
+            {config.awayTeam.toUpperCase() === 'SINAGRA' ? (
+              <SinagraLogo size={64} />
+            ) : config.awayLogo ? (
+              <img src={logoSrc(config.awayLogo)} alt={config.awayTeam} crossOrigin="anonymous"
+                style={{ width: 64, height: 64, objectFit: 'contain' }} />
+            ) : (
+              <ShieldPlaceholder initial={(config.awayTeam || '?')[0].toUpperCase()} />
+            )}
           </div>
           <span style={{
             flex: 1, textAlign: 'left',

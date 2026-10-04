@@ -1099,8 +1099,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'failed to load assets' });
     }
 
-    const leftLogoImg  = await loadLogoFromUrl(cfg.homeLogo, sinagraLogo);
-    const rightLogoImg = await loadLogoFromUrl(cfg.awayLogo, null);
+    const leftLogoImg  = cfg.homeTeam.toUpperCase() === 'SINAGRA'
+      ? sinagraLogo : await loadLogoFromUrl(cfg.homeLogo, null);
+    const rightLogoImg = cfg.awayTeam.toUpperCase() === 'SINAGRA'
+      ? sinagraLogo : await loadLogoFromUrl(cfg.awayLogo, null);
 
     const canvas: Canvas = createCanvas(POSTER_W, POSTER_H);
     const ctx = canvas.getContext('2d');
@@ -1141,8 +1143,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'failed to load assets' });
     }
 
-    const leftLogoImg  = await loadLogoFromUrl(cfg.homeLogo, sinagraLogo);
-    const rightLogoImg = await loadLogoFromUrl(cfg.awayLogo, null);
+    const leftLogoImg  = cfg.homeTeam.toUpperCase() === 'SINAGRA'
+      ? sinagraLogo : await loadLogoFromUrl(cfg.homeLogo, null);
+    const rightLogoImg = cfg.awayTeam.toUpperCase() === 'SINAGRA'
+      ? sinagraLogo : await loadLogoFromUrl(cfg.awayLogo, null);
 
     const canvas: Canvas = createCanvas(POSTER_W, POSTER_H);
     const ctx = canvas.getContext('2d');
