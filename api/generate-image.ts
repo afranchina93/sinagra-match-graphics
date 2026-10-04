@@ -692,7 +692,13 @@ function drawBenchPanel(
   numberOverrides?: Record<string, number>,
 ) {
   const playerMap = Object.fromEntries(roster.map(p => [p.id, p]));
-  const benchPlayers = bench.map(id => playerMap[id]).filter(Boolean) as Player[];
+  const benchPlayers = (bench.map(id => playerMap[id]).filter(Boolean) as Player[])
+    .sort((a, b) => {
+      const aGK = a.role === 'goalkeeper' ? 0 : 1;
+      const bGK = b.role === 'goalkeeper' ? 0 : 1;
+      if (aGK !== bGK) return aGK - bGK;
+      return (numberOverrides?.[a.id] ?? a.number) - (numberOverrides?.[b.id] ?? b.number);
+    });
 
   const FP_W    = 1040;
   const FP_SCALE = FP_W / 1965;

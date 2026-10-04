@@ -351,7 +351,13 @@ function CoachIcon() {
 
 function BenchPanel({ bench, roster, coach, duplicateLastNames, numberOverrides }: { bench: string[]; roster: Player[]; coach: string; duplicateLastNames: Set<string>; numberOverrides?: Record<string, number> }) {
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
-  const benchPlayers = bench.map((id) => playerMap[id]).filter(Boolean) as Player[];
+  const benchPlayers = (bench.map((id) => playerMap[id]).filter(Boolean) as Player[])
+    .sort((a, b) => {
+      const aGK = a.role === 'goalkeeper' ? 0 : 1;
+      const bGK = b.role === 'goalkeeper' ? 0 : 1;
+      if (aGK !== bGK) return aGK - bGK;
+      return (numberOverrides?.[a.id] ?? a.number) - (numberOverrides?.[b.id] ?? b.number);
+    });
 
   const perCol = Math.ceil(benchPlayers.length / 3);
   const col1 = benchPlayers.slice(0, perCol);
