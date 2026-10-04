@@ -8,6 +8,9 @@
     "api/generate-distinta.ts": {
       "memory": 1024,
       "maxDuration": 30
+    },
+    "api/publish-facebook.ts": {
+      "maxDuration": 30
     }
   }
 }

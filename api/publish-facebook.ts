@@ -1,5 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '5mb',
+    },
+  },
+};
+
 /**
  * POST /api/publish-facebook
  * Body: { imageBase64: string, caption: string }

@@ -489,7 +489,6 @@ function AppInner() {
   // ── Pubblica su Facebook ──────────────────────────────────────────────────
 
   async function handlePublishFacebook() {
-    if (!confirm('Sei sicuro di voler pubblicare sulla pagina Facebook di Sinagra Calcio?')) return;
     const ref =
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
