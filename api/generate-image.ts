@@ -453,10 +453,20 @@ function drawGenericHeader(
   const centerBlockW = LOGO_SIZE + INNER_GAP + vsW + INNER_GAP + LOGO_SIZE;
   const cbLeft       = CX - centerBlockW / 2;
 
+  // Draw white background circles behind logos so they're visible on any background
+  const logoY = TEAMS_CY - LOGO_SIZE / 2;
+  const logoR = LOGO_SIZE / 2 + 4;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.beginPath(); ctx.arc(cbLeft + LOGO_SIZE / 2, TEAMS_CY, logoR, 0, Math.PI * 2); ctx.fill();
+  const oppLogoX = cbLeft + LOGO_SIZE + INNER_GAP + vsW + INNER_GAP;
+  ctx.beginPath(); ctx.arc(oppLogoX + LOGO_SIZE / 2, TEAMS_CY, logoR, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
   if (leftLogoImg) {
-    ctx.drawImage(leftLogoImg, cbLeft, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, LOGO_SIZE);
+    ctx.drawImage(leftLogoImg, cbLeft, logoY, LOGO_SIZE, LOGO_SIZE);
   } else {
-    drawShieldPlaceholder(ctx, cbLeft, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, (data.homeTeam[0] || '?').toUpperCase());
+    drawShieldPlaceholder(ctx, cbLeft, logoY, LOGO_SIZE, (data.homeTeam[0] || '?').toUpperCase());
   }
 
   ctx.font = '900 28px Impact, "DejaVu Sans", Arial, sans-serif';
@@ -465,11 +475,10 @@ function drawGenericHeader(
   ctx.textBaseline = 'middle';
   ctx.fillText('VS', CX, TEAMS_CY);
 
-  const oppLogoX = cbLeft + LOGO_SIZE + INNER_GAP + vsW + INNER_GAP;
   if (rightLogoImg) {
-    ctx.drawImage(rightLogoImg, oppLogoX, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, LOGO_SIZE);
+    ctx.drawImage(rightLogoImg, oppLogoX, logoY, LOGO_SIZE, LOGO_SIZE);
   } else {
-    drawShieldPlaceholder(ctx, oppLogoX, TEAMS_CY - LOGO_SIZE / 2, LOGO_SIZE, (data.awayTeam[0] || '?').toUpperCase());
+    drawShieldPlaceholder(ctx, oppLogoX, logoY, LOGO_SIZE, (data.awayTeam[0] || '?').toUpperCase());
   }
 
   const namePx = teamFontSize(data.homeTeam, data.awayTeam);
@@ -1104,6 +1113,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rightLogoImg = cfg.awayTeam.toUpperCase() === 'SINAGRA'
       ? sinagraLogo : await loadLogoFromUrl(cfg.awayLogo, null);
 
+    console.error('[result] homeTeam=%s awayTeam=%s leftLogo=%s rightLogo=%s sinagraLoaded=%s', cfg.homeTeam, cfg.awayTeam, !!leftLogoImg, !!rightLogoImg, !!sinagraLogo);
+
     const canvas: Canvas = createCanvas(POSTER_W, POSTER_H);
     const ctx = canvas.getContext('2d');
 
@@ -1147,6 +1158,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? sinagraLogo : await loadLogoFromUrl(cfg.homeLogo, null);
     const rightLogoImg = cfg.awayTeam.toUpperCase() === 'SINAGRA'
       ? sinagraLogo : await loadLogoFromUrl(cfg.awayLogo, null);
+
+    console.error('[substitution] homeTeam=%s awayTeam=%s leftLogo=%s rightLogo=%s sinagraLoaded=%s', cfg.homeTeam, cfg.awayTeam, !!leftLogoImg, !!rightLogoImg, !!sinagraLogo);
 
     const canvas: Canvas = createCanvas(POSTER_W, POSTER_H);
     const ctx = canvas.getContext('2d');
