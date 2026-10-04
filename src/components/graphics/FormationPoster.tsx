@@ -231,17 +231,32 @@ function MatchHeader({ config, homeTeam, awayTeam, dateStr, timeStr }: {
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{homeTeam}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-              <SinagraLogo size={64} />
-              <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
-              {config.opponentLogo ? (
+              {config.isHome ? (
+                <SinagraLogo size={64} />
+              ) : config.opponentLogo ? (
                 <img
-                  src={config.opponentLogo?.startsWith('http') ? config.opponentLogo : `${LOGOS_BASE}/${config.opponentLogo}`}
+                  src={config.opponentLogo.startsWith('http') ? config.opponentLogo : `${LOGOS_BASE}/${config.opponentLogo}`}
                   alt={config.opponent}
                   crossOrigin="anonymous"
                   style={{ width: 64, height: 64, objectFit: 'contain' }}
                 />
               ) : (
                 <ShieldPlaceholder initial={opponentInitial} />
+              )}
+              <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
+              {config.isHome ? (
+                config.opponentLogo ? (
+                  <img
+                    src={config.opponentLogo.startsWith('http') ? config.opponentLogo : `${LOGOS_BASE}/${config.opponentLogo}`}
+                    alt={config.opponent}
+                    crossOrigin="anonymous"
+                    style={{ width: 64, height: 64, objectFit: 'contain' }}
+                  />
+                ) : (
+                  <ShieldPlaceholder initial={opponentInitial} />
+                )
+              ) : (
+                <SinagraLogo size={64} />
               )}
             </div>
             <span style={{

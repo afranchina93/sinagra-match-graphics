@@ -519,14 +519,16 @@ function drawHeader(
   const opponentName = (config.opponent || 'AVVERSARIO').toUpperCase();
   const homeTeam = config.isHome ? 'SINAGRA' : opponentName;
   const awayTeam = config.isHome ? opponentName : 'SINAGRA';
-  // Formation: Sinagra logo always left, opponent always right
+  // Home team logo on left, away team logo on right
+  const leftLogo  = config.isHome ? sinagraLogo : opponentLogo;
+  const rightLogo = config.isHome ? opponentLogo : sinagraLogo;
   drawGenericHeader(ctx, {
     homeTeam, awayTeam,
     date: config.date,
     matchday: config.matchday,
     competition: config.competition,
     stadium: config.stadium,
-  }, sinagraLogo, opponentLogo);
+  }, leftLogo, rightLogo);
 }
 
 function drawShieldPlaceholder(
