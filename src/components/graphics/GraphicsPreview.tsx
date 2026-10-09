@@ -143,8 +143,8 @@ export const GraphicsPreview = forwardRef<HTMLDivElement, GraphicsPreviewProps>(
       .filter(Boolean) as Player[];
 
     const opponentName = matchConfig.opponent || 'AVVERSARIO';
-    const homeTeam = matchConfig.isHome ? 'SINAGRA' : opponentName.toUpperCase();
-    const awayTeam = matchConfig.isHome ? opponentName.toUpperCase() : 'SINAGRA';
+    const homeTeam = matchConfig.isHome ? 'SINAGRA CALCIO' : opponentName.toUpperCase();
+    const awayTeam = matchConfig.isHome ? opponentName.toUpperCase() : 'SINAGRA CALCIO';
     const timeStr = formatTime(matchConfig.date);
     const dateStr = formatDate(matchConfig.date);
 

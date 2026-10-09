@@ -551,8 +551,8 @@ function AppInner() {
         competition,
         date: currentView.match.matchDate ?? '',
         stadium: currentView.match.stadium,
-        homeTeam: currentView.match.isHome ? 'SINAGRA' : (currentView.opponent?.name ?? 'OSPITI'),
-        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA',
+        homeTeam: currentView.match.isHome ? 'SINAGRA CALCIO' : (currentView.opponent?.name ?? 'OSPITI'),
+        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA CALCIO',
         homeLogo: currentView.match.isHome ? undefined : (currentView.opponent?.logoUrl ?? undefined),
         awayLogo: currentView.match.isHome ? (currentView.opponent?.logoUrl ?? undefined) : undefined,
         homeGoals: currentView.match.homeGoals,
@@ -566,7 +566,7 @@ function AppInner() {
       }
     : {
         phase: 'FULL TIME', matchday: '', competition: '', date: '', stadium: '',
-        homeTeam: 'SINAGRA', awayTeam: 'AVVERSARIO',
+        homeTeam: 'SINAGRA CALCIO', awayTeam: 'AVVERSARIO',
         homeGoals: 0, awayGoals: 0, homeScorers: [], awayScorers: [],
       };
 
@@ -582,15 +582,15 @@ function AppInner() {
         competition,
         date: currentView.match.matchDate ?? '',
         stadium: currentView.match.stadium,
-        homeTeam: currentView.match.isHome ? 'SINAGRA' : (currentView.opponent?.name ?? 'OSPITI'),
-        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA',
+        homeTeam: currentView.match.isHome ? 'SINAGRA CALCIO' : (currentView.opponent?.name ?? 'OSPITI'),
+        awayTeam: currentView.match.isHome ? (currentView.opponent?.name ?? 'OSPITI') : 'SINAGRA CALCIO',
         homeLogo: currentView.match.isHome ? undefined : (currentView.opponent?.logoUrl ?? undefined),
         awayLogo: currentView.match.isHome ? (currentView.opponent?.logoUrl ?? undefined) : undefined,
       }
     : {
         minute: '', playerOut: { number: 0, name: '' }, playerIn: { number: 0, name: '' },
         matchday: '', competition: '', date: '', stadium: '',
-        homeTeam: 'SINAGRA', awayTeam: 'AVVERSARIO',
+        homeTeam: 'SINAGRA CALCIO', awayTeam: 'AVVERSARIO',
       };
 
   // ── Tabs ──────────────────────────────────────────────────────────────────

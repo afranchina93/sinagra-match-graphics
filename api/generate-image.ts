@@ -529,8 +529,8 @@ function drawHeader(
   opponentLogo: Image | null,
 ) {
   const opponentName = (config.opponent || 'AVVERSARIO').toUpperCase();
-  const homeTeam = config.isHome ? 'SINAGRA' : opponentName;
-  const awayTeam = config.isHome ? opponentName : 'SINAGRA';
+  const homeTeam = config.isHome ? 'SINAGRA CALCIO' : opponentName;
+  const awayTeam = config.isHome ? opponentName : 'SINAGRA CALCIO';
   // Home team logo on left, away team logo on right
   const leftLogo  = config.isHome ? sinagraLogo : opponentLogo;
   const rightLogo = config.isHome ? opponentLogo : sinagraLogo;
@@ -1122,9 +1122,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'failed to load assets' });
     }
 
-    const leftLogoImg  = cfg.homeTeam.toUpperCase() === 'SINAGRA'
+    const leftLogoImg  = cfg.homeTeam.toUpperCase() === 'SINAGRA CALCIO'
       ? sinagraLogo : await loadLogoFromUrl(cfg.homeLogo, null);
-    const rightLogoImg = cfg.awayTeam.toUpperCase() === 'SINAGRA'
+    const rightLogoImg = cfg.awayTeam.toUpperCase() === 'SINAGRA CALCIO'
       ? sinagraLogo : await loadLogoFromUrl(cfg.awayLogo, null);
 
     console.error('[result] homeTeam=%s awayTeam=%s leftLogo=%s rightLogo=%s sinagraLoaded=%s', cfg.homeTeam, cfg.awayTeam, !!leftLogoImg, !!rightLogoImg, !!sinagraLogo);
@@ -1168,9 +1168,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'failed to load assets' });
     }
 
-    const leftLogoImg  = cfg.homeTeam.toUpperCase() === 'SINAGRA'
+    const leftLogoImg  = cfg.homeTeam.toUpperCase() === 'SINAGRA CALCIO'
       ? sinagraLogo : await loadLogoFromUrl(cfg.homeLogo, null);
-    const rightLogoImg = cfg.awayTeam.toUpperCase() === 'SINAGRA'
+    const rightLogoImg = cfg.awayTeam.toUpperCase() === 'SINAGRA CALCIO'
       ? sinagraLogo : await loadLogoFromUrl(cfg.awayLogo, null);
 
     console.error('[substitution] homeTeam=%s awayTeam=%s leftLogo=%s rightLogo=%s sinagraLoaded=%s', cfg.homeTeam, cfg.awayTeam, !!leftLogoImg, !!rightLogoImg, !!sinagraLogo);

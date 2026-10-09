@@ -156,7 +156,7 @@ function ResultHeader({ config }: { config: ResultConfig }) {
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{config.homeTeam.toUpperCase()}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            {config.homeTeam.toUpperCase() === 'SINAGRA' ? (
+            {config.homeTeam.toUpperCase() === 'SINAGRA CALCIO' ? (
               <SinagraLogo size={64} />
             ) : config.homeLogo ? (
               <img src={logoSrc(config.homeLogo)} alt={config.homeTeam} crossOrigin="anonymous" style={{ width: 64, height: 64, objectFit: 'contain' }} />
@@ -164,7 +164,7 @@ function ResultHeader({ config }: { config: ResultConfig }) {
               <ShieldPlaceholder initial={(config.homeTeam || '?')[0].toUpperCase()} />
             )}
             <span style={{ color: '#C8102E', fontSize: 28, fontWeight: 900, letterSpacing: '0.14em' }}>VS</span>
-            {config.awayTeam.toUpperCase() === 'SINAGRA' ? (
+            {config.awayTeam.toUpperCase() === 'SINAGRA CALCIO' ? (
               <SinagraLogo size={64} />
             ) : config.awayLogo ? (
               <img src={logoSrc(config.awayLogo)} alt={config.awayTeam} crossOrigin="anonymous" style={{ width: 64, height: 64, objectFit: 'contain' }} />

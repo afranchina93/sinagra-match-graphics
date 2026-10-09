@@ -537,8 +537,8 @@ export const FormationPoster = forwardRef<HTMLDivElement, FormationPosterProps>(
     const layout = formationLayouts[matchConfig.formation] ?? formationLayouts['4-3-3'];
 
     const opponentName = matchConfig.opponent || 'AVVERSARIO';
-    const homeTeam = matchConfig.isHome ? 'SINAGRA' : opponentName.toUpperCase();
-    const awayTeam = matchConfig.isHome ? opponentName.toUpperCase() : 'SINAGRA';
+    const homeTeam = matchConfig.isHome ? 'SINAGRA CALCIO' : opponentName.toUpperCase();
+    const awayTeam = matchConfig.isHome ? opponentName.toUpperCase() : 'SINAGRA CALCIO';
 
     // Calcola cognomi duplicati tra tutti i giocatori in lineup (titolari + panchina)
     const allLineupIds = [
