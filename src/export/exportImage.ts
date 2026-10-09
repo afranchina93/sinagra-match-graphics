@@ -45,6 +45,13 @@ async function preinlineImages(element: HTMLElement): Promise<() => void> {
       const dataUrl = await blobToDataUrl(blob);
       originals.set(img, src);
       img.setAttribute('src', dataUrl);
+      // Aspetta che il browser decodifichi la nuova src prima di procedere
+      if (!img.complete) {
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+      }
     } catch {
       // lascia src originale se il fetch fallisce
     }
