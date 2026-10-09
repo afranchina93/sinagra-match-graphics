@@ -39,7 +39,7 @@ import {
   loadClubConfig, saveClubConfig,
   loadStaff, upsertStaff, deleteStaff,
 } from './storage/db';
-import { exportAsPng, exportAsBase64, exportAsDistintaPdf, extendToStory } from './export/exportImage';
+import { exportAsPng, exportAsBase64, exportAsDistintaPdf } from './export/exportImage';
 import { supabase } from './storage/supabaseClient';
 
 type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta' | 'scout';
@@ -416,8 +416,7 @@ function AppInner() {
     if (!ref.current) return;
     setPublishingIG(true);
     try {
-      const base64Raw = await exportAsBase64(ref.current);
-      const base64 = await extendToStory(base64Raw);
+      const base64 = await exportAsBase64(ref.current);
       const res = await fetch('/api/publish-instagram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

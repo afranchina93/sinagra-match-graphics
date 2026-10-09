@@ -13,7 +13,8 @@
       "maxDuration": 30
     },
     "api/publish-instagram.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "memory": 512
     }
   }
 }

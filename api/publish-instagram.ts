@@ -1,14 +1,40 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 /**
  * POST /api/publish-instagram
  * Body: { imageBase64: string }
  *
- * 1. Carica l'immagine su Supabase Storage (bucket pubblico temp-posters)
- * 2. Crea un media container Instagram (STORIES)
- * 3. Pubblica la storia
- * 4. Elimina l'immagine da Supabase
+ * 1. Estende il poster 1080×1350 a 1080×1920 (Stories 9:16) centrando su sfondo nero
+ * 2. Carica su Supabase Storage (bucket pubblico temp-posters)
+ * 3. Crea un media container Instagram (STORIES)
+ * 4. Polling status_code fino a FINISHED
+ * 5. Pubblica la storia
+ * 6. Elimina l'immagine da Supabase
  */
+
+const STORY_W  = 1080;
+const STORY_H  = 1920;
+const POSTER_H = 1350;
+
+async function extendToStory(base64Data: string): Promise<Buffer> {
+  const posterBuf = Buffer.from(base64Data, 'base64');
+  const posterImg = await loadImage(posterBuf);
+
+  const canvas = createCanvas(STORY_W, STORY_H);
+  const ctx = canvas.getContext('2d');
+
+  // Sfondo nero
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, STORY_W, STORY_H);
+
+  // Poster centrato verticalmente
+  const yOffset = Math.round((STORY_H - POSTER_H) / 2);
+  ctx.drawImage(posterImg, 0, yOffset, STORY_W, POSTER_H);
+
+  return canvas.toBuffer('image/jpeg', 92);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -28,21 +54,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Credenziali mancanti' });
   }
 
-  const filename = `story-${Date.now()}.png`;
   const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-  const buffer = Buffer.from(base64Data, 'base64');
 
-  // 1. Upload su Supabase Storage
+  // 1. Estendi a 1080×1920
+  const storyBuffer = await extendToStory(base64Data);
+
+  const filename = `story-${Date.now()}.jpg`;
+
+  // 2. Upload su Supabase Storage
   const uploadRes = await fetch(
     `${SUPABASE_URL}/storage/v1/object/temp-posters/${filename}`,
     {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${SERVICE_KEY}`,
-        'Content-Type': 'image/png',
+        'Content-Type': 'image/jpeg',
         'x-upsert': 'true',
       },
-      body: buffer,
+      body: storyBuffer,
     }
   );
 
@@ -54,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/temp-posters/${filename}`;
 
   try {
-    // 2. Crea media container Instagram Stories
+    // 3. Crea media container Instagram Stories
     const containerRes = await fetch(
       `https://graph.facebook.com/v21.0/${IG_ACCOUNT_ID}/media`,
       {
@@ -76,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // 3. Polling: aspetta che il container sia FINISHED prima di pubblicare
+    // 4. Polling: aspetta che il container sia FINISHED prima di pubblicare
     let statusCode = 'IN_PROGRESS';
     for (let attempt = 0; attempt < 15; attempt++) {
       await new Promise(r => setTimeout(r, 2000));
@@ -96,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // 4. Pubblica la storia
+    // 5. Pubblica la storia
     const publishRes = await fetch(
       `https://graph.facebook.com/v21.0/${IG_ACCOUNT_ID}/media_publish`,
       {
@@ -119,7 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ success: true, mediaId: publishData.id });
   } finally {
-    // 4. Elimina l'immagine temporanea da Supabase
+    // 6. Elimina l'immagine temporanea da Supabase
     await fetch(
       `${SUPABASE_URL}/storage/v1/object/temp-posters/${filename}`,
       {
