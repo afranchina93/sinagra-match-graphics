@@ -441,8 +441,8 @@ function AppInner() {
   useEffect(() => {
     if (!currentView) return;
     const opponentName = currentView.opponent?.name ?? 'Avversario';
-    const home = currentView.match.isHome ? 'Sinagra' : opponentName;
-    const away = currentView.match.isHome ? opponentName : 'Sinagra';
+    const home = currentView.match.isHome ? 'Sinagra Calcio' : opponentName;
+    const away = currentView.match.isHome ? opponentName : 'Sinagra Calcio';
 
     const fullName = (id?: string, fallback = '') => {
       if (!id) return fallback.toUpperCase();
