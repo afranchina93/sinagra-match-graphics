@@ -299,7 +299,7 @@ export function DistintaSheet({ match, view, players, competition, opponentName,
         </thead>
         <tbody>
           {(() => {
-            const { label, value } = staffInfo('Doc. Identità', cc.dirigente.docIdentity, undefined);
+            const { label, value } = staffInfo('Matricola', cc.dirigente.matricola, cc.dirigente.docIdentity);
             return (
               <tr>
                 <td style={labelCell()}>Dirigente Accompagnatore</td>
@@ -313,7 +313,7 @@ export function DistintaSheet({ match, view, players, competition, opponentName,
             const { label, value } = staffInfo('Tessera Imp. FIGC n°', cc.direttoreGara.tesseraFIGC, cc.direttoreGara.docIdentity);
             return (
               <tr>
-                <td style={labelCell()}>Dirigente Addetto Gara</td>
+                <td style={labelCell()}>Preparatore dei Portieri</td>
                 <td style={cell({ fontWeight: 'bold', textTransform: 'uppercase' })}>{cc.direttoreGara.name ?? ''}</td>
                 <td style={labelCell()}>{label || 'Tessera Imp. FIGC n°'}</td>
                 <td style={cell()}>

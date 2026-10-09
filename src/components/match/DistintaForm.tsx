@@ -77,6 +77,17 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
     onChange({ ...match, distintaMarkers: updated });
   }
 
+  function setNumberOverride(playerId: string, value: string) {
+    const num = parseInt(value);
+    const updated = { ...overrides };
+    if (isNaN(num) || value === '') {
+      delete updated[playerId];
+    } else {
+      updated[playerId] = num;
+    }
+    onChange({ ...match, numberOverrides: updated });
+  }
+
   const overrides = match.numberOverrides ?? {};
   const starterIds = Object.values(view.starters).filter(Boolean);
   const benchIds = view.bench.filter(Boolean);
@@ -124,7 +135,14 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                   const marker = markers[id];
                   return (
                     <div key={id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-app-surface transition-colors">
-                      <span className="text-[12px] font-bold text-app-signal w-5">{displayNumber(id, p)}</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={99}
+                        value={displayNumber(id, p)}
+                        onChange={e => setNumberOverride(id, e.target.value)}
+                        className="w-10 text-center text-[12px] font-bold text-app-signal bg-app-surface border border-white/10 rounded-md py-0.5 focus:outline-none focus:border-app-signal/60"
+                      />
                       <span className="text-[13px] text-app-text flex-1 truncate">
                         {p.lastName} {p.firstName}
                       </span>
@@ -160,7 +178,14 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                   const marker = markers[id];
                   return (
                     <div key={id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-app-surface transition-colors">
-                      <span className="text-[12px] font-bold text-app-muted w-5">{displayNumber(id, p)}</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={99}
+                        value={displayNumber(id, p)}
+                        onChange={e => setNumberOverride(id, e.target.value)}
+                        className="w-10 text-center text-[12px] font-bold text-app-muted bg-app-surface border border-white/10 rounded-md py-0.5 focus:outline-none focus:border-app-signal/60"
+                      />
                       <span className="text-[13px] text-app-text/70 flex-1 truncate">
                         {p.lastName} {p.firstName}
                       </span>
@@ -224,13 +249,13 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
             <StaffField label="Dirigente accompagnatore"
               staff={staff}
               name={clubConfig.dirigente.name ?? ''}
-              extra={clubConfig.dirigente.docIdentity} extraLabel="Doc. identità"
+              extra={clubConfig.dirigente.matricola} extraLabel="Matricola"
               onName={v => setCC(c => ({ ...c, dirigente: { ...c.dirigente, name: v } }))}
-              onExtra={v => setCC(c => ({ ...c, dirigente: { ...c.dirigente, docIdentity: v } }))}
-              onSelectStaff={p => setCC(c => ({ ...c, dirigente: { name: `${p.lastName} ${p.firstName}`.trim(), docIdentity: p.docIdentity ?? c.dirigente.docIdentity } }))}
+              onExtra={v => setCC(c => ({ ...c, dirigente: { ...c.dirigente, matricola: v } }))}
+              onSelectStaff={p => setCC(c => ({ ...c, dirigente: { name: `${p.lastName} ${p.firstName}`.trim(), matricola: p.matricola ?? c.dirigente.matricola, docIdentity: p.docIdentity ?? c.dirigente.docIdentity } }))}
             />
 
-            <StaffField label="Dirigente addetto gara"
+            <StaffField label="Preparatore dei Portieri"
               staff={staff}
               name={clubConfig.direttoreGara.name ?? ''}
               extra={clubConfig.direttoreGara.tesseraFIGC} extraLabel="Tessera Imp. FIGC n°"
