@@ -463,15 +463,8 @@ function drawGenericHeader(
   const centerBlockW = LOGO_SIZE + INNER_GAP + vsW + INNER_GAP + LOGO_SIZE;
   const cbLeft       = CX - centerBlockW / 2;
 
-  // Draw white background circles behind logos so they're visible on any background
   const logoY = TEAMS_CY - LOGO_SIZE / 2;
-  const logoR = LOGO_SIZE / 2 + 4;
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.92)';
-  ctx.beginPath(); ctx.arc(cbLeft + LOGO_SIZE / 2, TEAMS_CY, logoR, 0, Math.PI * 2); ctx.fill();
   const oppLogoX = cbLeft + LOGO_SIZE + INNER_GAP + vsW + INNER_GAP;
-  ctx.beginPath(); ctx.arc(oppLogoX + LOGO_SIZE / 2, TEAMS_CY, logoR, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
 
   if (leftLogoImg) {
     ctx.drawImage(leftLogoImg, cbLeft, logoY, LOGO_SIZE, LOGO_SIZE);
