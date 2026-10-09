@@ -44,11 +44,12 @@ const NOTE_LABELS: { value: ScorerNote; label: string }[] = [
 ];
 
 function GoalsList({
-  title, side, matchId, goals, onGoalsChange, players, numberOverrides,
+  title, side, matchId, match, goals, onGoalsChange, players, numberOverrides,
 }: {
   title: string;
   side: 'home' | 'away';
   matchId: string;
+  match?: Match;
   goals: MatchGoal[];
   onGoalsChange: (goals: MatchGoal[]) => void;
   players?: Player[];
@@ -60,7 +61,8 @@ function GoalsList({
   const [note, setNote] = useState<ScorerNote | ''>('');
 
   const sideGoals = goals.filter(g => g.side === side);
-  const useRoster = !!players && players.length > 0 && side === 'home';
+  const sinagraSide = match?.isHome ? 'home' : 'away';
+  const useRoster = !!players && players.length > 0 && side === sinagraSide;
   const sortedPlayers = useRoster ? [...players].sort((a, b) => a.number - b.number) : [];
 
   function add() {
@@ -234,6 +236,7 @@ export function ResultForm({ match, goals, phase, onPhaseChange, onChange, onGoa
         title="Marcatori casa"
         side="home"
         matchId={match.id}
+        match={match}
         goals={goals}
         onGoalsChange={onGoalsChange}
         players={players}
@@ -244,8 +247,11 @@ export function ResultForm({ match, goals, phase, onPhaseChange, onChange, onGoa
         title="Marcatori ospiti"
         side="away"
         matchId={match.id}
+        match={match}
         goals={goals}
         onGoalsChange={onGoalsChange}
+        players={players}
+        numberOverrides={match.numberOverrides}
       />
 
       <p className="text-[11px] text-app-dim text-center">
