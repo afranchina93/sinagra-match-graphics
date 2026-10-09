@@ -86,8 +86,8 @@ function PlayerRow({ player, marker, index, numberOverride }: PlayerRowProps) {
       </td>
       <td style={rowCell({ textAlign: 'center', fontWeight: 'bold' })}>{marker ?? ''}</td>
       <td style={rowCell({ textAlign: 'center' })}>{player.matricola ?? ''}</td>
-      <td style={rowCell()}></td>
-      <td style={rowCell()}></td>
+      <td style={rowCell({ textAlign: 'center' })}>{!player.matricola ? (player.docType ?? '') : ''}</td>
+      <td style={rowCell()}>{!player.matricola ? (player.docIdentity ?? '') : ''}</td>
       <td style={rowCell()}></td>
     </tr>
   );

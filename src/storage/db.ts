@@ -26,6 +26,7 @@ export async function upsertPlayer(
     active: player.active ?? true,
     date_of_birth: player.dateOfBirth ?? null,
     matricola: player.matricola ?? null,
+    doc_type: player.docType ?? null,
     doc_identity: player.docIdentity ?? null,
     poster_name: player.posterName ?? null,
   };
@@ -421,6 +422,7 @@ function dbToPlayer(r: Record<string, unknown>): Player {
     active: r.active as boolean,
     dateOfBirth: (r.date_of_birth as string) ?? undefined,
     matricola: (r.matricola as string) ?? undefined,
+    docType: (r.doc_type as string) ?? undefined,
     docIdentity: (r.doc_identity as string) ?? undefined,
     posterName: (r.poster_name as string) ?? undefined,
   };

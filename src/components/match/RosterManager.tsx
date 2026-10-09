@@ -59,6 +59,7 @@ interface PlayerForm {
   role: PlayerRole;
   dateOfBirth: string;
   matricola: string;
+  docType: string;
   docIdentity: string;
   posterName: string;
 }
@@ -76,7 +77,7 @@ interface StaffForm {
 
 const EMPTY_PLAYER: PlayerForm = {
   number: '', firstName: '', lastName: '', role: 'midfielder',
-  dateOfBirth: '', matricola: '', docIdentity: '', posterName: '',
+  dateOfBirth: '', matricola: '', docType: '', docIdentity: '', posterName: '',
 };
 
 const EMPTY_STAFF: StaffForm = {
@@ -93,6 +94,7 @@ function playerToForm(p: Player): PlayerForm {
     role: p.role,
     dateOfBirth: p.dateOfBirth ?? '',
     matricola: p.matricola ?? '',
+    docType: p.docType ?? '',
     docIdentity: p.docIdentity ?? '',
     posterName: p.posterName ?? '',
   };
@@ -164,10 +166,20 @@ function PlayerFormPanel({
             value={form.matricola} onChange={e => set('matricola', e.target.value)} />
         </div>
       </div>
-      <div>
-        <label className={labelCls}>Doc. identità</label>
-        <input className={inputCls + ' w-full'} type="text" placeholder="n° documento"
-          value={form.docIdentity} onChange={e => set('docIdentity', e.target.value)} />
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelCls}>Tipo documento</label>
+          <select className={inputCls + ' w-full'} value={form.docType} onChange={e => set('docType', e.target.value)}>
+            <option value="">— nessuno —</option>
+            <option value="C.I.">C.I.</option>
+            <option value="Passaporto">Passaporto</option>
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>N° documento</label>
+          <input className={inputCls + ' w-full'} type="text" placeholder="n° documento"
+            value={form.docIdentity} onChange={e => set('docIdentity', e.target.value)} />
+        </div>
       </div>
       <div>
         <label className={labelCls}>Nome poster (lascia vuoto per automatico)</label>
@@ -428,6 +440,7 @@ export function RosterManager({ players, staff, onUpsertPlayer, onDeletePlayer, 
         active: true,
         dateOfBirth: playerForm.dateOfBirth || undefined,
         matricola: playerForm.matricola || undefined,
+        docType: playerForm.docType || undefined,
         docIdentity: playerForm.docIdentity || undefined,
         posterName: playerForm.posterName || undefined,
       });

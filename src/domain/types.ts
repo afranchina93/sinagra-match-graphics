@@ -17,6 +17,7 @@ export interface Player {
   active: boolean;
   dateOfBirth?: string;   // "DD/MM/YY"
   matricola?: string;     // es. "2392563"
+  docType?: string;       // es. "C.I." | "Passaporto"
   docIdentity?: string;
   posterName?: string;    // nome visualizzato nei poster (es. "DI PANE")
 }
