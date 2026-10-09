@@ -1,32 +1,21 @@
 import { toJpeg } from 'html-to-image';
-import type { Player, MatchConfig, Lineup, ResultConfig, SubstitutionConfig } from '../domain/types';
 
 const JPEG_OPTIONS = {
   width: 1080,
   height: 1350,
   pixelRatio: 1,
   quality: 0.92,
-  cacheBust: true,
+  cacheBust: false, // disabilitato: usiamo pre-inline manuale
 };
 
 export interface FormationExportData {
-  roster: Player[];
-  matchConfig: MatchConfig;
-  lineup: Lineup;
+  roster: never[];
+  matchConfig: never;
+  lineup: never;
   numberOverrides?: Record<string, number>;
 }
 
-export interface ResultExportData {
-  type: 'result';
-  resultConfig: ResultConfig;
-}
-
-export interface SubstitutionExportData {
-  type: 'substitution';
-  substitutionConfig: SubstitutionConfig;
-}
-
-export type PosterExportData = FormationExportData | ResultExportData | SubstitutionExportData;
+export type PosterExportData = FormationExportData;
 
 async function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise<string>((resolve, reject) => {
@@ -37,6 +26,36 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+/**
+ * Sostituisce temporaneamente tutti gli src delle <img> con data URL base64,
+ * per evitare che html-to-image ri-fetchi le immagini (cosa che su iOS Safari
+ * taint la canvas anche per immagini same-origin).
+ * Restituisce una funzione che ripristina gli src originali.
+ */
+async function preinlineImages(element: HTMLElement): Promise<() => void> {
+  const imgs = Array.from(element.querySelectorAll('img')) as HTMLImageElement[];
+  const originals = new Map<HTMLImageElement, string>();
+
+  await Promise.allSettled(imgs.map(async (img) => {
+    const src = img.getAttribute('src');
+    if (!src || src.startsWith('data:')) return;
+    try {
+      const res = await fetch(src, { mode: 'cors', credentials: 'same-origin' });
+      const blob = await res.blob();
+      const dataUrl = await blobToDataUrl(blob);
+      originals.set(img, src);
+      img.setAttribute('src', dataUrl);
+    } catch {
+      // lascia src originale se il fetch fallisce
+    }
+  }));
+
+  return () => {
+    for (const [img, src] of originals) {
+      img.setAttribute('src', src);
+    }
+  };
+}
 
 function triggerDownload(dataUrl: string, filename: string): void {
   const link = document.createElement('a');
@@ -50,11 +69,16 @@ export async function exportAsPng(
   filename = 'formazione.jpg',
 ): Promise<void> {
   if (!element) throw new Error('Elemento poster non disponibile');
-  const jpeg = await toJpeg(element, JPEG_OPTIONS);
-  triggerDownload(jpeg, filename);
+  const restore = await preinlineImages(element);
+  try {
+    const jpeg = await toJpeg(element, JPEG_OPTIONS);
+    triggerDownload(jpeg, filename);
+  } finally {
+    restore();
+  }
 }
 
-async function inlineImages(element: HTMLElement): Promise<string> {
+async function inlineImagesForPdf(element: HTMLElement): Promise<string> {
   const clone = element.cloneNode(true) as HTMLElement;
   const imgs = Array.from(clone.querySelectorAll('img'));
   await Promise.all(imgs.map(async (img) => {
@@ -75,7 +99,7 @@ export async function exportAsDistintaPdf(
   sheetElement: HTMLElement,
   filename = 'distinta.pdf',
 ): Promise<void> {
-  const html = await inlineImages(sheetElement);
+  const html = await inlineImagesForPdf(sheetElement);
   const res = await fetch('/api/generate-distinta', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -92,6 +116,10 @@ export async function exportAsBase64(
   element: HTMLElement | null,
 ): Promise<string> {
   if (!element) throw new Error('Elemento poster non disponibile');
-  return toJpeg(element, JPEG_OPTIONS);
+  const restore = await preinlineImages(element);
+  try {
+    return await toJpeg(element, JPEG_OPTIONS);
+  } finally {
+    restore();
+  }
 }
-
