@@ -71,12 +71,18 @@ function triggerDownload(dataUrl: string, filename: string): void {
   link.click();
 }
 
+/** Aspetta che il browser abbia dipinto almeno due frame (repaint garantito). */
+function waitForRepaint(): Promise<void> {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+}
+
 export async function exportAsPng(
   element: HTMLElement | null,
   filename = 'formazione.jpg',
 ): Promise<void> {
   if (!element) throw new Error('Elemento poster non disponibile');
   const restore = await preinlineImages(element);
+  await waitForRepaint();
   try {
     const jpeg = await toJpeg(element, JPEG_OPTIONS);
     triggerDownload(jpeg, filename);
@@ -124,6 +130,7 @@ export async function exportAsBase64(
 ): Promise<string> {
   if (!element) throw new Error('Elemento poster non disponibile');
   const restore = await preinlineImages(element);
+  await waitForRepaint();
   try {
     return await toJpeg(element, JPEG_OPTIONS);
   } finally {
