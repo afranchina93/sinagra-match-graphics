@@ -130,3 +130,36 @@ export async function exportAsBase64(
     restore();
   }
 }
+
+/**
+ * Estende un'immagine 1080×1350 a 1080×1920 (formato Stories 9:16),
+ * centrando il poster verticalmente su sfondo nero.
+ */
+export function extendToStory(dataUrl: string): Promise<string> {
+  const STORY_W = 1080;
+  const STORY_H = 1920;
+  const POSTER_H = 1350;
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = STORY_W;
+      canvas.height = STORY_H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas non disponibile')); return; }
+
+      // Sfondo nero
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, STORY_W, STORY_H);
+
+      // Poster centrato verticalmente
+      const yOffset = Math.round((STORY_H - POSTER_H) / 2);
+      ctx.drawImage(img, 0, yOffset, STORY_W, POSTER_H);
+
+      resolve(canvas.toDataURL('image/jpeg', 0.92));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
