@@ -28,10 +28,6 @@ export interface SubstitutionExportData {
 
 export type PosterExportData = FormationExportData | ResultExportData | SubstitutionExportData;
 
-function isIOS(): boolean {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
-}
-
 async function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -39,17 +35,6 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
-}
-
-async function renderViaServer(data: PosterExportData): Promise<string> {
-  const res = await fetch('/api/generate-image', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error(`Server error: ${res.status}`);
-  const blob = await res.blob();
-  return blobToDataUrl(blob);
 }
 
 

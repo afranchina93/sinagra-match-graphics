@@ -39,7 +39,7 @@ import {
   loadClubConfig, saveClubConfig,
   loadStaff, upsertStaff, deleteStaff,
 } from './storage/db';
-import { exportAsPng, exportAsBase64, exportAsDistintaPdf, type FormationExportData, type PosterExportData } from './export/exportImage';
+import { exportAsPng, exportAsBase64, exportAsDistintaPdf } from './export/exportImage';
 import { supabase } from './storage/supabaseClient';
 
 type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta' | 'scout';
@@ -381,16 +381,6 @@ function AppInner() {
   }, []);
 
   // ── Export ────────────────────────────────────────────────────────────────
-
-  function formationServerData(): FormationExportData {
-    return { roster: activeRoster, matchConfig: posterMatchConfig, lineup: posterLineup, numberOverrides: currentView?.match.numberOverrides };
-  }
-
-  function posterServerData(): PosterExportData {
-    if (tab === 'result')       return { type: 'result',       resultConfig: posterResultConfig };
-    if (tab === 'substitution') return { type: 'substitution', substitutionConfig: posterSubstitutionConfig };
-    return formationServerData();
-  }
 
   async function handleExport() {
     const ref =
