@@ -11,6 +11,9 @@
     },
     "api/publish-facebook.ts": {
       "maxDuration": 30
+    },
+    "api/publish-instagram.ts": {
+      "maxDuration": 60
     }
   }
 }

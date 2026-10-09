@@ -76,7 +76,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // 3. Pubblica la storia
+    // 3. Polling: aspetta che il container sia FINISHED prima di pubblicare
+    let statusCode = 'IN_PROGRESS';
+    for (let attempt = 0; attempt < 15; attempt++) {
+      await new Promise(r => setTimeout(r, 2000));
+      const statusRes = await fetch(
+        `https://graph.facebook.com/v21.0/${containerData.id}?fields=status_code&access_token=${PAGE_TOKEN}`
+      );
+      const statusData = await statusRes.json() as { status_code?: string };
+      statusCode = statusData.status_code ?? 'IN_PROGRESS';
+      if (statusCode === 'FINISHED') break;
+      if (statusCode === 'ERROR' || statusCode === 'EXPIRED') break;
+    }
+
+    if (statusCode !== 'FINISHED') {
+      return res.status(502).json({
+        error: 'Errore elaborazione media Instagram',
+        detail: `Status: ${statusCode}`,
+      });
+    }
+
+    // 4. Pubblica la storia
     const publishRes = await fetch(
       `https://graph.facebook.com/v21.0/${IG_ACCOUNT_ID}/media_publish`,
       {
