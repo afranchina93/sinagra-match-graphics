@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppIcon } from '../ui/AppIcon';
 import type { Player, Match, MatchView, StaffPerson } from '../../domain/types';
 import type { ClubConfig } from '../../domain/distinta';
@@ -21,6 +21,23 @@ const selectCls =
   'bg-app-surface border border-white/10 text-app-muted text-[12px] rounded-md px-2.5 py-2 focus:outline-none focus:border-app-signal/60 transition-colors w-full';
 
 type Marker = 'K' | 'VK';
+
+function NumberInput({ value, onChange, className }: { value: number; onChange: (v: string) => void; className: string }) {
+  const [local, setLocal] = useState(String(value));
+  useEffect(() => { setLocal(String(value)); }, [value]);
+  return (
+    <input
+      type="number"
+      min={1}
+      max={99}
+      value={local}
+      onChange={e => setLocal(e.target.value)}
+      onBlur={e => onChange(e.target.value)}
+      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      className={className}
+    />
+  );
+}
 
 function StaffField({
   label, name, extra, extraLabel, staff,
@@ -135,12 +152,9 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                   const marker = markers[id];
                   return (
                     <div key={id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-app-surface transition-colors">
-                      <input
-                        type="number"
-                        min={1}
-                        max={99}
+                      <NumberInput
                         value={displayNumber(id, p)}
-                        onChange={e => setNumberOverride(id, e.target.value)}
+                        onChange={v => setNumberOverride(id, v)}
                         className="w-10 text-center text-[12px] font-bold text-app-signal bg-app-surface border border-white/10 rounded-md py-0.5 focus:outline-none focus:border-app-signal/60"
                       />
                       <span className="text-[13px] text-app-text flex-1 truncate">
@@ -184,7 +198,7 @@ export function DistintaForm({ match, view, players, staff, clubConfig, onChange
                         max={99}
                         value={displayNumber(id, p)}
                         onChange={e => setNumberOverride(id, e.target.value)}
-                        className="w-10 text-center text-[12px] font-bold text-app-muted bg-app-surface border border-white/10 rounded-md py-0.5 focus:outline-none focus:border-app-signal/60"
+                        className="w-10 text-center text-[12px] font-bold text-app-muted bg-app-surface border border-white/10 rounded-md py-0.5 focus:outline-none focus:border-app-signal/60 [appearance:textfield]"
                       />
                       <span className="text-[13px] text-app-text/70 flex-1 truncate">
                         {p.lastName} {p.firstName}
