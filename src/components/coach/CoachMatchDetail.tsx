@@ -3,6 +3,7 @@ import { AppIcon } from '../ui/AppIcon';
 import type { Player, MatchView, PlayerMatchStat } from '../../domain/types';
 import { loadMatchView, loadMatchScout } from '../../storage/db';
 import { PitchView } from './PitchView';
+import { parseLocalDate } from '../../utils/date';
 
 interface CoachMatchDetailProps {
   matchId: string;
@@ -12,7 +13,7 @@ interface CoachMatchDetailProps {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 

@@ -3,6 +3,7 @@ import type { Player, MatchConfig, Lineup } from '../../domain/types';
 import { formationLayouts } from '../../domain/formations';
 import { SinagraLogo } from './SinagraLogo';
 import { FootballField } from './FootballField';
+import { parseLocalDate } from '../../utils/date';
 
 interface GraphicsPreviewProps {
   roster: Player[];
@@ -14,7 +15,7 @@ interface GraphicsPreviewProps {
 function formatDate(dateStr: string): string {
   if (!dateStr) return 'DOMENICA';
   try {
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return d
       .toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
       .toUpperCase();
@@ -26,7 +27,7 @@ function formatDate(dateStr: string): string {
 function formatTime(dateStr: string): string {
   if (!dateStr) return '';
   try {
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
   } catch {
     return '';

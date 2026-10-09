@@ -1,5 +1,6 @@
 import { AppIcon } from '../ui/AppIcon';
 import type { Match, Team, Competition } from '../../domain/types';
+import { parseLocalDate } from '../../utils/date';
 
 interface MatchListProps {
   matches: Match[];
@@ -14,7 +15,7 @@ interface MatchListProps {
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Data da definire';
   try {
-    return new Date(dateStr).toLocaleDateString('it-IT', {
+    return parseLocalDate(dateStr).toLocaleDateString('it-IT', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

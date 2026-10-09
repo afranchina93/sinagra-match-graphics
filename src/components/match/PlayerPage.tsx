@@ -3,6 +3,7 @@ import { AppIcon } from '../ui/AppIcon';
 import type { Player, PlayerStats, PlayerMatchHistoryRow } from '../../domain/types';
 import { loadPlayerStats, loadPlayerMatchHistory } from '../../storage/db';
 import { formationLayouts } from '../../domain/formations';
+import { parseLocalDate } from '../../utils/date';
 
 interface PlayerPageProps {
   player: Player;
@@ -47,7 +48,7 @@ function slotRole(slotId: string | null, formation: string): string {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
 }
 

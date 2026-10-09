@@ -16,13 +16,14 @@ import { forwardRef, useState } from 'react';
 import type { SubstitutionConfig } from '../../domain/types';
 import { POSTER_W, POSTER_H, LOGOS_BASE, POSTER_ASSETS } from '../../poster-config';
 import { SinagraLogo } from './SinagraLogo';
+import { parseLocalDate } from '../../utils/date';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   try {
-    return new Date(dateStr)
+    return parseLocalDate(dateStr)
       .toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
       .toUpperCase();
   } catch { return dateStr; }
@@ -31,7 +32,7 @@ function formatDate(dateStr: string): string {
 function formatTime(dateStr: string): string {
   if (!dateStr) return '';
   try {
-    return new Date(dateStr).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    return parseLocalDate(dateStr).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
   } catch { return ''; }
 }
 

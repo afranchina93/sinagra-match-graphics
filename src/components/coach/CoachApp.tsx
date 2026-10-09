@@ -5,12 +5,13 @@ import { RosterManager } from '../match/RosterManager';
 import { PlayerPage } from '../match/PlayerPage';
 import { CoachMatchDetail } from './CoachMatchDetail';
 import { supabase } from '../../storage/supabaseClient';
+import { parseLocalDate } from '../../utils/date';
 
 type MainTab = 'rosa' | 'partite';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 

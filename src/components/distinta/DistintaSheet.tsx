@@ -1,6 +1,7 @@
 import type { Player, Match, MatchView } from '../../domain/types';
 import type { ClubConfig } from '../../domain/distinta';
 import { SinagraLogo } from '../graphics/SinagraLogo';
+import { parseLocalDate } from '../../utils/date';
 
 interface DistintaSheetProps {
   match: Match;
@@ -55,7 +56,7 @@ function dob(player: Player): { g: string; m: string; a: string } {
 
 function formatDate(isoDate: string | null): string {
   if (!isoDate) return '';
-  const d = new Date(isoDate);
+  const d = parseLocalDate(isoDate);
   if (isNaN(d.getTime())) return isoDate;
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
