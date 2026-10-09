@@ -63,13 +63,7 @@ function triggerDownload(dataUrl: string, filename: string): void {
 export async function exportAsPng(
   element: HTMLElement | null,
   filename = 'formazione.jpg',
-  serverData?: PosterExportData,
 ): Promise<void> {
-  if (isIOS() && serverData) {
-    const dataUrl = await renderViaServer(serverData);
-    triggerDownload(dataUrl, filename);
-    return;
-  }
   if (!element) throw new Error('Elemento poster non disponibile');
   const jpeg = await toJpeg(element, JPEG_OPTIONS);
   triggerDownload(jpeg, filename);
@@ -111,11 +105,7 @@ export async function exportAsDistintaPdf(
 
 export async function exportAsBase64(
   element: HTMLElement | null,
-  serverData?: PosterExportData,
 ): Promise<string> {
-  if (isIOS() && serverData) {
-    return renderViaServer(serverData);
-  }
   if (!element) throw new Error('Elemento poster non disponibile');
   return toJpeg(element, JPEG_OPTIONS);
 }

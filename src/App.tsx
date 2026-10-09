@@ -397,8 +397,7 @@ function AppInner() {
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
       previewRef;
-    const serverData = posterServerData();
-    if (!ref.current && !serverData) return;
+    if (!ref.current) return;
     setExporting(true);
     try {
       const opponent = currentView?.opponent?.name || 'avversario';
@@ -407,7 +406,7 @@ function AppInner() {
         tab === 'result'       ? `sinagra-risultato-vs-${slug}.jpg` :
         tab === 'substitution' ? `sinagra-sostituzione-vs-${slug}.jpg` :
         `sinagra-vs-${slug}.jpg`;
-      await exportAsPng(ref.current, suffix, serverData);
+      await exportAsPng(ref.current, suffix);
     } catch (err) {
       console.error('Export failed:', err);
       alert("Errore durante l'esportazione. Riprova.");
@@ -424,11 +423,10 @@ function AppInner() {
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
       previewRef;
-    const serverData = posterServerData();
-    if (!ref.current && !serverData) return;
+    if (!ref.current) return;
     setPublishingIG(true);
     try {
-      const base64 = await exportAsBase64(ref.current, serverData);
+      const base64 = await exportAsBase64(ref.current);
       const res = await fetch('/api/publish-instagram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -493,12 +491,10 @@ function AppInner() {
       tab === 'result'       ? resultPreviewRef :
       tab === 'substitution' ? substitutionPreviewRef :
       previewRef;
-    const serverData = posterServerData();
-    // Su iOS la generazione avviene lato server: ref.current non è necessario
-    if (!ref.current && !serverData) return;
+    if (!ref.current) return;
     setPublishing(true);
     try {
-      const base64 = await exportAsBase64(ref.current, serverData);
+      const base64 = await exportAsBase64(ref.current);
       const res = await fetch('/api/publish-facebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
