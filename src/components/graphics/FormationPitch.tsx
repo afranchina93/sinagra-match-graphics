@@ -131,7 +131,7 @@ export function FormationPitch({ layout, starters, roster, duplicateLastNames, n
   const playerMap = Object.fromEntries(roster.map((p) => [p.id, p]));
 
   // Calcola le posizioni tramite formationEngine (linee tattiche auto-distribuite)
-  const slotPositions = computeSlotPositions(layout.name, layout);
+  const { positions: slotPositions, shirtScale } = computeSlotPositions(layout.name, layout);
 
   return (
     <>
@@ -181,6 +181,7 @@ export function FormationPitch({ layout, starters, roster, duplicateLastNames, n
             role={slot.role}
             showInitial={player ? duplicateLastNames.has(player.lastName) : false}
             numberOverride={playerId ? numberOverrides?.[playerId] : undefined}
+            scale={shirtScale}
           />
         );
       })}

@@ -154,6 +154,7 @@ function slotToAbsPx(rx: number, ry: number): { x: number; y: number } {
 const INNER_MARGIN = 38;
 const BLOCK_W = 104;
 const BLOCK_H = 130;
+const MARKER_TOTAL_H = 128; // shirt(106) + gap(2) + label(20)
 
 function getPitchEdgesAtY(canvasY: number): { left: number; right: number } {
   const { TL, TR, BL, BR } = PITCH_VERTICES;
@@ -196,14 +197,17 @@ function fixRowCollisions(xs: number[], canvasY: number): number[] {
 function computeSlotPositions(
   formationStr: string,
   layout: FormationLayout,
-): Record<string, { x: number; y: number }> {
+): { positions: Record<string, { x: number; y: number }>; shirtScale: number } {
   const rows = formationStr.split('-').map(Number);
   const totalOutfield = rows.reduce((a, b) => a + b, 0);
   const gkSlot   = layout.slots.find(s => s.role === 'goalkeeper');
   const outfield = layout.slots.filter(s => s.role !== 'goalkeeper');
 
   if (!gkSlot || outfield.length !== totalOutfield) {
-    return Object.fromEntries(layout.slots.map(slot => [slot.id, slotToAbsPx(slot.x, slot.y)]));
+    return {
+      positions: Object.fromEntries(layout.slots.map(slot => [slot.id, slotToAbsPx(slot.x, slot.y)])),
+      shirtScale: 1,
+    };
   }
 
   const rowSlots: FormationSlot[][] = [];
@@ -251,7 +255,13 @@ function computeSlotPositions(
     }
   }
 
-  return positions;
+  // Calcola shirtScale
+  const rowGap = (PLAYABLE_BOTTOM - PLAYABLE_TOP) / (numPositions - 1);
+  const shirtScale = rowGap < MARKER_TOTAL_H
+    ? Math.max(0.7, (rowGap - 8) / MARKER_TOTAL_H)
+    : 1;
+
+  return { positions, shirtScale };
 }
 
 // ── formations data ───────────────────────────────────────────────────────────
@@ -607,16 +617,21 @@ function drawPlayerMarker(
   shirtImg: Image,
   showInitial: boolean,
   numberOverride?: number,
+  shirtScale = 1,
 ) {
-  const TOTAL_H  = SHIRT_H + 2 + 22;
-  const shirtLeft = Math.round(x - SHIRT_W / 2);
+  const sw = Math.round(SHIRT_W * shirtScale);
+  const sh = Math.round(SHIRT_H * shirtScale);
+  const numFontSize = Math.round(29 * shirtScale);
+  const nameFontSize = Math.max(12, Math.round(17 * shirtScale));
+  const TOTAL_H  = sh + 2 + nameFontSize + 4;
+  const shirtLeft = Math.round(x - sw / 2);
   const shirtTop  = Math.round(y - TOTAL_H * 0.55);
 
   if (player) {
-    ctx.drawImage(shirtImg, shirtLeft, shirtTop, SHIRT_W, SHIRT_H);
+    ctx.drawImage(shirtImg, shirtLeft, shirtTop, sw, sh);
 
     const numColor = role === 'goalkeeper' ? YELLOW : WHITE;
-    ctx.font = '900 29px Impact, "DejaVu Sans", Arial, sans-serif';
+    ctx.font = `900 ${numFontSize}px Impact, "DejaVu Sans", Arial, sans-serif`;
     ctx.fillStyle = numColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -624,7 +639,7 @@ function drawPlayerMarker(
     ctx.shadowBlur = 3;
     ctx.shadowOffsetX = 1;
     ctx.shadowOffsetY = 1;
-    ctx.fillText(String(numberOverride ?? player.number), shirtLeft + SHIRT_W / 2, shirtTop + SHIRT_H / 2 + 6);
+    ctx.fillText(String(numberOverride ?? player.number), shirtLeft + sw / 2, shirtTop + sh / 2 + 6);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
     const name = player.posterName
@@ -633,13 +648,13 @@ function drawPlayerMarker(
         ? `${player.firstName[0].toUpperCase()}. ${player.lastName}`
         : player.lastName;
     const nameStr = name.toUpperCase();
-    const labelTop = shirtTop + SHIRT_H + 2;
+    const labelTop = shirtTop + sh + 2;
 
-    ctx.font = 'bold 17px Arial, sans-serif';
+    ctx.font = `bold ${nameFontSize}px Arial, sans-serif`;
     const nameW = ctx.measureText(nameStr).width;
     const padX = 6, padY = 2;
     const labelW = nameW + padX * 2;
-    const labelH = 17 + padY * 2;
+    const labelH = nameFontSize + padY * 2;
 
     ctx.fillStyle = '#1A1A1A';
     roundedRect(ctx, x - labelW / 2, labelTop, labelW, labelH, 3);
@@ -653,16 +668,16 @@ function drawPlayerMarker(
     ctx.strokeStyle = 'rgba(255,255,255,0.3)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
-    ctx.strokeRect(shirtLeft, shirtTop, SHIRT_W, SHIRT_H);
+    ctx.strokeRect(shirtLeft, shirtTop, sw, sh);
     ctx.setLineDash([]);
 
-    const labelTop = shirtTop + SHIRT_H + 2;
-    const lW = 30, lH = 22;
+    const labelTop = shirtTop + sh + 2;
+    const lW = 30, lH = nameFontSize + 4;
     ctx.fillStyle = 'rgba(20,20,20,0.88)';
     roundedRect(ctx, x - lW / 2, labelTop, lW, lH, 3);
     ctx.fill();
     ctx.fillStyle = WHITE;
-    ctx.font = 'bold 17px Arial, sans-serif';
+    ctx.font = `bold ${nameFontSize}px Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('—', x, labelTop + lH / 2);
@@ -1246,7 +1261,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ctx.drawImage(pitchImage, PITCH_IMG_OFFSET_X, PITCH_REGION.y + PITCH_IMG_OFFSET_Y, PITCH_IMG_W, PITCH_IMG_H);
 
   const layout = formationLayouts[matchConfig.formation] ?? formationLayouts['4-3-3'];
-  const slotPositions = computeSlotPositions(matchConfig.formation, layout);
+  const { positions: slotPositions, shirtScale } = computeSlotPositions(matchConfig.formation, layout);
   const playerMap = Object.fromEntries(roster.map(p => [p.id, p]));
 
   const allIds = [...Object.values(lineup.starters), ...lineup.bench].filter(Boolean);
@@ -1266,7 +1281,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const shirtImg = slot.role === 'goalkeeper' ? gkShirtImage : playerShirtImage;
     const numOverride = playerId ? lineup.numberOverrides?.[playerId] : undefined;
     drawPlayerMarker(ctx, player, abs.x, abs.y, slot.role, shirtImg,
-      player ? duplicateLastNames.has(player.lastName) : false, numOverride);
+      player ? duplicateLastNames.has(player.lastName) : false, numOverride, shirtScale);
   }
 
   // Layer 4: Bench panel

@@ -28,9 +28,11 @@ export interface PlayerMarkerProps {
   showInitial?: boolean;
   /** Numero override per questa partita */
   numberOverride?: number;
+  /** Fattore di scala per formazini con molte righe (default 1) */
+  scale?: number;
 }
 
-// Dimensioni di visualizzazione maglia (px nel canvas 1080×1350)
+// Dimensioni di visualizzazione maglia (px nel canvas 1080×1350) a scala 1
 const SHIRT_W = 97;
 const SHIRT_H = 106; // mantiene ratio 144/156 ≈ 0.923
 
@@ -42,12 +44,16 @@ const numberColor: Record<PlayerRole, string> = {
   forward:    '#FFFFFF',
 };
 
-export function PlayerMarker({ player, x, y, role, showInitial = false, numberOverride }: PlayerMarkerProps) {
+export function PlayerMarker({ player, x, y, role, showInitial = false, numberOverride, scale = 1 }: PlayerMarkerProps) {
   const shirtSrc = role === 'goalkeeper'
     ? POSTER_ASSETS.goalkeeperShirt
     : POSTER_ASSETS.playerShirt;
 
   const numColor = numberColor[role];
+  const sw = Math.round(SHIRT_W * scale);
+  const sh = Math.round(SHIRT_H * scale);
+  const numSize = Math.round(29 * scale);
+  const nameSize = Math.max(11, Math.round(17 * scale));
 
   return (
     <div
@@ -68,13 +74,13 @@ export function PlayerMarker({ player, x, y, role, showInitial = false, numberOv
     >
       {/* ── Maglia ── */}
       {player ? (
-        <div style={{ position: 'relative', width: SHIRT_W, height: SHIRT_H, flexShrink: 0 }}>
+        <div style={{ position: 'relative', width: sw, height: sh, flexShrink: 0 }}>
           {/* Asset PNG */}
           <img
             src={shirtSrc}
             alt=""
-            width={SHIRT_W}
-            height={SHIRT_H}
+            width={sw}
+            height={sh}
             style={{ display: 'block', objectFit: 'contain' }}
             crossOrigin="anonymous"
           />
@@ -86,12 +92,12 @@ export function PlayerMarker({ player, x, y, role, showInitial = false, numberOv
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              paddingTop: 12, // scende leggermente sotto il colletto
+              paddingTop: Math.round(12 * scale), // scende leggermente sotto il colletto
             }}
           >
             <span
               style={{
-                fontSize: 29,
+                fontSize: numSize,
                 fontWeight: 900,
                 fontFamily: 'Impact, Arial Black, sans-serif',
                 color: numColor,
@@ -108,8 +114,8 @@ export function PlayerMarker({ player, x, y, role, showInitial = false, numberOv
         /* Slot vuoto */
         <div
           style={{
-            width: SHIRT_W,
-            height: SHIRT_H,
+            width: sw,
+            height: sh,
             border: '2px dashed rgba(255,255,255,0.3)',
             borderRadius: 4,
           }}
@@ -129,7 +135,7 @@ export function PlayerMarker({ player, x, y, role, showInitial = false, numberOv
         <span
           style={{
             color: '#FFFFFF',
-            fontSize: 17,
+            fontSize: nameSize,
             fontWeight: 800,
             textTransform: 'uppercase',
             letterSpacing: '0.05em',

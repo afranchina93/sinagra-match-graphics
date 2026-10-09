@@ -83,17 +83,21 @@ function fixRowCollisions(xs: number[], canvasY: number): number[] {
   return distributeX(xs.length, left + 4, right - 4);
 }
 
+// Altezza nominale del blocco marker (maglia + gap + etichetta nome)
+const MARKER_TOTAL_H = 128; // shirt(106) + gap(2) + label(20)
+
 /**
- * Calcola le posizioni canvas assolute per tutti gli slot di una formazione.
+ * Calcola le posizioni canvas assolute per tutti gli slot di una formazione
+ * e restituisce lo shirtScale da applicare ai PlayerMarker.
  *
  * @param formationStr  Stringa modulo, es. "4-2-3-1"
  * @param layout        FormationLayout da formations.ts
- * @returns             Record<slotId, {x, y}> in px assoluti canvas 1080×1350
+ * @returns             { positions, shirtScale }
  */
 export function computeSlotPositions(
   formationStr: string,
   layout: FormationLayout,
-): Record<string, { x: number; y: number }> {
+): { positions: Record<string, { x: number; y: number }>; shirtScale: number } {
 
   const rows = formationStr.split('-').map(Number);
   const totalOutfield = rows.reduce((a, b) => a + b, 0);
@@ -103,9 +107,10 @@ export function computeSlotPositions(
 
   // Fallback legacy se il layout non corrisponde alla formation string
   if (!gkSlot || outfield.length !== totalOutfield) {
-    return Object.fromEntries(
-      layout.slots.map(slot => [slot.id, slotToAbsPx(slot.x, slot.y)])
-    );
+    return {
+      positions: Object.fromEntries(layout.slots.map(slot => [slot.id, slotToAbsPx(slot.x, slot.y)])),
+      shirtScale: 1,
+    };
   }
 
   // Suddivide outfield in righe tattiche per conteggio
@@ -171,5 +176,11 @@ export function computeSlotPositions(
     // se requiredHeight > playableHeight: impossibile risolvere, lascia invariato
   }
 
-  return positions;
+  // Calcola shirtScale: se il gap tra righe è minore di MARKER_TOTAL_H, scala le maglie
+  const rowGap = (PLAYABLE_BOTTOM - PLAYABLE_TOP) / (numPositions - 1);
+  const shirtScale = rowGap < MARKER_TOTAL_H
+    ? Math.max(0.7, (rowGap - 8) / MARKER_TOTAL_H)
+    : 1;
+
+  return { positions, shirtScale };
 }
