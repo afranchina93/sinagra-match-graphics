@@ -440,8 +440,15 @@ function AppInner() {
 
   useEffect(() => {
     if (!currentView) return;
-    const home = currentView.match.isHome ? 'Sinagra' : (currentView.opponent?.name ?? 'Avversario');
-    const away = currentView.match.isHome ? (currentView.opponent?.name ?? 'Avversario') : 'Sinagra';
+    const opponentName = currentView.opponent?.name ?? 'Avversario';
+    const home = currentView.match.isHome ? 'Sinagra' : opponentName;
+    const away = currentView.match.isHome ? opponentName : 'Sinagra';
+
+    const fullName = (id?: string, fallback = '') => {
+      if (!id) return fallback.toUpperCase();
+      const p = players.find(pl => pl.id === id);
+      return p ? `${p.lastName} ${p.firstName}`.toUpperCase() : fallback.toUpperCase();
+    };
 
     let caption = '';
     if (tab === 'lineup' || tab === 'match') {
@@ -456,8 +463,13 @@ function AppInner() {
         const allGoals = [...currentView.goals].sort((a, b) => b.minute - a.minute);
         const last = allGoals[0];
         const weScored = last?.side === sinagra;
-        const goalText = weScored ? '⚽ G O A L L L L L' : '⚽ GOAL';
-        const scorerLine = last ? `${last.minute}' ${last.playerName.toUpperCase()}` : '';
+        const goalText = weScored
+          ? '⚽ G O A L L L L L DEL SINAGRA!!!'
+          : `⚽ GOAL del ${opponentName}`;
+        const scorerName = last
+          ? (weScored ? fullName(last.playerId, last.playerName) : last.playerName.toUpperCase())
+          : '';
+        const scorerLine = last ? `${last.minute}' ${scorerName}` : '';
         caption = `🔴 𝗟𝗜𝗩𝗘\n\n${goalText}${scorerLine ? `\n\n${scorerLine}` : ''}\n\n${score}`;
       } else if (resultPhase === 'HALF TIME') {
         caption = `${hg}-${ag} 𝗮𝗹𝗹'𝗶𝗻𝘁𝗲𝗿𝘃𝗮𝗹𝗹𝗼 ⚔️\n💛❤️`;
@@ -466,13 +478,13 @@ function AppInner() {
       }
     } else if (tab === 'substitution') {
       const sub = currentView.substitutions.at(-1);
-      const out = sub?.playerOutName || 'N/A';
-      const inn = sub?.playerInName || 'N/A';
+      const out = fullName(sub?.playerOutId, sub?.playerOutName ?? 'N/A');
+      const inn = fullName(sub?.playerInId, sub?.playerInName ?? 'N/A');
       const min = sub?.minute ? `${sub.minute}' | ` : '';
-      caption = `🔄 ${min}Entra ${inn.toUpperCase()}, esce ${out.toUpperCase()}\n💛❤️`;
+      caption = `🔄 ${min}Entra ${inn}, esce ${out}\n💛❤️`;
     }
     setFbCaption(caption);
-  }, [tab, currentView, resultPhase]);
+  }, [tab, currentView, resultPhase, players]);
 
   // ── Pubblica su Facebook ──────────────────────────────────────────────────
 
