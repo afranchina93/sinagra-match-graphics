@@ -1000,7 +1000,7 @@ function AppInner() {
                 ) : tab === 'substitution' ? (
                   <SubstitutionPoster ref={substitutionPreviewRef} config={posterSubstitutionConfig} />
                 ) : (
-                  <FormationPoster ref={previewRef} roster={activeRoster} matchConfig={posterMatchConfig} lineup={posterLineup} />
+                  <FormationPoster ref={previewRef} roster={activeRoster} matchConfig={posterMatchConfig} lineup={posterLineup} numberOverrides={currentView?.match.numberOverrides} />
                 )}
               </div>
             </div>
