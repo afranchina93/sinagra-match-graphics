@@ -99,6 +99,7 @@ function AppInner() {
   const [resultPhase, setResultPhase] = useState<ResultPhase>('FULL TIME');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showFbModal, setShowFbModal] = useState(false);
+  const [fbModalReady, setFbModalReady] = useState(false);
   const [clubConfig, setClubConfig] = useState<ClubConfig>(DEFAULT_CLUB_CONFIG);
   const [staff, setStaff] = useState<StaffPerson[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -486,6 +487,16 @@ function AppInner() {
     setFbCaption(caption);
   }, [tab, currentView, resultPhase, players]);
 
+  function openFbModal() {
+    setFbModalReady(false);
+    setShowFbModal(true);
+    setTimeout(() => setFbModalReady(true), 400);
+  }
+  function closeFbModal() {
+    setShowFbModal(false);
+    setFbModalReady(false);
+  }
+
   // ── Pubblica su Facebook ──────────────────────────────────────────────────
 
   async function handlePublishFacebook() {
@@ -505,7 +516,7 @@ function AppInner() {
       const data = await res.json() as { success?: boolean; error?: string; detail?: string };
       if (data.success) {
         alert('✅ Pubblicato su Facebook!');
-        setShowFbModal(false);
+        closeFbModal();
       } else {
         alert(`❌ Errore: ${data.error ?? 'Sconosciuto'}${data.detail ? `\n${data.detail}` : ''}`);
       }
@@ -897,7 +908,7 @@ function AppInner() {
                 placeholder="Testo del post Facebook..." rows={2}
                 className="w-full bg-app-raised text-app-text text-xs rounded p-2 resize-none border border-white/10 focus:border-blue-500 focus:outline-none placeholder-app-dim" />
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => setShowFbModal(true)} disabled={publishing}
+                <button onClick={openFbModal} disabled={publishing}
                   className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-black py-2.5 rounded transition-colors uppercase tracking-wide">
                   {FacebookSVG}{publishing ? 'Pubbl...' : 'Facebook'}
                 </button>
@@ -976,7 +987,7 @@ function AppInner() {
               className="flex-1 flex items-center justify-center gap-2 bg-app-signal disabled:opacity-40 text-[#111111] text-sm font-black py-3 rounded transition-opacity uppercase">
               <Download size={16} />{exporting ? 'Esport...' : 'Esporta JPG'}
             </button>
-            <button onClick={() => setShowFbModal(true)} disabled={publishing}
+            <button onClick={openFbModal} disabled={publishing}
               className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors">
               {FacebookSVG}
             </button>
@@ -990,11 +1001,11 @@ function AppInner() {
 
       {/* ── FB CAPTION MODAL ── */}
       {showFbModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-end">
+        <div className="fixed inset-0 z-[200] bg-black/70 flex items-end">
           <div className="bg-app-surface w-full rounded-t-2xl p-4 space-y-3 border-t border-white/[0.08]">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black text-app-text uppercase tracking-wide">Testo post Facebook</h3>
-              <button onClick={() => setShowFbModal(false)} className="text-app-muted hover:text-app-text p-1">
+              <button onClick={closeFbModal} className="text-app-muted hover:text-app-text p-1">
                 <X size={18} />
               </button>
             </div>
@@ -1002,11 +1013,11 @@ function AppInner() {
               placeholder="Testo del post..." rows={4}
               className="w-full bg-app-raised text-app-text text-sm rounded p-3 resize-none border border-white/10 focus:border-blue-500 focus:outline-none placeholder-app-dim" />
             <div className="flex gap-2">
-              <button onClick={handlePublishFacebook} disabled={publishing}
+              <button onClick={handlePublishFacebook} disabled={publishing || !fbModalReady}
                 className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black py-3 rounded transition-colors uppercase">
                 {FacebookSVG}{publishing ? 'Pubblicazione...' : 'Pubblica'}
               </button>
-              <button onClick={() => setShowFbModal(false)}
+              <button onClick={closeFbModal}
                 className="px-5 py-3 bg-app-raised hover:bg-app-raised/80 text-app-text text-sm font-bold rounded border border-white/10 transition-colors">
                 Annulla
               </button>
