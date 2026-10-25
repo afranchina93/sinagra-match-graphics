@@ -41,6 +41,7 @@ import {
 } from './storage/db';
 import { exportAsPng, exportAsBase64, exportAsDistintaPdf } from './export/exportImage';
 import { supabase } from './storage/supabaseClient';
+import { parseLocalDate } from './utils/date';
 
 type Tab = 'matches' | 'match' | 'lineup' | 'roster' | 'result' | 'substitution' | 'distinta' | 'scout';
 type MainTab = 'matches' | 'roster' | 'match';
@@ -453,12 +454,29 @@ function AppInner() {
 
     let caption = '';
     if (tab === 'lineup' || tab === 'match') {
-      caption = `𝗜 𝗻𝗼𝘀𝘁𝗿𝗶 𝟭𝟭 ⚔️\nScendiamo in campo così 💛❤️`;
+      const dateStr = currentView.match.matchDate
+        ? parseLocalDate(currentView.match.matchDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : '';
+      const timeStr = currentView.match.kickoffTime ?? '';
+      const stadiumStr = currentView.match.stadium ?? '';
+      const matchLine = `${home} - ${away}`;
+      const infoLine = [stadiumStr, [dateStr, timeStr].filter(Boolean).join(' ')].filter(Boolean).join(' | ');
+      caption = `𝗜 𝗻𝗼𝘀𝘁𝗿𝗶 𝟭𝟭 ⚔️\nScendiamo in campo così 💛❤️\n\n${matchLine}${infoLine ? `\n${infoLine}` : ''}`;
     } else if (tab === 'result') {
       const hg = currentView.match.homeGoals;
       const ag = currentView.match.awayGoals;
       const score = `${home} ${hg} - ${ag} ${away}`;
       const sinagra = currentView.match.isHome ? 'home' : 'away';
+
+      const goalLines = [...currentView.goals]
+        .sort((a, b) => a.minute - b.minute)
+        .map(g => {
+          const weScored = g.side === sinagra;
+          const name = weScored
+            ? fullName(g.playerId, g.playerName)
+            : `${g.playerName.toUpperCase()} (${opponentName})`;
+          return `⚽ ${g.minute}' ${name}`;
+        }).join('\n');
 
       if (resultPhase === 'LIVE') {
         const allGoals = [...currentView.goals].sort((a, b) => b.minute - a.minute);
@@ -473,16 +491,19 @@ function AppInner() {
         const scorerLine = last ? `${last.minute}' ${scorerName}` : '';
         caption = `🔴 𝗟𝗜𝗩𝗘\n\n${goalText}${scorerLine ? `\n\n${scorerLine}` : ''}\n\n${score}`;
       } else if (resultPhase === 'HALF TIME') {
-        caption = `${hg}-${ag} 𝗮𝗹𝗹'𝗶𝗻𝘁𝗲𝗿𝘃𝗮𝗹𝗹𝗼 ⚔️\n💛❤️`;
+        caption = `𝗮𝗹𝗹'𝗶𝗻𝘁𝗲𝗿𝘃𝗮𝗹𝗹𝗼 ⚔️\n\n${score}${goalLines ? `\n\n${goalLines}` : ''}\n💛❤️`;
       } else {
-        caption = `𝗙𝗨𝗟𝗟 𝗧𝗜𝗠𝗘 💛❤️`;
+        caption = `𝗙𝗨𝗟𝗟 𝗧𝗜𝗠𝗘 💛❤️\n\n${score}${goalLines ? `\n\n${goalLines}` : ''}`;
       }
     } else if (tab === 'substitution') {
+      const hg = currentView.match.homeGoals;
+      const ag = currentView.match.awayGoals;
+      const score = `${home} ${hg} - ${ag} ${away}`;
       const sub = currentView.substitutions.at(-1);
       const out = fullName(sub?.playerOutId, sub?.playerOutName ?? 'N/A');
       const inn = fullName(sub?.playerInId, sub?.playerInName ?? 'N/A');
       const min = sub?.minute ? `${sub.minute}' | ` : '';
-      caption = `🔄 ${min}Entra ${inn}, esce ${out}\n💛❤️`;
+      caption = `🔄 ${min}Entra ${inn}, esce ${out}\n\n${score}\n💛❤️`;
     }
     setFbCaption(caption);
   }, [tab, currentView, resultPhase, players]);
