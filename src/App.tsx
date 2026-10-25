@@ -976,7 +976,7 @@ function AppInner() {
               className="flex-1 flex items-center justify-center gap-2 bg-app-signal disabled:opacity-40 text-[#111111] text-sm font-black py-3 rounded transition-opacity uppercase">
               <Download size={16} />{exporting ? 'Esport...' : 'Esporta JPG'}
             </button>
-            <button onClick={() => { setShowPreviewModal(false); setShowFbModal(true); }} disabled={publishing}
+            <button onClick={() => setShowFbModal(true)} disabled={publishing}
               className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-black px-4 py-3 rounded transition-colors">
               {FacebookSVG}
             </button>
