@@ -113,7 +113,7 @@ function teamFontSize(a: string, b: string): number {
 
 function SubstitutionHeader({ config }: { config: SubstitutionConfig }) {
   const dateStr = formatDate(config.date);
-  const timeStr = formatTime(config.date);
+  const timeStr = config.kickoffTime ? config.kickoffTime.replace('.', ':') : formatTime(config.date);
 
   const nameFontSize = teamFontSize(config.homeTeam, config.awayTeam);
 

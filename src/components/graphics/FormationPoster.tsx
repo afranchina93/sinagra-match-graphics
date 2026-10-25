@@ -580,7 +580,7 @@ export const FormationPoster = forwardRef<HTMLDivElement, FormationPosterProps>(
           homeTeam={homeTeam}
           awayTeam={awayTeam}
           dateStr={formatDate(matchConfig.date)}
-          timeStr={formatTime(matchConfig.date)}
+          timeStr={matchConfig.kickoffTime ? matchConfig.kickoffTime.replace('.', ':') : formatTime(matchConfig.date)}
         />
 
         {/* Layer 2: "LINE UP" + pennellata */}

@@ -67,6 +67,7 @@ export interface ResultConfig {
   matchday: string;
   competition: string;
   date: string;
+  kickoffTime?: string;
   stadium: string;
   homeTeam: string;
   awayTeam: string;
@@ -93,6 +94,7 @@ export interface SubstitutionConfig {
   matchday: string;
   competition: string;
   date: string;
+  kickoffTime?: string;
   stadium: string;
   homeTeam: string;
   awayTeam: string;
@@ -174,6 +176,7 @@ export interface MatchConfig {
   opponent: string;
   isHome: boolean;
   date: string;
+  kickoffTime?: string;
   competition: string;
   matchday: string;
   formation: string;
