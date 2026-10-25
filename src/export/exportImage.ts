@@ -84,6 +84,9 @@ export async function exportAsPng(
   const restore = await preinlineImages(element);
   await waitForRepaint();
   try {
+    // Prima chiamata scartata: html-to-image ha un bug noto per cui
+    // il primo render può produrre immagini nere; il secondo è affidabile.
+    await toJpeg(element, JPEG_OPTIONS);
     const jpeg = await toJpeg(element, JPEG_OPTIONS);
     triggerDownload(jpeg, filename);
   } finally {
@@ -132,6 +135,8 @@ export async function exportAsBase64(
   const restore = await preinlineImages(element);
   await waitForRepaint();
   try {
+    // Prima chiamata scartata: bug noto di html-to-image (primo render nero)
+    await toJpeg(element, JPEG_OPTIONS);
     return await toJpeg(element, JPEG_OPTIONS);
   } finally {
     restore();

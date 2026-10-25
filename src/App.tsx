@@ -897,7 +897,7 @@ function AppInner() {
                 placeholder="Testo del post Facebook..." rows={2}
                 className="w-full bg-app-raised text-app-text text-xs rounded p-2 resize-none border border-white/10 focus:border-blue-500 focus:outline-none placeholder-app-dim" />
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={handlePublishFacebook} disabled={publishing}
+                <button onClick={() => setShowFbModal(true)} disabled={publishing}
                   className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-black py-2.5 rounded transition-colors uppercase tracking-wide">
                   {FacebookSVG}{publishing ? 'Pubbl...' : 'Facebook'}
                 </button>
